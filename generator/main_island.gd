@@ -15,7 +15,8 @@ static func generate(height: PackedFloat32Array) -> PackedByteArray:
 	var queue := PackedInt32Array()
 	queue.resize(cells)
 	var areas: int = 0
-	var largest: int = 0
+	# -1 matches no cell, so a map with no land gives an empty mask instead of marking the sea.
+	var largest: int = -1
 	var largest_size: int = 0
 	for start: int in cells:
 		if area[start] != 0 or height[start] <= 0.0:

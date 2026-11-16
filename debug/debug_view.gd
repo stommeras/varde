@@ -6,7 +6,7 @@ const PIXELS_PER_CELL: int = 4
 const PAN_SPEED: float = 400.0
 const ZOOM_MIN: float = 0.08
 const ZOOM_MAX: float = 4.0
-## Height is drawn from a table of this many colors per side of sea level, instead of one lookup per cell.
+## Height and moisture are drawn from a table of this many colors, instead of one ramp lookup per cell.
 const SHADES: int = 256
 
 enum Layer { HEIGHT, MOISTURE, MATERIAL }
@@ -138,8 +138,8 @@ func _height_image(height: PackedFloat32Array) -> Image:
 	for i: int in height.size():
 		var h: float = height[i]
 		# The sea floor rarely drops below -1, so depth is clamped there.
-		var shade: int = int(clampf(h if h >= 0.0 else h + 1.0, 0.0, 1.0) * (SHADES - 1)) * 3
-		var table: PackedByteArray = land if h >= 0.0 else sea
+		var shade: int = int(clampf(h if h > 0.0 else h + 1.0, 0.0, 1.0) * (SHADES - 1)) * 3
+		var table: PackedByteArray = land if h > 0.0 else sea
 		pixels[i * 3] = table[shade]
 		pixels[i * 3 + 1] = table[shade + 1]
 		pixels[i * 3 + 2] = table[shade + 2]
@@ -162,17 +162,17 @@ func _moisture_image(moisture: PackedFloat32Array) -> Image:
 
 
 ## Each material in its ramp's middle step. Islets use the darkest step, so the main island stands out.
-func _material_image(material: PackedByteArray, main_island: PackedByteArray) -> Image:
+func _material_image(terrain: PackedByteArray, main_island: PackedByteArray) -> Image:
 	var main := PackedByteArray()
 	var islet := PackedByteArray()
-	for terrain: Ramps.Terrain in Ramps.Terrain.values():
-		main.append_array(_rgb(Ramps.base(terrain)))
-		islet.append_array(_rgb(Ramps.RAMPS[terrain][0]))
+	for kind: Ramps.Terrain in Ramps.Terrain.values():
+		main.append_array(_rgb(Ramps.base(kind)))
+		islet.append_array(_rgb(Ramps.RAMPS[kind][0]))
 	var pixels := PackedByteArray()
-	pixels.resize(material.size() * 3)
-	for i: int in material.size():
-		var table: PackedByteArray = main if main_island[i] == 1 or material[i] == Ramps.Terrain.WATER else islet
-		var color: int = material[i] * 3
+	pixels.resize(terrain.size() * 3)
+	for i: int in terrain.size():
+		var table: PackedByteArray = main if main_island[i] == 1 or terrain[i] == Ramps.Terrain.WATER else islet
+		var color: int = terrain[i] * 3
 		pixels[i * 3] = table[color]
 		pixels[i * 3 + 1] = table[color + 1]
 		pixels[i * 3 + 2] = table[color + 2]

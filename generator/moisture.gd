@@ -19,8 +19,9 @@ static func generate(rng: RandomNumberGenerator) -> PackedFloat32Array:
 			moisture[i] = noise.get_noise_2d(x, y)
 			lowest = minf(lowest, moisture[i])
 			highest = maxf(highest, moisture[i])
-	# Fractal noise spans a different range on each seed. Stretching it to 0..1 keeps the
-	# material thresholds meaning the same thing on every island.
+	# Fractal noise spans a different range on each seed. Stretching it to 0..1 over the whole map
+	# keeps the material thresholds close in meaning between islands, though the land's own share
+	# of the range still varies.
 	for i: int in moisture.size():
 		moisture[i] = (moisture[i] - lowest) / (highest - lowest)
 	return moisture

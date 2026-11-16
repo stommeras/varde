@@ -19,6 +19,7 @@ const TABLE: Array = [
 ]
 
 
+## Returns a Ramps.Terrain value per cell from the height and moisture of the same cell.
 static func generate(height: PackedFloat32Array, moisture: PackedFloat32Array) -> PackedByteArray:
 	var material := PackedByteArray()
 	material.resize(height.size())
