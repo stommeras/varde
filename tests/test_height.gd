@@ -1,20 +1,22 @@
 extends "res://tests/test_case.gd"
 
-const SEEDS: int = 10
-
-
-func test_same_seed_gives_same_height() -> void:
-	expect(IslandGenerator.generate(7).height == IslandGenerator.generate(7).height, "seed 7 gave two different islands")
+func test_same_seed_gives_same_island() -> void:
+	var a: IslandData = IslandGenerator.generate(7)
+	var b: IslandData = island(7)
+	expect(a.height == b.height, "seed 7 gave two different heights")
+	expect(a.moisture == b.moisture, "seed 7 gave two different moistures")
+	expect(a.material == b.material, "seed 7 gave two different materials")
+	expect(a.main_island == b.main_island, "seed 7 gave two different main islands")
 
 
 func test_different_seeds_differ() -> void:
-	expect(IslandGenerator.generate(7).height != IslandGenerator.generate(8).height, "seeds 7 and 8 gave the same island")
+	expect(island(7).height != island(8).height, "seeds 7 and 8 gave the same island")
 
 
 func test_islands_have_sea_edges_and_a_summit() -> void:
 	var size: int = IslandData.SIZE
 	for island_seed: int in SEEDS:
-		var height: PackedFloat32Array = IslandGenerator.generate(island_seed).height
+		var height: PackedFloat32Array = island(island_seed).height
 		var land: int = 0
 		var highest: float = -INF
 		for h: float in height:

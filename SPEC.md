@@ -64,7 +64,7 @@ Each step reads the arrays the earlier steps produced. All data lives in packed 
 
 1. **Height.** Layered noise, multiplied by a falloff from the center so the edges sink into the sea.
 2. **Moisture.** A second noise layer.
-3. **Material.** A lookup table from height and moisture to beach, grass, forest, marsh, rock or snow.
+3. **Material.** A lookup table from height and moisture to beach, grass, forest, marsh, rock or snow. A flood fill then marks the main island, the largest connected land area. Islets off its coast stay as scenery the player can see but not reach, and stats, peaks, vardes and points of interest use only the main island.
 4. **Rivers.** Fill pits so water can flow out, then trace from springs at high points down the steepest slope to the sea.
 5. **Features.** Find nameable things: peaks with their prominence, lakes, river forks, coves and the largest forest.
 6. **Summit and route.** Pick the contenders and rescale them into a narrow height band, pick the true summit, place the clouds, place the landing beach, and find a walkable route between beach and summit.

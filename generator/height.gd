@@ -5,18 +5,16 @@ class_name Height
 const PEAK_SHARPNESS: float = 1.8
 
 
-static func generate(island_seed: int) -> PackedFloat32Array:
+## Each noise layer takes its seed from rng, in a fixed order.
+static func generate(rng: RandomNumberGenerator) -> PackedFloat32Array:
 	var size: int = IslandData.SIZE
-	# Each noise layer gets its own seed from this generator, in a fixed order.
-	var rng := RandomNumberGenerator.new()
-	rng.seed = island_seed
-	var base := _noise(rng, 0.004, 6)
+	var base := make_noise(rng, 0.004, 6)
 	# Ridged noise gives sharp crests, and a slow mask decides where the mountains rise.
-	var ridges := _noise(rng, 0.005, 5)
+	var ridges := make_noise(rng, 0.005, 5)
 	ridges.fractal_type = FastNoiseLite.FRACTAL_RIDGED
-	var mountains := _noise(rng, 0.003, 2)
+	var mountains := make_noise(rng, 0.003, 2)
 	# Bends the falloff so the coast isn't a rounded square.
-	var coast := _noise(rng, 0.002, 3)
+	var coast := make_noise(rng, 0.002, 3)
 
 	var height := PackedFloat32Array()
 	height.resize(size * size)
@@ -46,7 +44,8 @@ static func generate(island_seed: int) -> PackedFloat32Array:
 	return height
 
 
-static func _noise(rng: RandomNumberGenerator, frequency: float, octaves: int) -> FastNoiseLite:
+## Simplex noise with fractal octaves, seeded from rng. Other steps use it for their own layers.
+static func make_noise(rng: RandomNumberGenerator, frequency: float, octaves: int) -> FastNoiseLite:
 	var noise := FastNoiseLite.new()
 	noise.seed = rng.randi()
 	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
