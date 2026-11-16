@@ -12,3 +12,4 @@ A calm, run-based exploration game made in Godot 4. Each run generates an island
 - Write all in-game text in Norwegian bokmål. UI text goes through `tr()` with a key and lives in the translation CSV, never as a literal in a script or scene. Varde note templates live in one file per language.
 - Every color comes from the ramps defined in one place (see `SPEC.md`). Don't add one-off colors in shaders or scripts.
 - Work on a branch named `<type>/<short-description>` (for example `feat/river-tracing`) and merge to `main` through a pull request. Write commit messages as [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`), using the same types as the branch names.
+- Track work in GitHub issues. Name the issue a PR finishes with `Closes #<number>` in the PR body.
