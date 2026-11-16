@@ -92,6 +92,8 @@ tests/       headless generator tests
 5. **The summit.** The summit varde, the trail with its notes, building your own vardes, and the end screen.
 6. **Polish.** Generated trees, a day cycle with moving shadows, particles, glow and sound.
 
-## Open questions
+## Language
 
-- Which language is the in-game text in: Norwegian, English, or both?
+All in-game text is in Norwegian bokmål. Godot's translation system carries the UI text, so English can come later as one more column in the translation CSV.
+
+Varde notes are generated, and Norwegian and English need different grammar, such as definite endings ("elva") and gendered words ("en elv", "et vann"). The note templates therefore live in one file per language. Adding English means writing a new template file, not changing the generator.

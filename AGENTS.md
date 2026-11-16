@@ -9,5 +9,6 @@ A calm, run-based exploration game made in Godot 4. Each run generates an island
 - The same seed must always give the same island. Pass a seeded `RandomNumberGenerator` or seed value through the generator. Never call the global `randi()` or `randf()` there.
 - Keep `generator/` free of nodes and scenes. It takes a seed and returns `IslandData`, so it runs in tests and on a background thread.
 - Generator tests live in `tests/` and run headless with `godot --headless -s tests/run.gd`. A change is done when the tests pass and the project opens without errors.
+- Write all in-game text in Norwegian bokmål. UI text goes through `tr()` with a key and lives in the translation CSV, never as a literal in a script or scene. Varde note templates live in one file per language.
 - Every color comes from the ramps defined in one place (see `SPEC.md`). Don't add one-off colors in shaders or scripts.
 - Work on a branch named `<type>/<short-description>` (for example `feat/river-tracing`) and merge to `main` through a pull request. Write commit messages as [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`), using the same types as the branch names.
