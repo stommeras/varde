@@ -5,18 +5,22 @@ class_name Height
 const PEAK_SHARPNESS: float = 1.8
 
 
-static func generate(seed: int, size: int) -> PackedFloat32Array:
-	var base := _noise(seed, 0.004, 6)
+static func generate(island_seed: int) -> PackedFloat32Array:
+	var size: int = IslandData.SIZE
+	# Each noise layer gets its own seed from this generator, in a fixed order.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = island_seed
+	var base := _noise(rng, 0.004, 6)
 	# Ridged noise gives sharp crests, and a slow mask decides where the mountains rise.
-	var ridges := _noise(seed + 1, 0.005, 5)
+	var ridges := _noise(rng, 0.005, 5)
 	ridges.fractal_type = FastNoiseLite.FRACTAL_RIDGED
-	var mountains := _noise(seed + 2, 0.003, 2)
+	var mountains := _noise(rng, 0.003, 2)
 	# Bends the falloff so the coast isn't a rounded square.
-	var coast := _noise(seed + 3, 0.002, 3)
+	var coast := _noise(rng, 0.002, 3)
 
 	var height := PackedFloat32Array()
 	height.resize(size * size)
-	var half: float = size / 2.0
+	var half: float = (size - 1) / 2.0
 	var highest: float = 0.0
 	for y: int in size:
 		for x: int in size:
@@ -30,8 +34,10 @@ static func generate(seed: int, size: int) -> PackedFloat32Array:
 				+ (ridges.get_noise_2d(x, y) * 0.5 + 0.5) * mask * 0.8 \
 				- falloff * 1.1 \
 				- smoothstep(0.85, 1.0, maxf(absf(dx), absf(dy))) * 2.0
-			height[y * size + x] = h
-			highest = maxf(highest, h)
+			var i: int = IslandData.index(x, y)
+			height[i] = h
+			# Read back the stored 32-bit value, so dividing by it gives exactly 1.0.
+			highest = maxf(highest, height[i])
 
 	# Scale land so the summit is exactly 1.0, and leave the sea floor as it is.
 	for i: int in height.size():
@@ -40,9 +46,9 @@ static func generate(seed: int, size: int) -> PackedFloat32Array:
 	return height
 
 
-static func _noise(seed: int, frequency: float, octaves: int) -> FastNoiseLite:
+static func _noise(rng: RandomNumberGenerator, frequency: float, octaves: int) -> FastNoiseLite:
 	var noise := FastNoiseLite.new()
-	noise.seed = seed
+	noise.seed = rng.randi()
 	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	noise.frequency = frequency
 	noise.fractal_octaves = octaves

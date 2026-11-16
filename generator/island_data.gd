@@ -4,7 +4,7 @@ extends RefCounted
 
 const SIZE: int = 1024
 
-var seed: int
+var island_seed: int
 ## Sea level is 0.0, the highest cell is exactly 1.0, and the sea floor is negative.
 var height: PackedFloat32Array
 
