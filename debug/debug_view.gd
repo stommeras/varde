@@ -25,8 +25,9 @@ var _sprite := Sprite2D.new()
 var _camera := Camera2D.new()
 var _seed_field := LineEdit.new()
 var _info := Label.new()
-## Covers the view while the generator runs. Null thread means no generation is running.
+## Covers the view while the generator runs.
 var _charting := ColorRect.new()
+## Null means no generation is running.
 var _thread: Thread
 
 
@@ -120,7 +121,6 @@ func _on_seed_submitted(text: String) -> void:
 func _generate(island_seed: int) -> void:
 	if _thread != null:
 		return
-	_seed_field.text = str(island_seed)
 	_charting.show()
 	_thread = Thread.new()
 	_thread.start(IslandGenerator.generate.bind(island_seed))
@@ -129,6 +129,8 @@ func _generate(island_seed: int) -> void:
 func _finish_generating() -> void:
 	_island = _thread.wait_to_finish()
 	_thread = null
+	# Set here, not in _generate, so a request dropped mid-run can't leave the wrong seed showing.
+	_seed_field.text = str(_island.island_seed)
 	# The total sums the steps instead of timing from _generate, because a hidden window runs at
 	# about 1 frame per second and the poll in _process would add up to a second.
 	var total: int = 0
@@ -150,6 +152,7 @@ func _finish_generating() -> void:
 func _exit_tree() -> void:
 	if _thread != null:
 		_thread.wait_to_finish()
+		_thread = null
 
 
 func _show(layer: Layer) -> void:
