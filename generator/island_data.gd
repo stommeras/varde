@@ -15,6 +15,9 @@ var material: PackedByteArray
 ## 1 on the main island, the largest connected land area, and 0 on islets and sea.
 ## Stats, peaks, vardes and points of interest use only these cells.
 var main_island: PackedByteArray
+## Milliseconds each generator step took, in the order the steps ran. Timing differs between runs,
+## so this is the one field that the same seed doesn't reproduce.
+var step_msec: Dictionary[String, int] = {}
 
 
 ## The array index of the cell at column x, row y.
