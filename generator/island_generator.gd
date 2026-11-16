@@ -1,0 +1,9 @@
+class_name IslandGenerator
+## Runs the generator steps in order. Takes a seed and returns IslandData, with no nodes or scenes.
+
+
+static func generate(island_seed: int) -> IslandData:
+	var data := IslandData.new()
+	data.island_seed = island_seed
+	data.height = Height.generate(island_seed)
+	return data
