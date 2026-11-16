@@ -56,7 +56,7 @@ The style is detailed pixel art: individual pixels everywhere, textured material
 | Base resolution | Chosen by eye in milestone 2 from 480×270, 640×360 and 960×540 (each scales exactly to 1080p). Stretch mode `viewport`, integer scaling |
 | Logic grid | 1024×1024 cells |
 | World size | One world unit per cell. The summit stands about 60 units high, a value to tune in milestone 2 |
-| Camera | Orthographic, facing north, about 40° from vertical, no rotation |
+| Camera | Orthographic, facing north, about 40° from vertical, no rotation. The zoom (how many cells fit on screen, about 90 top to bottom to start) gets chosen by eye in milestone 2 |
 | Shader inputs | Grid-sized textures for height (`FORMAT_RF`), material (`FORMAT_R8`) and knowledge (`FORMAT_R8`) |
 | Noise | Godot's built-in `FastNoiseLite` |
 | Controls | WASD or arrow keys to walk, E to survey a peak, M for the map |
@@ -92,14 +92,14 @@ world/       terrain mesh chunks, the terrain shader, the camera, decoration sca
 player/      movement checked against the grid
 map/         the map screen and contour drawing
 notes/       one note template file per language
-debug/       seed input, layer toggles, free camera, resolution, tilt and height sliders, sun angle, reveal-all
+debug/       seed input, layer toggles, free camera, resolution, zoom, tilt and height sliders, sun angle, reveal-all
 tests/       headless generator tests
 ```
 
 ## Milestones
 
 1. **Generator and debug view.** Generate an island from a seed and show the height, moisture and material layers as images.
-2. **The look.** It starts with a 3D view of a real island with a free camera, where you choose the base resolution, the tilt and the summit height by eye. Then the terrain mesh, the terrain shader with materials, sun and shadows, and water. This step decides how the game feels, and it is done when 5 seeds look right.
+2. **The look.** It starts with a 3D view of a real island with a free camera, where you choose the base resolution, the zoom, the tilt and the summit height by eye. Then the terrain mesh, the terrain shader with materials, sun and shadows, and water. This step decides how the game feels, and it is done when 5 seeds look right.
 3. **Walking.** Player, camera, walkability and the terrain fade in front of the player.
 4. **Exploring.** Line of sight, the knowledge texture, fog with land rising out of it, peaks and surveying, and the map screen with contour lines.
 5. **The summit.** Contenders and clouds, the summit varde, the trail with its notes, and the end screen.
