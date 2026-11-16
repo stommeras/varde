@@ -19,3 +19,12 @@ static var RAMPS: Dictionary[Terrain, PackedColorArray] = {
 static func base(terrain: Terrain) -> Color:
 	var ramp: PackedColorArray = RAMPS[terrain]
 	return ramp[ramp.size() / 2]
+
+
+## A color from anywhere along a ramp, blending between its steps. t runs from 0 (darkest) to 1 (lightest).
+## Only debug views blend. The game itself snaps to the steps.
+static func sample(terrain: Terrain, t: float) -> Color:
+	var ramp: PackedColorArray = RAMPS[terrain]
+	var position: float = clampf(t, 0.0, 1.0) * (ramp.size() - 1)
+	var step: int = mini(int(position), ramp.size() - 2)
+	return ramp[step].lerp(ramp[step + 1], position - step)
