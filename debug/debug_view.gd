@@ -28,7 +28,6 @@ var _info := Label.new()
 ## Covers the view while the generator runs. Null thread means no generation is running.
 var _charting := ColorRect.new()
 var _thread: Thread
-var _started: int
 
 
 func _ready() -> void:
@@ -123,7 +122,6 @@ func _generate(island_seed: int) -> void:
 		return
 	_seed_field.text = str(island_seed)
 	_charting.show()
-	_started = Time.get_ticks_msec()
 	_thread = Thread.new()
 	_thread.start(IslandGenerator.generate.bind(island_seed))
 
@@ -131,9 +129,12 @@ func _generate(island_seed: int) -> void:
 func _finish_generating() -> void:
 	_island = _thread.wait_to_finish()
 	_thread = null
-	var total: int = Time.get_ticks_msec() - _started
+	# The total sums the steps instead of timing from _generate, because a hidden window runs at
+	# about 1 frame per second and the poll in _process would add up to a second.
+	var total: int = 0
 	var steps := PackedStringArray()
 	for step: String in _island.step_msec:
+		total += _island.step_msec[step]
 		steps.append("%s %d ms" % [step, _island.step_msec[step]])
 	print("Seed %d: %s, total %d ms" % [_island.island_seed, ", ".join(steps), total])
 	_info.text = "%d ms" % total
