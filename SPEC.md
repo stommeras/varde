@@ -33,14 +33,18 @@ A run starts from a title screen with "Ny øy" and an optional seed field. Quitt
 
 The style is detailed pixel art: individual pixels everywhere, textured materials, per-pixel lighting, glow and movement. None of it is drawn by hand.
 
-- Each material (sand, grass, forest, rock, snow, water) has a ramp of 4 to 6 colors. Lighting snaps to the ramp steps with ordered dithering instead of blending smoothly. All ramps, including a warm ramp for the lamp, live in one file.
-- Hillshading comes from the heightmap, lit from a sun direction. Cast shadows come from stepping across the heightmap toward the sun, and they move as the sun moves through the day.
+**The world is 3D, rendered as pixel art.** A terrain mesh built from the heightmap is drawn into a low-resolution viewport and scaled up with integer scaling. You move in 2D on the grid (left, right, forward, back), and the terrain rises and falls under you. The camera is orthographic, faces north and looks down at about 40° from vertical. The player can't rotate it, so "gå østover" in a note always points right on screen and on the map. Orthographic projection keeps every pixel the same size at any distance.
+
+- Each material (sand, grass, forest, rock, snow, water) has a ramp of 4 to 6 colors. The terrain shader snaps lighting to the ramp steps with ordered dithering instead of blending smoothly. All ramps, including a warm ramp for the lamp, live in `world/ramps.gd`.
+- A directional light is the sun. Its shadows fall across the terrain and move as the sun moves through the day.
+- Steep faces use the rock ramp with horizontal strata, so cliffs read as cliffs from the tilted camera.
 - Water gets its color from depth, with animated ripples and foam at the shore.
 - Noise distorts material boundaries so the logic grid never shows.
-- Trees, rocks and grass tufts are sprites generated at startup, with 20 to 30 variants per biome, scattered using noise.
-- The lamp is a `PointLight2D` whose energy and offset flicker from noise, snapped to the lamp ramp with dithering, with a few embers from `GPUParticles2D`.
-- `GPUParticles2D` adds birds, falling leaves and mist. 2D HDR and glow give bloom.
-- Unexplored land is fog with a dithered edge.
+- Trees, rocks and grass tufts are sprites generated at startup, with 20 to 30 variants per biome, scattered using noise and drawn as billboards. 3D trees are a `later` idea if billboards look flat.
+- When terrain stands between the camera and the player, the terrain in front of the player fades out with a dithered edge.
+- The lamp is an `OmniLight3D` whose energy and offset flicker from noise, snapped to the lamp ramp with dithering, with a few embers from `GPUParticles3D`.
+- `GPUParticles3D` adds birds, falling leaves and mist. Glow in the `WorldEnvironment` gives bloom.
+- Unexplored land lies flat at sea level under a dithered fog. When you see it, it rises to its real height over about a second, so the land grows out of the mist. That way the silhouettes of unexplored peaks never give the summit away.
 
 **The map screen** is ink on aged paper, drawn once at 1024×1024 pixels (one pixel per cell) into a `SubViewport`. You pan and zoom the resulting texture, and the PNG export uses it at full size. North is always up, and a marker shows where you are. Surveyed land gets contour lines from marching squares over the heightmap, with every fifth line thicker. The map redraws only when the player surveys new land. The art style of the map is open for later.
 
@@ -49,14 +53,15 @@ The style is detailed pixel art: individual pixels everywhere, textured material
 | Item | Value |
 |---|---|
 | Engine | Godot 4.7, GDScript |
-| Base resolution | 640×360, stretch mode `viewport`, integer scaling |
+| Base resolution | Chosen by eye in milestone 2 from 480×270, 640×360 and 960×540 (each scales exactly to 1080p). Stretch mode `viewport`, integer scaling |
 | Logic grid | 1024×1024 cells |
-| World size | 4096×4096 pixels (4 pixels per cell) |
+| World size | One world unit per cell. The summit stands about 60 units high, a value to tune in milestone 2 |
+| Camera | Orthographic, facing north, about 40° from vertical, no rotation |
 | Shader inputs | Grid-sized textures for height (`FORMAT_RF`), material (`FORMAT_R8`) and knowledge (`FORMAT_R8`) |
 | Noise | Godot's built-in `FastNoiseLite` |
 | Controls | WASD or arrow keys to walk, E to survey a peak, M for the map |
 
-The shader generates fine detail from grid-sized textures. A 4096×4096 texture per layer would cost 64 MB each.
+The terrain shader generates detail finer than a cell from grid-sized textures. The terrain mesh comes in chunks, with fewer vertices for chunks far from the camera, because a single mesh of 1M cells is too heavy.
 
 ## Generator pipeline
 
@@ -76,27 +81,27 @@ Generation runs on a background thread behind a short "charting the island" scre
 ## Runtime systems
 
 - **Line of sight** runs on the CPU and is recomputed only when the player enters a new cell, casting a few hundred rays across the heightmap.
-- **Knowledge** is one byte per cell: unknown (0), seen (1) or surveyed (2). The fog and the map are drawn from it.
+- **Knowledge** is one byte per cell: unknown (0), seen (1) or surveyed (2). The terrain shader reads it to lower unknown land under the fog, and the map is drawn from it.
 - **Movement** is free movement checked against the grid, with no physics shapes for terrain. Marsh and forest slow you down. Water blocks you, and so does a step between neighboring cells whose height difference is above a threshold, going up or down. The route guarantee in generator step 6 uses the same check, so the player can never walk into a valley with no way out.
 
 ## Project layout
 
 ```
 generator/   pure GDScript classes: noise, rivers, features, route, vardes, notes -> IslandData
-world/       the island shader, a Sprite2D sized to the world, decoration scattering
+world/       terrain mesh chunks, the terrain shader, the camera, decoration scattering, the color ramps
 player/      movement checked against the grid
 map/         the map screen and contour drawing
 notes/       one note template file per language
-debug/       seed input, layer toggles, free camera, sun angle, reveal-all
+debug/       seed input, layer toggles, free camera, resolution, tilt and height sliders, sun angle, reveal-all
 tests/       headless generator tests
 ```
 
 ## Milestones
 
 1. **Generator and debug view.** Generate an island from a seed and show the height, moisture and material layers as images.
-2. **The look.** The world shader with materials, hillshading and water. This step decides how the game feels. The debug view gets a free camera and a sun-angle slider, and the milestone is done when 5 seeds look right at 1x zoom.
-3. **Walking.** Player, camera and walkability.
-4. **Exploring.** Line of sight, the knowledge texture, fog, peaks and surveying, and the map screen with contour lines.
+2. **The look.** It starts with a 3D view of a real island with a free camera, where you choose the base resolution, the tilt and the summit height by eye. Then the terrain mesh, the terrain shader with materials, sun and shadows, and water. This step decides how the game feels, and it is done when 5 seeds look right.
+3. **Walking.** Player, camera, walkability and the terrain fade in front of the player.
+4. **Exploring.** Line of sight, the knowledge texture, fog with land rising out of it, peaks and surveying, and the map screen with contour lines.
 5. **The summit.** Contenders and clouds, the summit varde, the trail with its notes, and the end screen.
 6. **Polish.** Generated trees, the day cycle with moving shadows and the lamp, particles, glow and sound.
 
