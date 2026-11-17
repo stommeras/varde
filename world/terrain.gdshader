@@ -177,10 +177,15 @@ void fragment() {
 void light() {
 	// ATTENUATION is the sun's shadow, 0 in full shadow. A shadowed face shades like one turned away
 	// from the sun, and then shadow_steps darker, so a shadow on flat ground still shows under a low sun.
-	float lit = clamp(dot(NORMAL, LIGHT), 0.0, 1.0) * ATTENUATION;
+	float facing = clamp(dot(NORMAL, LIGHT), 0.0, 1.0);
+	float lit = facing * ATTENUATION;
+	// Faces turned away from the sun always fall in the shadow map's shadow, because the sun's ray to
+	// them passes through the hill. Only faces turned toward it take the extra steps, so the shade side
+	// keeps the shade step. The short ramp in from the terminator hides shadow acne at grazing angles.
+	float cast = (1.0 - ATTENUATION) * smoothstep(0.0, 0.05, facing);
 	int kind = int(terrain);
 	int steps = ramp_sizes[kind];
-	float position = mix(shade, 1.0, lit) * ramp_reach * float(steps - 1) + step_offset - shadow_steps * (1.0 - ATTENUATION);
+	float position = mix(shade, 1.0, lit) * ramp_reach * float(steps - 1) + step_offset - shadow_steps * cast;
 	// Float mod, because the count is negative left of and below the origin, where % on ints is undefined.
 	ivec2 pixel = ivec2(mod(floor(world_pixel), 4.0));
 	float threshold = (BAYER[pixel.y * 4 + pixel.x] + 0.5) / 16.0;

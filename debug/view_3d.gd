@@ -2,8 +2,8 @@ class_name DebugView3D
 extends Node3D
 ## Shows the island as a 3D terrain mesh through the game's orthographic camera, which faces north.
 ## Arrow keys or dragging with the left mouse button pan, the scroll wheel zooms, and sliders set the base resolution, zoom, tilt and
-## summit height that milestone 2 chooses by eye, and the sun's angle, so its shadows can be checked
-## from morning to evening.
+## summit height that milestone 2 chooses by eye. One more slider moves the sun, so its shadows can be
+## checked from morning to evening.
 
 ## The base resolutions to choose from. Each one scales to 1920×1080 by a whole number.
 const RESOLUTIONS: Array[Vector2i] = [Vector2i(480, 270), Vector2i(640, 360), Vector2i(960, 540)]
