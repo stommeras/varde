@@ -9,7 +9,7 @@ static var RAMPS: Dictionary[Terrain, PackedColorArray] = {
 	Terrain.WATER: PackedColorArray([Color("10223a"), Color("163a5c"), Color("1f5a80"), Color("2f7fa3"), Color("5aa9c4")]),
 	Terrain.BEACH: PackedColorArray([Color("8a6f4a"), Color("b39364"), Color("d4b783"), Color("ead3a2"), Color("f6e8c8")]),
 	Terrain.GRASS: PackedColorArray([Color("2c4a24"), Color("3f6a2c"), Color("5a8a36"), Color("7aa84a"), Color("a3c56a")]),
-	Terrain.FOREST: PackedColorArray([Color("142a1c"), Color("1d3d26"), Color("2a5530"), Color("3c6e3a"), Color("55894a")]),
+	Terrain.FOREST: PackedColorArray([Color("1d3d26"), Color("2a5530"), Color("3a6b38"), Color("4e8545"), Color("6a9e58")]),
 	Terrain.MARSH: PackedColorArray([Color("2e3a26"), Color("44523a"), Color("5d6b4a"), Color("7a8660")]),
 	Terrain.ROCK: PackedColorArray([Color("2e2c2e"), Color("4a4648"), Color("6a6466"), Color("8e8786"), Color("b3aca8")]),
 	Terrain.SNOW: PackedColorArray([Color("8a98b0"), Color("aebbd0"), Color("d2dbe8"), Color("eef2f8")]),

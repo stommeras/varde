@@ -2,7 +2,7 @@ class_name DebugView3D
 extends Node3D
 ## Shows the island as a 3D terrain mesh through the game's orthographic camera, which faces north.
 ## Arrow keys or dragging with the left mouse button pan, the scroll wheel zooms, and sliders set the base resolution, zoom, tilt and
-## summit height that milestone 2 chooses by eye. One more slider moves the sun, so its shadows can be
+## summit height. Milestone 2 chose their starting values by eye. One more slider moves the sun, so its shadows can be
 ## checked from morning to evening.
 
 ## The base resolutions to choose from. Each one scales to 1920×1080 by a whole number.
@@ -98,7 +98,7 @@ func show_island(meshes: Array[ArrayMesh], island: IslandData) -> void:
 ## The sliders, for the debug view to place in its UI.
 func build_controls() -> Control:
 	var box := VBoxContainer.new()
-	# Starting points from #23, to replace with the values chosen here by eye once the terrain is smooth (#31).
+	# The values chosen by eye in #23 and #28, which SPEC.md records.
 	_add_slider(box, _resolution, 0, RESOLUTIONS.size() - 1, 1, 2)
 	_add_slider(box, _zoom, 20, IslandData.SIZE, 1, 80)
 	_zoom.exp_edit = true

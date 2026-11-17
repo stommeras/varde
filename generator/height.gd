@@ -76,7 +76,9 @@ static func crags(smooth_height: PackedFloat32Array, rng: RandomNumberGenerator)
 	var strata := make_noise(rng, 0.006, 2)
 	# Turns the terraces on and off across a mountain, so some sides are cliffs and others slopes.
 	# Raising the frequency gives smaller patches of cliff, lowering it gives whole cliffy sides.
-	var cliffs := make_noise(rng, 0.008, 2)
+	# At 0.008 a patch was wider than a small mountain, so a whole top could turn to cliff and stand
+	# as a flat-topped box with a cliff on every side (seed 3).
+	var cliffs := make_noise(rng, 0.016, 2)
 
 	var height: PackedFloat32Array = smooth_height.duplicate()
 	var highest: float = 0.0
