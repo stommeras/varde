@@ -14,6 +14,12 @@ const CELLS_PER_FRAME: float = 0.5
 ## Size of one frame of the figure in pixels. Chosen by eye over 6×10 and 8×13, which were hard to
 ## find on screen at 1080p. Keep both even, so the frame's edges land on whole pixels.
 const FRAME_SIZE := Vector2i(10, 16)
+## Seconds the fade in front of the player takes to open or shut. Raising it makes the hole grow and
+## shrink more slowly, and at 0 it pops open as soon as terrain hides the figure.
+const FADE_SECONDS: float = 0.25
+## World units between the samples hidden() takes toward the camera. Half a cell finds a ridge one
+## cell wide, and raising it can step over a thin one.
+const HIDE_STEP: float = 0.5
 ## The walk cycle as columns of the sheet: standing, left foot forward, standing, right foot forward.
 const CYCLE: Array[int] = [0, 1, 0, 2]
 
@@ -37,6 +43,12 @@ var _sprite := Sprite3D.new()
 var _facing: int = 2
 ## Cells walked, which drives the walk cycle.
 var _walked: float = 0.0
+## The feet in world units, unsnapped, where the fade centers.
+var _feet: Vector3
+## True while terrain hides the figure, which opens the fade.
+var _hidden: bool = false
+## How far the fade is open, from 0 to 1.
+var _fade: float = 0.0
 
 
 func _ready() -> void:
@@ -75,6 +87,8 @@ func place(island: IslandData, cell: int) -> void:
 func _process(delta: float) -> void:
 	if _island == null:
 		return
+	_fade = move_toward(_fade, 1.0 if _hidden else 0.0, delta / maxf(FADE_SECONDS, 0.001))
+	terrain.fade_around(_feet, _fade)
 	var direction: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	if direction == Vector2.ZERO:
 		_walked = 0.0
@@ -96,7 +110,12 @@ func _update_position() -> void:
 	# The same snap as the camera's, so the figure stays on the same screen pixel while the ground
 	# moves under it in whole pixels.
 	position = camera.snap(point)
-	terrain.fade_around(point)
+	_feet = point
+	# The middle and the top of the figure. Terrain that only hides the feet leaves the fade shut, so
+	# a small bump in front doesn't open a hole in the hills beside the player.
+	var up: Vector3 = camera.basis.y * camera.pixel()
+	_hidden = hidden(_island, point + up * (FRAME_SIZE.y / 2), camera.basis.z) \
+		or hidden(_island, point + up * (FRAME_SIZE.y - 1), camera.basis.z)
 
 
 func _show_frame() -> void:
@@ -132,6 +151,17 @@ static func _can_move(island: IslandData, from: Vector2, to: Vector2) -> bool:
 
 static func _cell(point: Vector2) -> int:
 	return IslandData.index(int(point.x), int(point.y))
+
+
+## True when terrain stands between point, in world units, and a camera that looks along -toward.
+## It steps from point toward the camera until the line rises above the summit. toward must point up.
+static func hidden(island: IslandData, point: Vector3, toward: Vector3) -> bool:
+	var steps: int = ceili((IslandTerrain.SUMMIT_HEIGHT - point.y) / (toward.y * HIDE_STEP))
+	for i: int in range(1, steps + 1):
+		var sample: Vector3 = point + toward * (i * HIDE_STEP)
+		if height_at(island, Vector2(sample.x, sample.z)) > sample.y:
+			return true
+	return false
 
 
 ## World height of the terrain mesh at point, in world units. The mesh has a vertex on each cell's

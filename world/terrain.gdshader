@@ -88,9 +88,10 @@ uniform float foam_edge = 0.008;
 // it widens every river.
 uniform float river_edge = 0.35;
 
-// The fade in front of the player. The game turns it on and moves player_position to the feet each
-// frame. The debug view has no player and leaves it off.
-uniform bool fade = false;
+// How far the fade in front of the player is open, from 0 (shut) to 1 (fade_radius). The player
+// opens it while terrain hides the figure and moves player_position to the feet each frame. The
+// debug view has no player and leaves it shut.
+uniform float fade_amount = 0.0;
 // The player's feet in world units.
 uniform vec3 player_position;
 // World units on screen from the feet to where the fade ends, about 10 screen pixels per unit at
@@ -230,12 +231,13 @@ void fragment() {
 
 	// The fade cuts terrain that is nearer the camera than the player and higher than the feet, so on
 	// open ground nothing fades. The shadow pass skips it, so a faded ridge still casts its shadow.
-	if (fade && !IN_SHADOW_PASS) {
+	if (fade_amount > 0.0 && !IN_SHADOW_PASS) {
 		vec3 feet = (VIEW_MATRIX * vec4(player_position, 1.0)).xyz;
 		float rise = world_position.y - player_position.y;
 		// smoothstep is undefined when its edges meet, so a fade_edge of 0 keeps a sliver of width.
 		float edge = max(fade_edge, 0.001);
-		float keep = max(smoothstep(fade_radius - edge, fade_radius, length(VERTEX.xy - feet.xy)),
+		float radius = fade_radius * fade_amount;
+		float keep = max(smoothstep(radius - edge, radius, length(VERTEX.xy - feet.xy)),
 			1.0 - smoothstep(fade_ground, fade_ground + edge, rise));
 		// Terrain that crosses the feet's depth dithers out too, instead of ending in a straight line.
 		keep = max(keep, 1.0 - smoothstep(0.0, edge, VERTEX.z - feet.z));

@@ -56,3 +56,29 @@ func test_faces_the_nearest_of_eight_directions() -> void:
 	for i: int in compass.size():
 		expect(Player.facing(compass[i].normalized()) == i, "direction %s faces %d, not %d" % [compass[i], Player.facing(compass[i]), i])
 	expect(Player.FACING_VIEWS[Player.facing(Vector2(-1, 1))] == Player.View.FRONT_SIDE, "south-west doesn't use the turned front view")
+
+
+## The fade opens only while terrain stands between the camera and the figure.
+func test_hidden_finds_terrain_toward_the_camera() -> void:
+	var data: IslandData = island(0)
+	var size: int = IslandData.SIZE
+	var x: int = data.start % size
+	var y: int = data.start / size
+	var h: float = data.height[data.start]
+	# Flattens a strip south of the start, the way a camera tilted 45° looks back.
+	var saved: Dictionary[int, float] = {}
+	for row: int in range(y - 1, y + 120):
+		for column: int in range(x - 1, x + 2):
+			var i: int = IslandData.index(column, row)
+			saved[i] = data.height[i]
+			data.height[i] = h
+	var feet := Vector3(x + 0.5, Player.height_at(data, Vector2(x + 0.5, y + 0.5)), y + 0.5)
+	var toward := Vector3(0.0, 1.0, 1.0).normalized()
+	var head: Vector3 = feet + Vector3.UP
+	expect(not Player.hidden(data, head, toward), "flat ground hides the figure")
+	# The line from the head rises a unit per cell south, so a wall 3 cells south must stand more
+	# than 4 units above the feet to hide it.
+	data.height[IslandData.index(x, y + 3)] = h + 8.0 / IslandTerrain.SUMMIT_HEIGHT
+	expect(Player.hidden(data, head, toward), "a wall south of the figure doesn't hide it")
+	for i: int in saved:
+		data.height[i] = saved[i]

@@ -30,9 +30,10 @@ func show_island(meshes: Array[ArrayMesh], island: IslandData) -> void:
 
 
 ## Fades the terrain that stands between the camera and feet, the player's feet in world units.
-## Call it after show_island(), which makes a new material without the fade.
-func fade_around(feet: Vector3) -> void:
-	_material.set_shader_parameter("fade", true)
+## amount runs from 0, shut, to 1, the full radius. Call it after show_island(), which makes a new
+## material with the fade shut.
+func fade_around(feet: Vector3, amount: float) -> void:
+	_material.set_shader_parameter("fade_amount", amount)
 	_material.set_shader_parameter("player_position", feet)
 
 
