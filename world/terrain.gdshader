@@ -96,8 +96,8 @@ uniform vec3 player_position;
 // World units on screen from the feet to where the fade ends, about 10 screen pixels per unit at
 // zoom 80. Raising it opens a wider hole around the player in a ridge.
 uniform float fade_radius = 4.0;
-// World units over which the fade dithers out at its rim and at fade_ground above the feet. Raising it gives
-// a softer, wider dithered edge, and at 0 the hole has a hard rim.
+// World units over which the fade dithers out at its rim and at fade_ground above the feet. Raising
+// it gives a softer, wider dithered edge, and at 0 the hole has a hard rim.
 uniform float fade_edge = 1.5;
 // World units the view ray behind a faded pixel must clear the ground by, at that height above the
 // feet. A pixel whose ray is still inside a hill there stays, because cutting it would show the empty
@@ -229,15 +229,22 @@ void fragment() {
 		// fade_ground below the ray there means the ray has come out of the hill this pixel belongs to,
 		// so the land behind it shows through the hole. Only pixels higher than that point fade, so the
 		// first land the ray meets past it never fades too.
-		float check = player_position.y + fade_ground;
-		vec3 ray = -INV_VIEW_MATRIX[2].xyz;
-		vec3 landing = world_position + ray * (check - world_position.y) / ray.y;
-		float ground = max(texture(height_map, landing.xz * texel).r, 0.0) * summit;
 		float rise = world_position.y - player_position.y;
-		float keep = max(smoothstep(fade_radius - fade_edge, fade_radius, length(VERTEX.xy - feet.xy)),
-			1.0 - smoothstep(fade_ground, fade_ground + fade_edge, rise));
-		if (VERTEX.z > feet.z && ground < player_position.y && keep < dither(world_pixel)) {
-			discard;
+		// smoothstep is undefined when its edges meet, so a fade_edge of 0 keeps a sliver of width.
+		float edge = max(fade_edge, 0.001);
+		float keep = max(smoothstep(fade_radius - edge, fade_radius, length(VERTEX.xy - feet.xy)),
+			1.0 - smoothstep(fade_ground, fade_ground + edge, rise));
+		// The pixels that survive in the dithered rim have low thresholds, and light() rounds them down
+		// a ramp step with the same threshold, so the rim reads as a darker outline. A shifted Bayer
+		// pattern evens that out but draws stripes along the rim.
+		if (VERTEX.z > feet.z && keep < dither(world_pixel)) {
+			float check = player_position.y + fade_ground;
+			vec3 ray = -INV_VIEW_MATRIX[2].xyz;
+			vec3 landing = world_position + ray * (check - world_position.y) / ray.y;
+			float ground = max(texture(height_map, landing.xz * texel).r, 0.0) * summit;
+			if (ground < player_position.y) {
+				discard;
+			}
 		}
 	}
 }
