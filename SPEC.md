@@ -1,5 +1,7 @@
 # Varde spec
 
+Nothing here is final. Agents made most of these choices while building the game, and any of them can change when another choice gives a better result. The PR that changes one updates this file and shows why.
+
 ## The game
 
 You land on an unknown island with a blank map. Somewhere on the true summit stands an old varde, and a trail of smaller vardes marks the way up. You follow the trail, explore off it when you like, and the map fills in as you go. Reaching the summit varde ends the run.
