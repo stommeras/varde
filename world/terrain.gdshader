@@ -109,7 +109,8 @@ void fragment() {
 }
 
 void light() {
-	// ATTENUATION carries the shadow, so a shadowed face shades like one turned away from the sun.
+	// ATTENUATION carries the shadow once the sun casts one, so a shadowed face shades like one
+	// turned away from the sun.
 	float lit = clamp(dot(NORMAL, LIGHT), 0.0, 1.0) * ATTENUATION;
 	int kind = int(terrain);
 	int steps = ramp_sizes[kind];
