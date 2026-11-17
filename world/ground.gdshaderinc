@@ -70,21 +70,7 @@ uniform float fade_ground = 1.0;
 uniform float fade_step = 1.0;
 uniform int fade_steps = 96;
 
-// A 4×4 Bayer matrix. Each pixel in a 4×4 block gets a different threshold, so a light level between
-// two steps shows as an even pattern of both.
-const float BAYER[16] = float[](
-	0.0, 8.0, 2.0, 10.0,
-	12.0, 4.0, 14.0, 6.0,
-	3.0, 11.0, 1.0, 9.0,
-	15.0, 7.0, 13.0, 5.0
-);
-
-// The dither threshold, between 0 and 1, of the pixel at pixel, counted as in world_pixel.
-float dither(vec2 pixel) {
-	// Float mod, because the count is negative left of and below the origin, where % on ints is undefined.
-	ivec2 cell = ivec2(mod(floor(pixel), 4.0));
-	return (BAYER[cell.y * 4 + cell.x] + 0.5) / 16.0;
-}
+#include "res://world/dither.gdshaderinc"
 
 // The offset, from -0.5 to 0.5 on each axis, that warps material boundaries and rivers at cell.
 // Two samples far apart in the same noise tile act as two independent noises for x and z.

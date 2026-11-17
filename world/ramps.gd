@@ -16,9 +16,20 @@ static var RAMPS: Dictionary[Terrain, PackedColorArray] = {
 	Terrain.FOAM: PackedColorArray([Color("6f97a8"), Color("a3c4cc"), Color("d3e5e6"), Color("f2f7f4")]),
 }
 
-## The walking figure, from boots and hair through trousers, coat shade and coat to skin. The red coat
-## stands out against every terrain ramp, so the player is easy to find on screen.
-static var FIGURE := PackedColorArray([Color("1c1a22"), Color("3b3d52"), Color("8a2c2a"), Color("c4473a"), Color("e8b48a")])
+## The parts of the walking figure that each have a ramp in FIGURE. HAIR also colors the eyes.
+enum FigurePart { SKIN, HAIR, COAT, TROUSERS, BOOTS, PACK }
+
+## The walking figure, lit like the terrain. Three steps per part give a shade side, a middle and a
+## lit side. The red coat and cap stand out against every terrain ramp, so the player is easy to find
+## on screen, and the tan pack keeps the back view from reading as one red block.
+static var FIGURE: Dictionary[FigurePart, PackedColorArray] = {
+	FigurePart.SKIN: PackedColorArray([Color("b0705a"), Color("e0a07a"), Color("f4c8a0")]),
+	FigurePart.HAIR: PackedColorArray([Color("16121a"), Color("2e2630"), Color("4a3c40")]),
+	FigurePart.COAT: PackedColorArray([Color("6a1e22"), Color("a8342e"), Color("d4553e")]),
+	FigurePart.TROUSERS: PackedColorArray([Color("23253a"), Color("3b3d52"), Color("5a5e78")]),
+	FigurePart.BOOTS: PackedColorArray([Color("1c1610"), Color("3a2a1e"), Color("58402c")]),
+	FigurePart.PACK: PackedColorArray([Color("4e3824"), Color("7a5a38"), Color("a07c50")]),
+}
 
 
 ## The middle step of a ramp, used where a terrain needs one flat color, as in the debug view.

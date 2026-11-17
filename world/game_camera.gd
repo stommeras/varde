@@ -9,10 +9,11 @@ const ZOOM: float = 80.0
 ## Degrees from looking straight down, chosen by eye in milestone 2 and recorded in SPEC.md. Raising it
 ## shows more of the slopes and less of the ground plan, lowering it flattens the view toward a map.
 const TILT_DEGREES: float = 45.0
-## How far the camera sits behind the point it looks at. An orthographic view doesn't change with
-## distance, so this only has to keep the near plane in front of the camera. The worst case is the
-## tallest summit at the steepest tilt and widest zoom, about 2250 units nearer than sea level.
-const DISTANCE: float = 3000.0
+## World units between the camera and its near plane. An orthographic view doesn't change with
+## distance, but Godot fits the sun's shadow map from the camera itself out to the far plane, so every
+## unit of gap spreads the map thinner. With the camera 3000 units back, a figure 1.5 units tall cast
+## no shadow at all. Raising it changes nothing on screen except coarser shadows.
+const NEAR_GAP: float = 1.0
 ## World units the camera's depth range reaches past the terrain on each side, so the summit and the
 ## farthest sea never touch the near or far plane.
 const DEPTH_MARGIN: float = 2.0
@@ -40,17 +41,19 @@ func place() -> void:
 	size = zoom * cos(tilt)
 	# Godot ignores the sun's shadow distance for an orthographic camera and fits the shadow map around
 	# the camera's whole depth range, so a range deeper than the terrain spreads the map thin. A ray
-	# through the screen's center meets focus DISTANCE from the camera, and the rays through the top
-	# and bottom edges meet the same height zoom * sin(tilt) / 2 nearer and farther. Along a ray, sea
-	# level lies focus.y / cos(tilt) farther than focus and the summit the rest of its height nearer.
+	# through the screen's center meets focus, and the rays through the top and bottom edges meet the
+	# same height zoom * sin(tilt) / 2 nearer and farther. Along a ray, sea level lies focus.y / cos(tilt)
+	# farther than focus and the summit the rest of its height nearer. The camera sits NEAR_GAP in front
+	# of the nearest of them.
 	var reach: float = zoom * sin(tilt) / 2.0
-	near = DISTANCE - reach - (summit_height - focus.y) / cos(tilt) - DEPTH_MARGIN
-	far = DISTANCE + reach + focus.y / cos(tilt) + DEPTH_MARGIN
+	var nearest: float = reach + (summit_height - focus.y) / cos(tilt) + DEPTH_MARGIN
+	near = NEAR_GAP
+	far = NEAR_GAP + nearest + reach + focus.y / cos(tilt) + DEPTH_MARGIN
 	# A camera that moves by part of a pixel makes every edge and dither pattern crawl. Snapping its
 	# position along its right and up axes to whole pixels moves the image in whole pixels instead.
 	# focus keeps the exact position, so slow panning still adds up. Moving along basis.z doesn't
 	# move the image, so snapping focus first and then backing off gives the same pixel grid as snap().
-	position = snap(focus) + basis.z * DISTANCE
+	position = snap(focus) + basis.z * (nearest + NEAR_GAP)
 
 
 ## World units one screen pixel covers.
