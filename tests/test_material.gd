@@ -8,7 +8,8 @@ func test_every_cell_has_a_material_that_agrees_with_height() -> void:
 		var invalid: int = 0
 		var mismatched: int = 0
 		for i: int in data.material.size():
-			if data.material[i] >= Ramps.Terrain.size():
+			# FOAM is drawn by the shader, never stored in a cell.
+			if data.material[i] >= Ramps.Terrain.FOAM:
 				invalid += 1
 			if (data.material[i] == Ramps.Terrain.WATER) != (data.height[i] <= 0.0):
 				mismatched += 1

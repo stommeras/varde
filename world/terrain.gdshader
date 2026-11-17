@@ -1,7 +1,8 @@
 shader_type spatial;
 // Draws the terrain from grid-sized height and material textures. Every pixel is a step of a ramp
 // from world/ramps.gd: light picks a position along the material's ramp, and ordered dithering
-// snaps it to one of the two nearest steps instead of blending them.
+// snaps it to one of the two nearest steps instead of blending them. The sea is part of the same
+// mesh, flat at sea level, and the height map's negative sea floor gives its depth.
 //
 // Ambient light would add color on top of the ramp step, so it is off. The sun alone lights the
 // terrain, and light() replaces Godot's lighting with the ramp lookup.
@@ -14,7 +15,7 @@ uniform sampler2D material_map : filter_nearest, repeat_disable;
 // Row t holds the steps of ramp t, darkest first. TerrainMaterial builds it from Ramps.RAMPS.
 uniform sampler2D ramps : source_color, filter_nearest, repeat_disable;
 // How many steps each ramp in `ramps` has, indexed by Ramps.Terrain.
-uniform int ramp_sizes[7];
+uniform int ramp_sizes[8];
 // Seamless FastNoiseLite noise from 0 to 1, tiled across the world.
 uniform sampler2D noise : filter_linear, repeat_enable;
 
@@ -43,6 +44,30 @@ uniform float strata_wobble = 0.6;
 // side, lowering it to 0 makes the shade side the ramp's darkest step.
 uniform float shade = 0.15;
 
+// Depth below sea level, in height-map units, where the sea reaches its darkest step. The summit is
+// 1.0, and the sea floor drops about 0.012 per cell from the coast. Raising it widens the light
+// shallows, lowering it makes the sea dark close to land.
+uniform float deep_water = 0.6;
+// Cells one tile of `noise` covers for the ripples. Lower gives smaller, denser ripples.
+uniform float ripple_scale = 20.0;
+// Noise tiles per second the two ripple layers drift. Raising it makes the sea busier.
+uniform float ripple_speed = 0.02;
+// How close the two ripple layers must be, in noise values, to draw a crest. Raising it gives
+// thicker crests that cover more of the sea.
+uniform float ripple_width = 0.04;
+// Ramp steps a crest lifts the water.
+uniform float ripple_steps = 1.0;
+// Depth, in height-map units, out to which foam reaches. 0.08 is about 6 cells from the coast.
+uniform float foam_depth = 0.08;
+// Depth between two bands of foam rolling in. Lower gives more, closer bands.
+uniform float foam_spacing = 0.03;
+// Bands per second that roll in toward the shore.
+uniform float foam_speed = 0.25;
+// Share of the spacing a band covers at the shoreline. Bands thin out to nothing at foam_depth.
+uniform float foam_width = 0.45;
+// Depth of the unbroken line of foam along the coast. 0.008 is about one cell.
+uniform float foam_edge = 0.008;
+
 // A 4×4 Bayer matrix. Each pixel in a 4×4 block gets a different threshold, so a light level between
 // two steps shows as an even pattern of both.
 const float BAYER[16] = float[](
@@ -55,8 +80,10 @@ const float BAYER[16] = float[](
 varying vec3 world_position;
 // The Ramps.Terrain value whose ramp this pixel uses. Floats, because light() reads it.
 varying float terrain;
-// Ramp steps added to the light's position along the ramp, from grain and strata.
+// Ramp steps added to the light's position along the ramp, from grain, strata and ripples.
 varying float step_offset;
+// The share of the ramp full sun reaches. 1 on land and foam, and less in deeper water.
+varying float ramp_reach;
 // This pixel's position in screen pixels, measured from the world origin instead of the screen corner.
 varying vec2 world_pixel;
 
@@ -72,14 +99,16 @@ void fragment() {
 	// The mesh's y scale is the summit height in world units.
 	float summit = length(MODEL_MATRIX[1].xyz);
 
+	float height = texture(height_map, uv).r;
+
 	// The normal comes from the height texture instead of the mesh, so the shading keeps its detail on
 	// coarse meshes far from the camera. The surface y = h(x, z) has the normal (-dh/dx, 1, -dh/dz),
-	// and the sea is flat, as in the mesh.
+	// and the sea is flat, as in the mesh, so water next to a slope doesn't take its tilt.
 	float west = max(texture(height_map, uv - vec2(texel.x, 0.0)).r, 0.0);
 	float east = max(texture(height_map, uv + vec2(texel.x, 0.0)).r, 0.0);
 	float north = max(texture(height_map, uv - vec2(0.0, texel.y)).r, 0.0);
 	float south = max(texture(height_map, uv + vec2(0.0, texel.y)).r, 0.0);
-	vec3 world_normal = normalize(vec3((west - east) * summit * 0.5, 1.0, (north - south) * summit * 0.5));
+	vec3 world_normal = height <= 0.0 ? vec3(0.0, 1.0, 0.0) : normalize(vec3((west - east) * summit * 0.5, 1.0, (north - south) * summit * 0.5));
 	NORMAL = normalize((VIEW_MATRIX * vec4(world_normal, 0.0)).xyz);
 
 	// Two samples far apart in the same noise tile act as two independent noises for x and z.
@@ -91,7 +120,6 @@ void fragment() {
 
 	// The interpolated height crosses sea level on a smooth curve, which draws the coast without the
 	// grid. Warping can still land a shore pixel on a sea cell, and all land at the shore is beach.
-	float height = texture(height_map, uv).r;
 	if (height <= 0.0) {
 		kind = 0;  // Ramps.Terrain.WATER
 	} else if (kind == 0) {
@@ -105,6 +133,27 @@ void fragment() {
 		// Every other stratum is one step darker, which draws level bands across the cliff.
 		float stratum = floor(height * summit / strata_spacing + warp.x * 2.0 * strata_wobble);
 		step_offset -= mod(stratum, 2.0);
+	}
+	ramp_reach = 1.0;
+	if (kind == 0) {
+		float depth = -height;
+		ramp_reach = 1.0 - smoothstep(0.0, deep_water, depth);
+		// Two layers of the noise drift in different directions, and a crest is drawn where their
+		// values meet. That traces thin, wandering lines that change shape as the layers slide.
+		vec2 ripple_uv = cell / ripple_scale;
+		float a = texture(noise, ripple_uv + TIME * ripple_speed * vec2(0.6, 0.8)).r;
+		float b = texture(noise, ripple_uv * 1.3 + vec2(0.41, 0.07) - TIME * ripple_speed * vec2(0.8, -0.3)).r;
+		step_offset = ripple_steps * (1.0 - smoothstep(0.0, ripple_width, abs(a - b)));
+		// Bands of foam lie along lines of equal depth, which follow the coast. Adding time to the phase
+		// moves each band toward shallower water, so they roll in and thin out as they near foam_depth
+		// from the shore. The warp noise bends them, so they don't trace the depth contours exactly.
+		float shore = 1.0 - depth / foam_depth;
+		float phase = depth / foam_spacing + TIME * foam_speed + warp.x;
+		if (depth < foam_edge * (1.0 + warp.y * 2.0) || fract(phase) < foam_width * shore) {
+			kind = 7;  // Ramps.Terrain.FOAM
+			ramp_reach = 1.0;
+			step_offset = grain * 2.0 * grain_steps;
+		}
 	}
 	terrain = float(kind);
 	ALBEDO = vec3(1.0);
@@ -123,7 +172,7 @@ void light() {
 	float lit = clamp(dot(NORMAL, LIGHT), 0.0, 1.0) * ATTENUATION;
 	int kind = int(terrain);
 	int steps = ramp_sizes[kind];
-	float position = mix(shade, 1.0, lit) * float(steps - 1) + step_offset;
+	float position = mix(shade, 1.0, lit) * ramp_reach * float(steps - 1) + step_offset;
 	// Float mod, because the count is negative left of and below the origin, where % on ints is undefined.
 	ivec2 pixel = ivec2(mod(floor(world_pixel), 4.0));
 	float threshold = (BAYER[pixel.y * 4 + pixel.x] + 0.5) / 16.0;
