@@ -1,7 +1,8 @@
 extends Node2D
-## Shows a generated island's layers as images, with a seed field, layer buttons and a free camera.
-## The island generates on a background thread behind a "charting the island" screen.
-## Arrow keys pan, the scroll wheel zooms, and 1x zoom matches the game's scale.
+## Shows a generated island's layers as images, with a seed field, layer buttons and a free camera,
+## and a 3D view of the terrain beside them. The island and its terrain mesh build on a background
+## thread behind a "charting the island" screen. Arrow keys pan, the scroll wheel zooms, and 1x zoom
+## matches the game's scale.
 
 const PIXELS_PER_CELL: int = 4
 const PAN_SPEED: float = 400.0
@@ -25,6 +26,9 @@ var _sprite := Sprite2D.new()
 var _camera := Camera2D.new()
 var _seed_field := LineEdit.new()
 var _info := Label.new()
+var _view_3d := DebugView3D.new()
+## The 3D view's sliders, shown only with it.
+var _controls_3d: Control
 ## Covers the view while the generator runs.
 var _charting := ColorRect.new()
 ## Null means no generation is running.
@@ -37,6 +41,8 @@ func _ready() -> void:
 	_sprite.scale = Vector2.ONE * PIXELS_PER_CELL
 	add_child(_sprite)
 	add_child(_camera)
+	_view_3d.hide()
+	add_child(_view_3d)
 	_build_ui()
 	_generate(0)
 
@@ -44,13 +50,15 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if _thread != null and not _thread.is_alive():
 		_finish_generating()
+	if _view_3d.visible:
+		return
 	var direction: Vector2 = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	_camera.position += direction * PAN_SPEED * delta / _camera.zoom.x
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	var button := event as InputEventMouseButton
-	if button == null or not button.pressed:
+	if _view_3d.visible or button == null or not button.pressed:
 		return
 	if button.button_index == MOUSE_BUTTON_WHEEL_UP:
 		_set_zoom(_camera.zoom.x * 1.25)
@@ -95,8 +103,20 @@ func _build_ui() -> void:
 		button.pressed.connect(_show.bind(shown))
 		row.add_child(button)
 
+	var button_3d := Button.new()
+	button_3d.text = tr("VIEW_3D")
+	button_3d.toggle_mode = true
+	button_3d.button_group = group
+	button_3d.focus_mode = Control.FOCUS_NONE
+	button_3d.pressed.connect(_show_3d)
+	row.add_child(button_3d)
+
 	row.add_child(_info)
-	for control: Control in row.get_children():
+	_controls_3d = _view_3d.build_controls()
+	_controls_3d.position = Vector2(4, 24)
+	_controls_3d.hide()
+	layer.add_child(_controls_3d)
+	for control: Control in row.get_children() + _controls_3d.get_children():
 		control.add_theme_font_size_override("font_size", 10)
 
 	_charting.color = Ramps.RAMPS[Ramps.Terrain.WATER][0]
@@ -123,12 +143,21 @@ func _generate(island_seed: int) -> void:
 		return
 	_charting.show()
 	_thread = Thread.new()
-	_thread.start(IslandGenerator.generate.bind(island_seed))
+	_thread.start(_build.bind(island_seed))
+
+
+## Runs on the generator thread. Returns the island, its terrain mesh arrays and the mesh's build time.
+static func _build(island_seed: int) -> Array:
+	var island: IslandData = IslandGenerator.generate(island_seed)
+	var started: int = Time.get_ticks_msec()
+	var arrays: Array = TerrainMesh.build_arrays(island)
+	return [island, arrays, Time.get_ticks_msec() - started]
 
 
 func _finish_generating() -> void:
-	_island = _thread.wait_to_finish()
+	var result: Array = _thread.wait_to_finish()
 	_thread = null
+	_island = result[0]
 	# Set here, not in _generate, so a request dropped mid-run can't leave the wrong seed showing.
 	_seed_field.text = str(_island.island_seed)
 	# The total sums the steps instead of timing from _generate, because a hidden window runs at
@@ -138,10 +167,12 @@ func _finish_generating() -> void:
 	for step: String in _island.step_msec:
 		total += _island.step_msec[step]
 		steps.append("%s %d ms" % [step, _island.step_msec[step]])
-	print("Seed %d: %s, total %d ms" % [_island.island_seed, ", ".join(steps), total])
+	print("Seed %d: %s, total %d ms, then the mesh %d ms" % [_island.island_seed, ", ".join(steps), total, result[2]])
 	_info.text = "%d ms" % total
+	_view_3d.show_island(result[1], ImageTexture.create_from_image(_material_image(_island.material, _island.main_island)))
 	_charting.hide()
-	_show(_layer)
+	if not _view_3d.visible:
+		_show(_layer)
 	# Fit the whole island on screen.
 	var world: float = IslandData.SIZE * PIXELS_PER_CELL
 	_camera.position = Vector2.ONE * world / 2.0
@@ -157,6 +188,9 @@ func _exit_tree() -> void:
 
 func _show(layer: Layer) -> void:
 	_layer = layer
+	_view_3d.hide()
+	_controls_3d.hide()
+	_sprite.show()
 	var image: Image
 	match layer:
 		Layer.HEIGHT:
@@ -166,6 +200,12 @@ func _show(layer: Layer) -> void:
 		Layer.MATERIAL:
 			image = _material_image(_island.material, _island.main_island)
 	_sprite.texture = ImageTexture.create_from_image(image)
+
+
+func _show_3d() -> void:
+	_sprite.hide()
+	_view_3d.show()
+	_controls_3d.show()
 
 
 ## Sea runs along the water ramp by depth, land along the rock ramp by height.
