@@ -1,6 +1,6 @@
 class_name Walkability
 extends RefCounted
-## Which steps between neighboring cells the player can take, and how fast. Movement checks every
+## Which steps between neighboring cells the player can take. Movement checks every
 ## step the player takes against can_step(), and the route guarantee in generator step 6 searches
 ## with the same function, so the generator can never promise a route that movement refuses.
 
@@ -14,15 +14,6 @@ const CLIFF_NORMAL_Y: float = 0.3
 ## sqrt(1 / n² - 1), so 0.3 gives about 3.18 world units per cell, 0.0318 against a summit of 1.0.
 ## Keep it at the shader's threshold, so every slope that blocks is drawn as rock.
 const MAX_SLOPE: float = sqrt(1.0 / (CLIFF_NORMAL_Y * CLIFF_NORMAL_Y) - 1.0) / SUMMIT_UNITS
-## Walking speed on a Ramps.Terrain value, as a share of full speed. Terrain not listed walks at
-## full speed. Lowering a value makes that ground slower to cross.
-const MATERIAL_SPEED: Dictionary[int, float] = {
-	Ramps.Terrain.FOREST: 0.75,
-	Ramps.Terrain.MARSH: 0.6,
-}
-## Walking speed while wading a river, whatever ground lies under it. Lowering it makes rivers more
-## of a detour, raising it toward 1.0 makes them no obstacle.
-const WADE_SPEED: float = 0.5
 ## Random cells start_cell() tries before it gives up. Most tries land off the beach and cost little.
 ## Raising it only matters on an island with very little beach, and lowering it risks no start.
 const START_TRIES: int = 100000
@@ -55,13 +46,6 @@ static func can_step(data: IslandData, from: int, to: int) -> bool:
 ## True when the edge step from from to to is open, with no corner rule.
 static func _edge_step(data: IslandData, from: int, to: int) -> bool:
 	return not blocked(data, to) and absf(data.height[to] - data.height[from]) <= MAX_SLOPE
-
-
-## Walking speed on cell, as a share of full speed.
-static func speed(data: IslandData, cell: int) -> float:
-	if data.fresh_water[cell] == 1:
-		return WADE_SPEED
-	return MATERIAL_SPEED.get(data.material[cell], 1.0)
 
 
 ## The open neighbors of cell, edge and corner, that the player can step to.

@@ -38,15 +38,8 @@ func _ready() -> void:
 
 
 func _start() -> void:
-	var text: String = _seed_field.text.strip_edges()
 	var game: Game = GAME.instantiate()
-	# Any text works as a seed. A number is used as it is, so the seeds the debug view shows carry over.
-	if text.is_empty():
-		game.island_seed = randi()
-	elif text.is_valid_int():
-		game.island_seed = text.to_int()
-	else:
-		game.island_seed = text.hash()
+	game.island_seed = IslandLoader.seed_from(_seed_field.text)
 	# Takes the title screen out of the tree at once, so a second press in the same frame can't start a
 	# second run.
 	get_tree().change_scene_to_node(game)

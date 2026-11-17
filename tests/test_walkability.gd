@@ -62,7 +62,6 @@ func test_steps_block_water_lakes_and_cliffs() -> void:
 	data.height[corner] = 0.1
 	data.fresh_water[east] = 1
 	expect(Walkability.can_step(data, a, east), "a river blocks")
-	expect(Walkability.speed(data, east) == Walkability.WADE_SPEED, "wading a river is not slowed")
 	data.lake[east] = 1
 	expect(not Walkability.can_step(data, a, east), "a lake is open")
 	expect(not Walkability.can_step(data, a, corner), "a corner step slips past a lake")
