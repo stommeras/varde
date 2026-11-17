@@ -57,6 +57,8 @@ varying vec3 world_position;
 varying float terrain;
 // Ramp steps added to the light's position along the ramp, from grain and strata.
 varying float step_offset;
+// This pixel's position in screen pixels, measured from the world origin instead of the screen corner.
+varying vec2 world_pixel;
 
 void vertex() {
 	world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -106,6 +108,13 @@ void fragment() {
 	}
 	terrain = float(kind);
 	ALBEDO = vec3(1.0);
+
+	// A dither pattern fixed to the screen stays still while the land slides under it, so panning
+	// shimmers. Counting pixels along the camera's right and up axes from the world origin moves
+	// the pattern with the land. An orthographic PROJECTION_MATRIX[1][1] is 2 / the view's height
+	// in world units. The camera moves in whole pixels, so each pixel's count stays put as it pans.
+	float pixel_size = 2.0 / (PROJECTION_MATRIX[1][1] * VIEWPORT_SIZE.y);
+	world_pixel = vec2(dot(world_position, INV_VIEW_MATRIX[0].xyz), dot(world_position, INV_VIEW_MATRIX[1].xyz)) / pixel_size;
 }
 
 void light() {
@@ -115,7 +124,8 @@ void light() {
 	int kind = int(terrain);
 	int steps = ramp_sizes[kind];
 	float position = mix(shade, 1.0, lit) * float(steps - 1) + step_offset;
-	ivec2 pixel = ivec2(FRAGCOORD.xy) % 4;
+	// Float mod, because the count is negative left of and below the origin, where % on ints is undefined.
+	ivec2 pixel = ivec2(mod(floor(world_pixel), 4.0));
 	float threshold = (BAYER[pixel.y * 4 + pixel.x] + 0.5) / 16.0;
 	int ramp_step = clamp(int(floor(position + threshold)), 0, steps - 1);
 	// The albedo is white, so this is the pixel's final color.
