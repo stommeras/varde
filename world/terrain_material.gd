@@ -30,6 +30,8 @@ static func create(island: IslandData) -> ShaderMaterial:
 	for kind: Ramps.Terrain in Ramps.Terrain.values():
 		sizes.append(Ramps.RAMPS[kind].size())
 	material.set_shader_parameter("ramp_sizes", sizes)
+	# Walkability blocks steps at this slope, so the rock the shader draws marks the walls.
+	material.set_shader_parameter("cliff_normal_y", Walkability.CLIFF_NORMAL_Y)
 	return material
 
 

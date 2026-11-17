@@ -3,8 +3,9 @@ extends Node3D
 ## Holds one MeshInstance3D per terrain chunk, drawn by the terrain shader. Its y scale is the summit height.
 
 ## World units from sea level to the highest cell, chosen by eye in milestone 2. Raising it makes the
-## mountains steeper and their shadows longer, lowering it flattens the island.
-const SUMMIT_HEIGHT: float = 100.0
+## mountains steeper and their shadows longer, lowering it flattens the island. Walkability holds the
+## value, because the slope the player can climb depends on it and the generator can't read a node.
+const SUMMIT_HEIGHT: float = Walkability.SUMMIT_UNITS
 
 
 func _init() -> void:

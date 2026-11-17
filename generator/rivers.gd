@@ -54,7 +54,7 @@ func _init(height: PackedFloat32Array, rng: RandomNumberGenerator) -> void:
 
 
 ## Traces the rivers of data from its height and main island, fills data.height flat where they made
-## lakes, and stores data.rivers and data.fresh_water. Spring places and river bends come from rng.
+## lakes, and stores data.rivers, data.fresh_water and data.lake. Spring places and river bends come from rng.
 static func generate(data: IslandData, rng: RandomNumberGenerator) -> void:
 	var tracer := Rivers.new(data.height, rng)
 	var rivers: Array[PackedInt32Array] = []
@@ -68,6 +68,8 @@ static func generate(data: IslandData, rng: RandomNumberGenerator) -> void:
 		rivers.append(path)
 	data.height = tracer._height
 	data.rivers = rivers
+	# Before _paint adds the rivers, the fresh water is the lakes alone.
+	data.lake = tracer._fresh_water.duplicate()
 	data.fresh_water = tracer._paint(rivers)
 
 

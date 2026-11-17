@@ -30,7 +30,11 @@ static func generate(island_seed: int) -> IslandData:
 	var river_rng := RandomNumberGenerator.new()
 	river_rng.seed = rng.randi()
 	Rivers.generate(data, river_rng)
-	_record(data, "rivers", started)
+	started = _record(data, "rivers", started)
+	var start_rng := RandomNumberGenerator.new()
+	start_rng.seed = rng.randi()
+	data.start = Walkability.start_cell(data, start_rng)
+	_record(data, "start", started)
 	return data
 
 
