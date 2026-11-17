@@ -48,6 +48,8 @@ func _ready() -> void:
 	# Feet on the node's position. An even frame size keeps the frame's edges on whole pixels.
 	_sprite.offset = Vector2(0, FRAME_SIZE.y / 2)
 	add_child(_sprite)
+	# Hidden until place() puts it on an island, so it doesn't stand at the grid's corner meanwhile.
+	visible = false
 	_show_frame()
 
 
@@ -58,6 +60,7 @@ func place(island: IslandData, cell: int) -> void:
 		return
 	_island = island
 	grid_position = Vector2(cell % IslandData.SIZE + 0.5, cell / IslandData.SIZE + 0.5)
+	visible = true
 	_update_position()
 
 
@@ -72,7 +75,8 @@ func _process(delta: float) -> void:
 	_facing = _facing_of(direction)
 	var speed: float = SPEED * Walkability.speed(_island, _cell(grid_position))
 	var moved: Vector2 = move(_island, grid_position, direction * speed * minf(delta, MAX_DELTA))
-	_walked += moved.distance_to(grid_position)
+	# Pushing into a wall moves nothing, so the legs stand instead of freezing mid-step.
+	_walked = 0.0 if moved == grid_position else _walked + moved.distance_to(grid_position)
 	grid_position = moved
 	_update_position()
 	_show_frame()
@@ -104,6 +108,8 @@ static func _facing_of(direction: Vector2) -> Facing:
 ## check refuses keeps only its east-west or north-south part, so the player slides along a wall
 ## instead of stopping dead. motion must be shorter than one cell.
 static func move(island: IslandData, from: Vector2, motion: Vector2) -> Vector2:
+	# A longer motion could reach a cell two away, which can_step() would take for a neighbor.
+	assert(absf(motion.x) < 1.0 and absf(motion.y) < 1.0, "Player.move: motion of a cell or more")
 	for to: Vector2 in [from + motion, Vector2(from.x + motion.x, from.y), Vector2(from.x, from.y + motion.y)]:
 		if _can_move(island, from, to):
 			return to
