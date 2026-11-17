@@ -14,3 +14,5 @@ SUMMIT_HEIGHT,Topphøyde: %d
 SUN_ANGLE,Solvinkel: %d°
 GAME_TITLE,Varde
 SEED_OPTIONAL,Frø (valgfritt)
+RESUME,Fortsett
+QUIT_RUN,Avslutt

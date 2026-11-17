@@ -8,7 +8,7 @@ You land on an unknown island with a blank map. Somewhere on the true summit sta
 
 The game is calm. There are no supplies, no combat and no way to fail. Curiosity about the next varde and the unmapped land is the only pressure. Each run is a new island from a new seed, and a run lasts about 20 to 40 minutes.
 
-A run starts from a title screen with "Ny øy" and an optional seed field. An empty field gives a random seed, a number is the seed itself, and any other text is hashed into one. Once the island shows, Escape ends the run and goes back to the title screen, and there is no saving yet.
+A run starts from a title screen with "Ny øy" and an optional seed field. An empty field gives a random seed, a number is the seed itself, and any other text is hashed into one. Once the island shows, Escape pauses the run behind a menu with "Fortsett" and "Avslutt". "Avslutt" ends the run and goes back to the title screen, and there is no saving yet.
 
 ## Core mechanics
 
