@@ -25,7 +25,12 @@ static func generate(island_seed: int) -> IslandData:
 	data.material = MaterialLookup.generate(data.height, data.moisture)
 	started = _record(data, "material", started)
 	data.main_island = MainIsland.generate(data.height)
-	_record(data, "main_island", started)
+	started = _record(data, "main_island", started)
+	# Its own generator too, so moving the springs leaves the steps after it as they were.
+	var river_rng := RandomNumberGenerator.new()
+	river_rng.seed = rng.randi()
+	Rivers.generate(data, river_rng)
+	_record(data, "rivers", started)
 	return data
 
 

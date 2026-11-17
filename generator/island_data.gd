@@ -6,7 +6,8 @@ const SIZE: int = 1024
 
 var island_seed: int
 ## Sea level is 0.0, the highest cell is exactly 1.0, and the sea floor is negative.
-## A cell is land when its height is above 0.0.
+## A cell is land when its height is above 0.0. Lakes are flat, filled up to the lowest point on
+## their rim.
 var height: PackedFloat32Array
 ## 0.0 on the driest cell and 1.0 on the wettest, over sea and land alike.
 var moisture: PackedFloat32Array
@@ -15,6 +16,12 @@ var material: PackedByteArray
 ## 1 on the main island, the largest connected land area, and 0 on islets and sea.
 ## Stats, peaks, vardes and points of interest use only these cells.
 var main_island: PackedByteArray
+## Each river's cells, from its spring down to the first sea cell, or to the cell of an earlier
+## river it flows into. Consecutive cells are neighbors, edge or corner.
+var rivers: Array[PackedInt32Array] = []
+## 1 on every cell a river or lake covers and 0 elsewhere. Rivers widen downstream, so this covers
+## more than the cells in rivers.
+var fresh_water: PackedByteArray
 ## Milliseconds each generator step took, in the order the steps ran. Timing differs between runs,
 ## so this is the one field that the same seed doesn't reproduce.
 var step_msec: Dictionary[String, int] = {}

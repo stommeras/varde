@@ -178,7 +178,7 @@ func _finish_generating() -> void:
 		steps.append("%s %d ms" % [step, _island.step_msec[step]])
 	print("Seed %d: %s, total %d ms, then the mesh %d ms" % [_island.island_seed, ", ".join(steps), total, result[2]])
 	_info.text = "%d ms" % total
-	_material_texture = ImageTexture.create_from_image(_material_image(_island.material, _island.main_island))
+	_material_texture = ImageTexture.create_from_image(_material_image(_island.material, _island.main_island, _island.fresh_water))
 	_view_3d.show_island(result[1], _island)
 	_charting.hide()
 	if not _view_3d.visible:
@@ -253,8 +253,9 @@ func _moisture_image(moisture: PackedFloat32Array) -> Image:
 	return Image.create_from_data(IslandData.SIZE, IslandData.SIZE, false, Image.FORMAT_RGB8, pixels)
 
 
-## Each material in its ramp's middle step. Islets use the darkest step, so the main island stands out.
-func _material_image(terrain: PackedByteArray, main_island: PackedByteArray) -> Image:
+## Each material in its ramp's middle step, with rivers and lakes as water. Islets use the darkest step, so the
+## main island stands out.
+func _material_image(terrain: PackedByteArray, main_island: PackedByteArray, fresh_water: PackedByteArray) -> Image:
 	var main := PackedByteArray()
 	var islet := PackedByteArray()
 	for kind: Ramps.Terrain in Ramps.Terrain.values():
@@ -264,7 +265,7 @@ func _material_image(terrain: PackedByteArray, main_island: PackedByteArray) -> 
 	pixels.resize(terrain.size() * 3)
 	for i: int in terrain.size():
 		var table: PackedByteArray = main if main_island[i] == 1 or terrain[i] == Ramps.Terrain.WATER else islet
-		var color: int = terrain[i] * 3
+		var color: int = (Ramps.Terrain.WATER if fresh_water[i] == 1 else terrain[i]) * 3
 		pixels[i * 3] = table[color]
 		pixels[i * 3 + 1] = table[color + 1]
 		pixels[i * 3 + 2] = table[color + 2]
