@@ -50,22 +50,26 @@ uniform float shade = 0.15;
 uniform float deep_water = 0.6;
 // Cells one tile of `noise` covers for the ripples. Lower gives smaller, denser ripples.
 uniform float ripple_scale = 20.0;
-// Noise tiles per second the two ripple layers drift. Raising it makes the sea busier.
-uniform float ripple_speed = 0.02;
+// Noise tiles per second the two ripple layers drift. Raising it makes the sea busier. Godot wraps
+// TIME every hour, and the crests jump at the wrap unless each layer has moved a whole number of
+// tiles. The drift directions are in tenths, so keep 360 * speed a whole number. 1/60 gives 6.
+uniform float ripple_speed = 0.016666667;
 // How close the two ripple layers must be, in noise values, to draw a crest. Raising it gives
 // thicker crests that cover more of the sea.
 uniform float ripple_width = 0.04;
-// Ramp steps a crest lifts the water.
+// Ramp steps a crest lifts the water. Raising it makes crests brighter, 0 hides them.
 uniform float ripple_steps = 1.0;
 // Depth, in height-map units, out to which foam reaches. 0.08 is about 6 cells from the coast.
+// Raising it carries the bands farther out to sea.
 uniform float foam_depth = 0.08;
 // Depth between two bands of foam rolling in. Lower gives more, closer bands.
 uniform float foam_spacing = 0.03;
-// Bands per second that roll in toward the shore.
+// Bands per second that roll in toward the shore. Raising it makes the surf faster. Keep
+// 3600 * speed a whole number, so the hourly wrap of TIME doesn't jump.
 uniform float foam_speed = 0.25;
 // Share of the spacing a band covers at the shoreline. Bands thin out to nothing at foam_depth.
 uniform float foam_width = 0.45;
-// Depth of the unbroken line of foam along the coast. 0.008 is about one cell.
+// Depth of the unbroken line of foam along the coast. 0.008 is about one cell. Raising it widens the line.
 uniform float foam_edge = 0.008;
 
 // A 4×4 Bayer matrix. Each pixel in a 4×4 block gets a different threshold, so a light level between
@@ -137,22 +141,21 @@ void fragment() {
 	ramp_reach = 1.0;
 	if (kind == 0) {
 		float depth = -height;
-		ramp_reach = 1.0 - smoothstep(0.0, deep_water, depth);
-		// Two layers of the noise drift in different directions, and a crest is drawn where their
-		// values meet. That traces thin, wandering lines that change shape as the layers slide.
-		vec2 ripple_uv = cell / ripple_scale;
-		float a = texture(noise, ripple_uv + TIME * ripple_speed * vec2(0.6, 0.8)).r;
-		float b = texture(noise, ripple_uv * 1.3 + vec2(0.41, 0.07) - TIME * ripple_speed * vec2(0.8, -0.3)).r;
-		step_offset = ripple_steps * (1.0 - smoothstep(0.0, ripple_width, abs(a - b)));
 		// Bands of foam lie along lines of equal depth, which follow the coast. Adding time to the phase
 		// moves each band toward shallower water, so they roll in and thin out as they near foam_depth
 		// from the shore. The warp noise bends them, so they don't trace the depth contours exactly.
 		float shore = 1.0 - depth / foam_depth;
 		float phase = depth / foam_spacing + TIME * foam_speed + warp.x;
 		if (depth < foam_edge * (1.0 + warp.y * 2.0) || fract(phase) < foam_width * shore) {
-			kind = 7;  // Ramps.Terrain.FOAM
-			ramp_reach = 1.0;
-			step_offset = grain * 2.0 * grain_steps;
+			kind = 7;  // Ramps.Terrain.FOAM, which keeps the grain and the full ramp.
+		} else {
+			ramp_reach = 1.0 - smoothstep(0.0, deep_water, depth);
+			// Two layers of the noise drift in different directions, and a crest is drawn where their
+			// values meet. That traces thin, wandering lines that change shape as the layers slide.
+			vec2 ripple_uv = cell / ripple_scale;
+			float a = texture(noise, ripple_uv + TIME * ripple_speed * vec2(0.6, 0.8)).r;
+			float b = texture(noise, ripple_uv * 1.3 + vec2(0.41, 0.07) - TIME * ripple_speed * vec2(0.8, -0.3)).r;
+			step_offset = ripple_steps * (1.0 - smoothstep(0.0, ripple_width, abs(a - b)));
 		}
 	}
 	terrain = float(kind);

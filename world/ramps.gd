@@ -2,7 +2,7 @@ class_name Ramps
 ## Every color in the game. Shaders and scripts read from here, never from their own literals.
 ## Each ramp runs from darkest to lightest, and lighting snaps to these steps.
 
-## FOAM is the one value no cell holds. The terrain shader draws it at the shore and on ripple crests.
+## FOAM is the one value no cell holds. The terrain shader draws it in bands along the shore.
 enum Terrain { WATER, BEACH, GRASS, FOREST, MARSH, ROCK, SNOW, FOAM }
 
 static var RAMPS: Dictionary[Terrain, PackedColorArray] = {
