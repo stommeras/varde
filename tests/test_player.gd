@@ -48,3 +48,11 @@ func test_input_actions_have_wasd_and_arrows() -> void:
 	for action: String in ["move_left", "move_right", "move_up", "move_down"]:
 		expect(InputMap.has_action(action) and InputMap.action_get_events(action).size() == 2,
 			"%s lacks its two keys" % action)
+
+
+func test_faces_the_nearest_of_eight_directions() -> void:
+	var compass: Array[Vector2] = [Vector2.RIGHT, Vector2(1, 1), Vector2.DOWN, Vector2(-1, 1), Vector2.LEFT,
+		Vector2(-1, -1), Vector2.UP, Vector2(1, -1)]
+	for i: int in compass.size():
+		expect(Player.facing(compass[i].normalized()) == i, "direction %s faces %d, not %d" % [compass[i], Player.facing(compass[i]), i])
+	expect(Player.FACING_VIEWS[Player.facing(Vector2(-1, 1))] == Player.View.FRONT_SIDE, "south-west doesn't use the turned front view")
