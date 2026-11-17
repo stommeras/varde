@@ -23,7 +23,7 @@ var zoom: float = ZOOM
 var tilt_degrees: float = TILT_DEGREES
 ## World units from sea level to the highest cell, which sets how near the near plane must come.
 var summit_height: float = IslandTerrain.SUMMIT_HEIGHT
-## The ground point at sea level in the middle of the screen.
+## The point in the middle of the screen. The game puts it on the player, the debug view at sea level.
 var focus := Vector3(IslandData.SIZE / 2.0, 0.0, IslandData.SIZE / 2.0)
 
 
@@ -40,17 +40,28 @@ func place() -> void:
 	size = zoom * cos(tilt)
 	# Godot ignores the sun's shadow distance for an orthographic camera and fits the shadow map around
 	# the camera's whole depth range, so a range deeper than the terrain spreads the map thin. A ray
-	# through the screen's center meets sea level DISTANCE from the camera, and the rays through the
-	# top and bottom edges meet it zoom * sin(tilt) / 2 nearer and farther. The summit can stand
-	# summit / cos(tilt) nearer than sea level on the same ray.
+	# through the screen's center meets focus DISTANCE from the camera, and the rays through the top
+	# and bottom edges meet the same height zoom * sin(tilt) / 2 nearer and farther. Along a ray, sea
+	# level lies focus.y / cos(tilt) farther than focus and the summit the rest of its height nearer.
 	var reach: float = zoom * sin(tilt) / 2.0
-	near = DISTANCE - reach - summit_height / cos(tilt) - DEPTH_MARGIN
-	far = DISTANCE + reach + DEPTH_MARGIN
+	near = DISTANCE - reach - (summit_height - focus.y) / cos(tilt) - DEPTH_MARGIN
+	far = DISTANCE + reach + focus.y / cos(tilt) + DEPTH_MARGIN
 	# A camera that moves by part of a pixel makes every edge and dither pattern crawl. Snapping its
 	# position along its right and up axes to whole pixels moves the image in whole pixels instead.
-	# focus keeps the exact position, so slow panning still adds up.
-	var pixel: float = size / get_window().content_scale_size.y
-	var local: Vector3 = basis.inverse() * (focus + basis.z * DISTANCE)
-	local.x = snappedf(local.x, pixel)
-	local.y = snappedf(local.y, pixel)
-	position = basis * local
+	# focus keeps the exact position, so slow panning still adds up. Moving along basis.z doesn't
+	# move the image, so snapping focus first and then backing off gives the same pixel grid as snap().
+	position = snap(focus) + basis.z * DISTANCE
+
+
+## World units one screen pixel covers.
+func pixel() -> float:
+	return size / get_window().content_scale_size.y
+
+
+## point moved to the nearest whole pixel on screen, along the camera's right and up axes. A sprite
+## snapped with it sits on the same pixel grid as the camera, so it doesn't shimmer as it moves.
+func snap(point: Vector3) -> Vector3:
+	var local: Vector3 = basis.inverse() * point
+	local.x = snappedf(local.x, pixel())
+	local.y = snappedf(local.y, pixel())
+	return basis * local
