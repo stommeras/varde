@@ -22,6 +22,8 @@ const FADE_SECONDS: float = 0.25
 const HIDE_STEP: float = 0.5
 ## The walk cycle as columns of the sheet: standing, left foot forward, standing, right foot forward.
 const CYCLE: Array[int] = [0, 1, 0, 2]
+## Speed multiplier in god mode. At 8 the player crosses the 1024-cell grid in about 21 s.
+const GOD_SPEED: float = 8.0
 
 ## Rows of the sheet. The side views face east, and the western facings flip them.
 enum View { FRONT, BACK, SIDE, FRONT_SIDE, BACK_SIDE }
@@ -43,6 +45,9 @@ var _sprite := Sprite3D.new()
 var _facing: int = 2
 ## Cells walked, which drives the walk cycle.
 var _walked: float = 0.0
+## For checking terrain while tuning: G toggles it in debug builds. The player walks GOD_SPEED times
+## faster and through anything the step check refuses, such as cliffs and the sea.
+var _god: bool = false
 ## The feet in world units, unsnapped, where the fade centers.
 var _feet: Vector3
 ## True while terrain hides the figure, which opens the fade.
@@ -84,6 +89,14 @@ func place(island: IslandData, cell: int) -> void:
 	_update_position()
 
 
+func _unhandled_key_input(event: InputEvent) -> void:
+	# A raw key, not an input action, because the editor rewrites project.godot while it's open.
+	var key := event as InputEventKey
+	if OS.is_debug_build() and key.pressed and not key.echo and key.physical_keycode == KEY_G:
+		_god = not _god
+		print("God mode ", "on" if _god else "off")
+
+
 func _process(delta: float) -> void:
 	if _island == null:
 		return
@@ -95,7 +108,14 @@ func _process(delta: float) -> void:
 		_show_frame()
 		return
 	_facing = facing(direction)
-	var moved: Vector2 = move(_island, grid_position, direction * SPEED * minf(delta, MAX_DELTA))
+	var motion: Vector2 = direction * SPEED * minf(delta, MAX_DELTA)
+	var moved: Vector2
+	if _god:
+		# Several cells a frame, which move() can't take, so it skips the step check.
+		var edge: float = IslandData.SIZE - 0.001
+		moved = (grid_position + motion * GOD_SPEED).clamp(Vector2.ZERO, Vector2(edge, edge))
+	else:
+		moved = move(_island, grid_position, motion)
 	# Pushing into a wall moves nothing, so the legs stand instead of freezing mid-step.
 	_walked = 0.0 if moved == grid_position else _walked + moved.distance_to(grid_position)
 	grid_position = moved
