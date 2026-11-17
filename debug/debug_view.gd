@@ -31,10 +31,7 @@ var _material_texture: ImageTexture
 var _view_3d := DebugView3D.new()
 ## The 3D view's sliders, shown only with it.
 var _controls_3d: Control
-## Covers the view while the generator runs.
-var _charting := ColorRect.new()
-## Null means no generation is running.
-var _thread: Thread
+var _loader := IslandLoader.new()
 
 
 func _ready() -> void:
@@ -45,13 +42,13 @@ func _ready() -> void:
 	add_child(_camera)
 	_view_3d.hide()
 	add_child(_view_3d)
+	_loader.loaded.connect(_on_loaded)
+	add_child(_loader)
 	_build_ui()
-	_generate(0)
+	_loader.start(0)
 
 
 func _process(delta: float) -> void:
-	if _thread != null and not _thread.is_alive():
-		_finish_generating()
 	if _view_3d.visible:
 		return
 	var direction: Vector2 = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
@@ -98,7 +95,7 @@ func _build_ui() -> void:
 	var random := Button.new()
 	random.text = tr("RANDOM_SEED")
 	random.focus_mode = Control.FOCUS_NONE
-	random.pressed.connect(func() -> void: _generate(randi()))
+	random.pressed.connect(func() -> void: _loader.start(randi()))
 	row.add_child(random)
 
 	var group := ButtonGroup.new()
@@ -128,72 +125,26 @@ func _build_ui() -> void:
 	for control: Control in row.get_children() + _controls_3d.get_children():
 		control.add_theme_font_size_override("font_size", 10)
 
-	_charting.color = Ramps.RAMPS[Ramps.Terrain.WATER][0]
-	_charting.set_anchors_preset(Control.PRESET_FULL_RECT)
-	layer.add_child(_charting)
-	var charting_label := Label.new()
-	charting_label.text = tr("CHARTING_ISLAND")
-	charting_label.set_anchors_preset(Control.PRESET_FULL_RECT)
-	charting_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	charting_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	charting_label.add_theme_color_override("font_color", Ramps.RAMPS[Ramps.Terrain.SNOW][3])
-	_charting.add_child(charting_label)
-
 
 func _on_seed_submitted(text: String) -> void:
 	_seed_field.release_focus()
 	if text.is_valid_int():
-		_generate(text.to_int())
+		_loader.start(text.to_int())
 
 
-## Starts the generator on a thread. A request while one is running is dropped.
-func _generate(island_seed: int) -> void:
-	if _thread != null:
-		return
-	_charting.show()
-	_thread = Thread.new()
-	_thread.start(_build.bind(island_seed))
-
-
-## Runs on the generator thread. Returns the island, its terrain chunk meshes and their build time.
-static func _build(island_seed: int) -> Array:
-	var island: IslandData = IslandGenerator.generate(island_seed)
-	var started: int = Time.get_ticks_msec()
-	var meshes: Array[ArrayMesh] = TerrainMesh.build(island)
-	return [island, meshes, Time.get_ticks_msec() - started]
-
-
-func _finish_generating() -> void:
-	var result: Array = _thread.wait_to_finish()
-	_thread = null
-	_island = result[0]
-	# Set here, not in _generate, so a request dropped mid-run can't leave the wrong seed showing.
+func _on_loaded(island: IslandData, meshes: Array[ArrayMesh], msec: int) -> void:
+	_island = island
+	# Set here, not when the request is made, so a request dropped mid-run can't leave the wrong seed showing.
 	_seed_field.text = str(_island.island_seed)
-	# The total sums the steps instead of timing from _generate, because a hidden window runs at
-	# about 1 frame per second and the poll in _process would add up to a second.
-	var total: int = 0
-	var steps := PackedStringArray()
-	for step: String in _island.step_msec:
-		total += _island.step_msec[step]
-		steps.append("%s %d ms" % [step, _island.step_msec[step]])
-	print("Seed %d: %s, total %d ms, then the mesh %d ms" % [_island.island_seed, ", ".join(steps), total, result[2]])
-	_info.text = "%d ms" % total
+	_info.text = "%d ms" % msec
 	_material_texture = ImageTexture.create_from_image(_material_image(_island.material, _island.main_island, _island.fresh_water))
-	_view_3d.show_island(result[1], _island)
-	_charting.hide()
+	_view_3d.show_island(meshes, _island)
 	if not _view_3d.visible:
 		_show(_layer)
 	# Fit the whole island on screen.
 	var world: float = IslandData.SIZE * PIXELS_PER_CELL
 	_camera.position = Vector2.ONE * world / 2.0
 	_set_zoom(get_viewport_rect().size.y / world)
-
-
-# A thread still running when the node leaves must be joined, or Godot reports a leaked thread.
-func _exit_tree() -> void:
-	if _thread != null:
-		_thread.wait_to_finish()
-		_thread = null
 
 
 func _show(layer: Layer) -> void:

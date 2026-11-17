@@ -8,7 +8,7 @@ You land on an unknown island with a blank map. Somewhere on the true summit sta
 
 The game is calm. There are no supplies, no combat and no way to fail. Curiosity about the next varde and the unmapped land is the only pressure. Each run is a new island from a new seed, and a run lasts about 20 to 40 minutes.
 
-A run starts from a title screen with "Ny øy" and an optional seed field. Quitting ends the run, and there is no saving yet.
+A run starts from a title screen with "Ny øy" and an optional seed field. An empty field gives a random seed, a number is the seed itself, and any other text is hashed into one. Once the island shows, Escape pauses the run behind a menu with "Fortsett" and "Avslutt". "Avslutt" ends the run and goes back to the title screen, and there is no saving yet.
 
 ## Core mechanics
 
@@ -94,7 +94,8 @@ Generation runs on a background thread behind a short "charting the island" scre
 
 ```
 generator/   pure GDScript classes: noise, rivers, features, route, vardes, notes -> IslandData
-world/       terrain mesh chunks, the terrain shader, the camera, decoration scattering, the color ramps
+game/        the title screen, which is the main scene, and the game scene for one run
+world/       terrain mesh chunks, the terrain shader, the camera, the sun, the island loader, decoration scattering, the color ramps
 player/      movement checked against the grid
 map/         the map screen and contour drawing
 notes/       one note template file per language
@@ -106,7 +107,7 @@ tests/       headless generator tests
 
 1. **Generator and debug view.** Generate an island from a seed and show the height, moisture and material layers as images.
 2. **The look.** It starts with a 3D view of a real island with a free camera, where you choose the base resolution, the zoom, the tilt and the summit height by eye. Then the terrain mesh, the terrain shader with materials, sun and shadows, and water. This step decides how the game feels, and it is done when 5 seeds look right.
-3. **Walking.** Player, camera, walkability and the terrain fade in front of the player.
+3. **Walking.** The title screen and the game scene, then the player, camera, walkability and the terrain fade in front of the player.
 4. **Exploring.** Line of sight, the knowledge texture, fog with land rising out of it, peaks and surveying, and the map screen with contour lines.
 5. **The summit.** Contenders and clouds, the summit varde, the trail with its notes, and the end screen.
 6. **Polish.** Generated trees, the day cycle with moving shadows and the lamp, particles, glow and sound.

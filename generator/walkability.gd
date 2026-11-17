@@ -4,8 +4,9 @@ extends RefCounted
 ## step the player takes against can_step(), and the route guarantee in generator step 6 searches
 ## with the same function, so the generator can never promise a route that movement refuses.
 
-## World units the summit stands above sea level, as in SPEC.md. The debug view's height slider
-## starts here. Raising it makes every slope steeper in world units, so more of them block.
+## World units the summit stands above sea level, as in SPEC.md. IslandTerrain.SUMMIT_HEIGHT reads
+## it, so the terrain and the debug view's height slider start here. Raising it makes every slope
+## steeper in world units, so more of them block.
 const SUMMIT_UNITS: float = 100.0
 ## The terrain shader's cliff_normal_y. Faces whose normal's y is below it are drawn as cliff rock.
 const CLIFF_NORMAL_Y: float = 0.3
