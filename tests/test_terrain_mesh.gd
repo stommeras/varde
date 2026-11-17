@@ -14,8 +14,16 @@ func test_chunks_cover_the_grid_and_face_up() -> void:
 	for chunk: int in meshes.size():
 		var vertices: PackedVector3Array = meshes[chunk].surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
 		var corner := Vector3((chunk % chunks) * TerrainMesh.CHUNK + 0.5, 0.0, (chunk / chunks) * TerrainMesh.CHUNK + 0.5)
-		if vertices.size() != SIDE * SIDE or not is_equal_approx(vertices[0].x, corner.x) or not is_equal_approx(vertices[0].z, corner.z):
-			expect(false, "chunk %d has %d vertices from %s, expected %d from %s" % [chunk, vertices.size(), vertices[0], SIDE * SIDE, corner])
+		if vertices.size() != SIDE * SIDE:
+			expect(false, "chunk %d has %d vertices, expected %d" % [chunk, vertices.size(), SIDE * SIDE])
+			return
+		if not is_equal_approx(vertices[0].x, corner.x) or not is_equal_approx(vertices[0].z, corner.z):
+			expect(false, "chunk %d starts at %s, expected %s" % [chunk, vertices[0], corner])
+			return
+		# Godot stores indices as 16 bits when a surface has under 65536 vertices.
+		var lods: Array = RenderingServer.mesh_get_surface(meshes[chunk].get_rid(), 0)["lods"]
+		if lods.size() != TerrainMesh.STEPS.size() - 1 or lods[0]["edge_length"] != float(TerrainMesh.STEPS[1]) or lods[0]["index_data"].size() != TerrainMesh._indices(TerrainMesh.STEPS[1]).size() * 2:
+			expect(false, "chunk %d has the coarser levels %s" % [chunk, lods.map(func(lod: Dictionary) -> Array: return [lod["edge_length"], lod["index_data"].size()])])
 			return
 		for vertex: Vector3 in vertices:
 			lowest = minf(lowest, vertex.y)
@@ -25,7 +33,7 @@ func test_chunks_cover_the_grid_and_face_up() -> void:
 
 
 ## Chunks drawn at the same level meet without cracks when each edge vertex sits exactly on its
-## neighbor's, and each level keeps the edge vertices it shares with that neighbor.
+## neighbor's. The next test checks that each level keeps those edge vertices.
 func test_neighboring_chunks_share_their_edges() -> void:
 	var meshes: Array[ArrayMesh] = TerrainMesh.build(island(1))
 	var chunks: int = TerrainMesh.CHUNKS

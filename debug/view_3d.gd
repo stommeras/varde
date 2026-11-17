@@ -71,6 +71,8 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Replaces the terrain with a new island's chunk meshes, drawn by the terrain shader.
 func show_island(meshes: Array[ArrayMesh], island: IslandData) -> void:
 	for chunk: Node in _terrain.get_children():
+		# Removed now, so _apply_lod_bias doesn't also walk the chunks waiting to be freed.
+		_terrain.remove_child(chunk)
 		chunk.queue_free()
 	var material: ShaderMaterial = TerrainMaterial.create(island)
 	for mesh: ArrayMesh in meshes:
