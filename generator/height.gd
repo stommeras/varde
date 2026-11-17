@@ -4,6 +4,26 @@ class_name Height
 ## Raises land heights to this power, so most land is lowland and the peaks stand out.
 const PEAK_SHARPNESS: float = 1.8
 
+## Only high ground gets rock detail and cliffs. Ruggedness fades in as the smooth height rises
+## from RUGGED_FROM to RUGGED_TO, against a summit of about 1.0 before scaling. Lowering either
+## value makes smaller mountains and hills rugged too, raising them leaves only the tallest tops.
+const RUGGED_FROM: float = 0.5
+const RUGGED_TO: float = 0.8
+## Height of the rock detail on rugged mountains, in the same units as the noise sum. Raising it
+## gives craggier tops and more small peaks, lowering it rounds the mountains toward smooth domes.
+const ROCK: float = 0.2
+## Height of one terrace step, the ledge and the cliff above it. Raising it gives fewer and
+## taller cliffs, lowering it gives many thin bands that read as stacked rings.
+const BAND: float = 0.15
+## Share of each step taken by the cliff face. Lowering it makes cliffs steeper and ledges wider.
+const RISER: float = 0.3
+## How far noise moves the steps up and down, in steps. Below about 1 the ledges line up into
+## level rings around each mountain, above that they wander and break apart.
+const STRATA_WARP: float = 1.5
+## How much of the terraced height replaces the smooth height on a rugged cliff side. At 1 the
+## ledges are flat, and lower values tilt them back toward the slope.
+const TERRACE: float = 0.85
+
 
 ## Each noise layer takes its seed from rng, in a fixed order.
 static func generate(rng: RandomNumberGenerator) -> PackedFloat32Array:
@@ -12,10 +32,17 @@ static func generate(rng: RandomNumberGenerator) -> PackedFloat32Array:
 	# halves that width and puts bumps on every slope, which the 3D view shows as noise (#31).
 	var base := make_noise(rng, 0.004, 3)
 	# One bump of the mask is one mountain. Raising the frequency gives more and smaller mountains,
-	# lowering it fewer and larger. 0.005 gives 6 to 14 peaks with 15% prominence on seeds 0 to 9.
+	# lowering it fewer and larger. 0.005 gives 6 to 15 peaks with 15% prominence on seeds 0 to 9.
 	var mountains := make_noise(rng, 0.005, 2)
 	# Bends the falloff so the coast isn't a rounded square.
 	var coast := make_noise(rng, 0.002, 3)
+	# Rock detail on rugged mountains. 3 octaves from 0.012 makes features 20 to 80 cells wide,
+	# coarser than the bumps #31 removed.
+	var rock := make_noise(rng, 0.012, 3)
+	# Moves the terrace steps up and down, so the ledges don't form level rings.
+	var strata := make_noise(rng, 0.006, 2)
+	# Turns the terraces on and off across a mountain, so some sides are cliffs and others slopes.
+	var cliffs := make_noise(rng, 0.008, 2)
 
 	var height := PackedFloat32Array()
 	height.resize(size * size)
@@ -37,6 +64,13 @@ static func generate(rng: RandomNumberGenerator) -> PackedFloat32Array:
 				+ mask * smoothstep(0.0, 0.6, mask) * 0.5 \
 				- falloff * 1.1 \
 				- smoothstep(0.85, 1.0, maxf(absf(dx), absf(dy))) * 2.0
+			var rugged: float = smoothstep(RUGGED_FROM, RUGGED_TO, h)
+			if rugged > 0.0:
+				h += rock.get_noise_2d(x, y) * ROCK * rugged
+				var shift: float = strata.get_noise_2d(x, y) * BAND * STRATA_WARP
+				# About 70% of each rugged mountain gets cliffs. Moving both edges up gives fewer.
+				var cliff: float = smoothstep(-0.4, 0.1, cliffs.get_noise_2d(x, y))
+				h = lerpf(h, _terrace(h + shift) - shift, rugged * cliff * TERRACE)
 			var i: int = IslandData.index(x, y)
 			height[i] = h
 			# Read back the stored 32-bit value, so dividing by it gives exactly 1.0.
@@ -47,6 +81,14 @@ static func generate(rng: RandomNumberGenerator) -> PackedFloat32Array:
 		if height[i] > 0.0:
 			height[i] = pow(height[i] / highest, PEAK_SHARPNESS)
 	return height
+
+
+## Steps v into ledges BAND high. Each step stays flat for most of its width and rises over the
+## last RISER share, with a smoothstep so the cliff meets the ledge without a crease.
+static func _terrace(v: float) -> float:
+	var t: float = v / BAND
+	var step: float = floorf(t)
+	return (step + smoothstep(1.0 - RISER, 1.0, t - step)) * BAND
 
 
 ## Simplex noise with fractal octaves, seeded from rng. Other steps use it for their own layers.

@@ -35,10 +35,11 @@ func test_islands_have_sea_edges_and_a_summit() -> void:
 
 
 ## Fine noise octaves put a small top on every bump. Before #31 the high ground had 150 to 370
-## local tops per island, and with smooth mountains it has 7 to 21 on seeds 0 to 9.
+## local tops per island. With smooth lowland and craggy tops on the big mountains it has 18 to 54
+## on seeds 0 to 9.
 func test_high_ground_has_few_tops() -> void:
-	# About twice the most seen, so a tuning change can add a few mountains but not bring back the bumps.
-	const MAX_TOPS: int = 40
+	# Room for crags on the big mountains, but well under the 150 tops of the old bumpy terrain.
+	const MAX_TOPS: int = 100
 	var size: int = IslandData.SIZE
 	for island_seed: int in SEEDS:
 		var height: PackedFloat32Array = island(island_seed).height
