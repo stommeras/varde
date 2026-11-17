@@ -3,8 +3,11 @@ extends Camera3D
 ## The game's orthographic camera. It faces north, looks down at tilt from vertical, and keeps focus
 ## in the middle of the screen. The game scene and the debug view both place it with place().
 
-## The view values that milestone 2 chose by eye, which SPEC.md records.
+## Cells of ground from the top to the bottom of the screen, chosen by eye in milestone 2 and recorded
+## in SPEC.md. Raising it shows more of the island at less detail, lowering it shows less, closer up.
 const ZOOM: float = 80.0
+## Degrees from looking straight down, chosen by eye in milestone 2 and recorded in SPEC.md. Raising it
+## shows more of the slopes and less of the ground plan, lowering it flattens the view toward a map.
 const TILT_DEGREES: float = 45.0
 ## How far the camera sits behind the point it looks at. An orthographic view doesn't change with
 ## distance, so this only has to keep the near plane in front of the camera. The worst case is the

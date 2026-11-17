@@ -65,7 +65,6 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Replaces the terrain with a new island's chunk meshes, drawn by the terrain shader.
 func show_island(meshes: Array[ArrayMesh], island: IslandData) -> void:
 	_terrain.show_island(meshes, island)
-	_terrain.set_summit_height(_summit_height.value)
 
 
 ## The sliders, for the debug view to place in its UI.

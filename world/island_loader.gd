@@ -62,8 +62,9 @@ func _finish() -> void:
 		steps.append("%s %d ms" % [step, island.step_msec[step]])
 	print("Seed %d: %s, total %d ms, then the mesh %d ms" % [island.island_seed, ", ".join(steps), total, result[2]])
 	var meshes: Array[ArrayMesh] = result[1]
-	loaded.emit(island, meshes, total)
+	# Hidden first, so a handler that starts the next island keeps the cover up.
 	_cover.hide()
+	loaded.emit(island, meshes, total)
 
 
 # A thread still running when the node leaves must be joined, or Godot reports a leaked thread.

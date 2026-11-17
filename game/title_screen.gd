@@ -47,7 +47,6 @@ func _start() -> void:
 		game.island_seed = text.to_int()
 	else:
 		game.island_seed = text.hash()
-	var tree: SceneTree = get_tree()
-	tree.root.add_child(game)
-	tree.current_scene = game
-	queue_free()
+	# Takes the title screen out of the tree at once, so a second press in the same frame can't start a
+	# second run.
+	get_tree().change_scene_to_node(game)
