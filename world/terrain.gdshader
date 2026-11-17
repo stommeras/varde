@@ -30,14 +30,16 @@ uniform float grain_scale = 6.0;
 // How many ramp steps the grain shifts the light up or down. 0 gives flat dithering, above about
 // 1 the grain drowns out the shape of the land.
 uniform float grain_steps = 0.6;
-// The normal's y below which a face counts as a cliff and turns to rock. cos(60°) is 0.5.
-// Raising it turns gentler slopes to rock too, and their strata draw contour rings around whole hills.
-uniform float cliff_normal_y = 0.5;
+// The normal's y below which a face counts as a cliff and turns to rock. cos(73°) is about 0.3.
+// Raising it turns gentler slopes to rock too. At 0.5 (60°) the eroded valley sides of #33 turned
+// whole mountains to rock, and their strata drew contour rings around them.
+uniform float cliff_normal_y = 0.3;
 // How much noise moves the cliff threshold, so rock edges on a slope are ragged instead of following
 // one contour of steepness.
 uniform float cliff_wobble = 0.15;
-// World units between the tops of two strata. Lower gives thinner bands.
-uniform float strata_spacing = 1.2;
+// World units between the tops of two strata. Lower gives thinner bands. At 1.2 the bands read as
+// fine rings around each mountain instead of layers in a cliff.
+uniform float strata_spacing = 5.0;
 // How many spacings noise can bend a stratum up or down along the cliff, so the bands aren't perfectly level.
 uniform float strata_wobble = 0.6;
 // Ramp position, from 0 to 1, of faces turned away from the sun, before shadow_steps darkens the ones
