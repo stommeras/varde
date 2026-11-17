@@ -1,7 +1,7 @@
 class_name DebugView3D
 extends Node3D
 ## Shows the island as a 3D terrain mesh through the game's orthographic camera, which faces north.
-## Arrow keys pan, the scroll wheel zooms, and sliders set the base resolution, zoom, tilt and
+## Arrow keys or dragging with the left mouse button pan, the scroll wheel zooms, and sliders set the base resolution, zoom, tilt and
 ## summit height that milestone 2 chooses by eye.
 
 ## The base resolutions to choose from. Each one scales to 1920×1080 by a whole number.
@@ -49,8 +49,17 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not is_visible_in_tree():
+		return
+	var motion := event as InputEventMouseMotion
+	if motion != null and motion.button_mask & MOUSE_BUTTON_MASK_LEFT:
+		# Moves the ground at sea level with the cursor. The screen is _zoom cells of that ground tall.
+		var cells: Vector2 = motion.relative * _zoom.value / get_viewport().get_visible_rect().size.y
+		_focus -= Vector3(cells.x, 0.0, cells.y)
+		_place_camera()
+		return
 	var button := event as InputEventMouseButton
-	if not is_visible_in_tree() or button == null or not button.pressed:
+	if button == null or not button.pressed:
 		return
 	if button.button_index == MOUSE_BUTTON_WHEEL_UP:
 		_zoom.value /= WHEEL_FACTOR

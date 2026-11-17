@@ -1,7 +1,7 @@
 extends Node2D
 ## Shows a generated island's layers as images, with a seed field, layer buttons and a free camera,
 ## and a 3D view of the terrain beside them. The island and its terrain mesh build on a background
-## thread behind a "charting the island" screen. Arrow keys pan, the scroll wheel zooms, and 1x zoom
+## thread behind a "charting the island" screen. Arrow keys or dragging with the left mouse button pan, the scroll wheel zooms, and 1x zoom
 ## matches the game's scale.
 
 const PIXELS_PER_CELL: int = 4
@@ -59,8 +59,15 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _view_3d.visible:
+		return
+	var motion := event as InputEventMouseMotion
+	if motion != null and motion.button_mask & MOUSE_BUTTON_MASK_LEFT:
+		# Moves the view with the cursor, as if dragging the map.
+		_camera.position -= motion.relative / _camera.zoom
+		return
 	var button := event as InputEventMouseButton
-	if _view_3d.visible or button == null or not button.pressed:
+	if button == null or not button.pressed:
 		return
 	if button.button_index == MOUSE_BUTTON_WHEEL_UP:
 		_set_zoom(_camera.zoom.x * 1.25)
