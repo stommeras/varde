@@ -88,6 +88,24 @@ uniform float foam_edge = 0.008;
 // it widens every river.
 uniform float river_edge = 0.35;
 
+// The fade in front of the player. The game turns it on and moves player_position to the feet each
+// frame. The debug view has no player and leaves it off.
+uniform bool fade = false;
+// The player's feet in world units.
+uniform vec3 player_position;
+// World units on screen from the feet to where the fade ends, about 10 screen pixels per unit at
+// zoom 80. Raising it opens a wider hole around the player in a ridge.
+uniform float fade_radius = 4.0;
+// World units over which the fade dithers out at its rim and at fade_ground above the feet. Raising it gives
+// a softer, wider dithered edge, and at 0 the hole has a hard rim.
+uniform float fade_edge = 1.5;
+// World units the view ray behind a faded pixel must clear the ground by, at that height above the
+// feet. A pixel whose ray is still inside a hill there stays, because cutting it would show the empty
+// space under the terrain. The mesh runs straight between cell centers and the height map blends
+// four of them, so on steep rock they disagree by up to a unit or so, and below about 1 the hole
+// shows specks of that space. Raising it leaves more of a slope that rises toward the camera.
+uniform float fade_ground = 1.0;
+
 // A 4×4 Bayer matrix. Each pixel in a 4×4 block gets a different threshold, so a light level between
 // two steps shows as an even pattern of both.
 const float BAYER[16] = float[](
@@ -96,6 +114,13 @@ const float BAYER[16] = float[](
 	3.0, 11.0, 1.0, 9.0,
 	15.0, 7.0, 13.0, 5.0
 );
+
+// The dither threshold, between 0 and 1, of the pixel at pixel, counted as in world_pixel.
+float dither(vec2 pixel) {
+	// Float mod, because the count is negative left of and below the origin, where % on ints is undefined.
+	ivec2 cell = ivec2(mod(floor(pixel), 4.0));
+	return (BAYER[cell.y * 4 + cell.x] + 0.5) / 16.0;
+}
 
 varying vec3 world_position;
 // The Ramps.Terrain value whose ramp this pixel uses. Floats, because light() reads it.
@@ -195,6 +220,26 @@ void fragment() {
 	// in world units. The camera moves in whole pixels, so each pixel's count stays put as it pans.
 	float pixel_size = 2.0 / (PROJECTION_MATRIX[1][1] * VIEWPORT_SIZE.y);
 	world_pixel = vec2(dot(world_position, INV_VIEW_MATRIX[0].xyz), dot(world_position, INV_VIEW_MATRIX[1].xyz)) / pixel_size;
+
+	// The fade cuts terrain that is nearer the camera than the player and higher than the feet, so on
+	// open ground nothing fades. The shadow pass skips it, so a faded ridge still casts its shadow.
+	if (fade && !IN_SHADOW_PASS) {
+		vec3 feet = (VIEW_MATRIX * vec4(player_position, 1.0)).xyz;
+		// Follows the view ray on from this pixel down to fade_ground above the feet. Ground that lies
+		// fade_ground below the ray there means the ray has come out of the hill this pixel belongs to,
+		// so the land behind it shows through the hole. Only pixels higher than that point fade, so the
+		// first land the ray meets past it never fades too.
+		float check = player_position.y + fade_ground;
+		vec3 ray = -INV_VIEW_MATRIX[2].xyz;
+		vec3 landing = world_position + ray * (check - world_position.y) / ray.y;
+		float ground = max(texture(height_map, landing.xz * texel).r, 0.0) * summit;
+		float rise = world_position.y - player_position.y;
+		float keep = max(smoothstep(fade_radius - fade_edge, fade_radius, length(VERTEX.xy - feet.xy)),
+			1.0 - smoothstep(fade_ground, fade_ground + fade_edge, rise));
+		if (VERTEX.z > feet.z && ground < player_position.y && keep < dither(world_pixel)) {
+			discard;
+		}
+	}
 }
 
 void light() {
@@ -209,10 +254,7 @@ void light() {
 	int kind = int(terrain);
 	int steps = ramp_sizes[kind];
 	float position = mix(shade, 1.0, lit) * ramp_reach * float(steps - 1) + step_offset - shadow_steps * cast;
-	// Float mod, because the count is negative left of and below the origin, where % on ints is undefined.
-	ivec2 pixel = ivec2(mod(floor(world_pixel), 4.0));
-	float threshold = (BAYER[pixel.y * 4 + pixel.x] + 0.5) / 16.0;
-	int ramp_step = clamp(int(floor(position + threshold)), 0, steps - 1);
+	int ramp_step = clamp(int(floor(position + dither(world_pixel))), 0, steps - 1);
 	// The albedo is white, so this is the pixel's final color.
 	DIFFUSE_LIGHT = texelFetch(ramps, ivec2(ramp_step, kind), 0).rgb;
 }

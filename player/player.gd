@@ -26,6 +26,8 @@ const FACING_VIEWS: Array[int] = [View.SIDE, View.FRONT_SIDE, View.FRONT, View.F
 
 ## The camera that follows the player. Set it before adding the player.
 var camera: GameCamera
+## The terrain that fades in front of the player. Set it before placing the player.
+var terrain: IslandTerrain
 ## The player's exact position on the grid, x east and y south, in cells. The node's own position
 ## is this snapped to whole screen pixels.
 var grid_position: Vector2
@@ -46,8 +48,8 @@ func _ready() -> void:
 	_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
 	# The billboard leans back with the camera, so on a slope up to the north the terrain would cut
-	# off its head. Drawn over the terrain instead, the figure shows behind a ridge too, as it will
-	# once #46 fades the terrain in front of it.
+	# off its head. Drawn over the terrain instead, the figure shows behind a ridge too, inside the
+	# hole the terrain fades around it.
 	_sprite.no_depth_test = true
 	_sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_sprite.pixel_size = camera.pixel()
@@ -95,6 +97,7 @@ func _update_position() -> void:
 	# The same snap as the camera's, so the figure stays on the same screen pixel while the ground
 	# moves under it in whole pixels.
 	position = camera.snap(point)
+	terrain.fade_around(point)
 
 
 func _show_frame() -> void:

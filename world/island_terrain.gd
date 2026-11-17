@@ -7,6 +7,8 @@ extends Node3D
 ## value, because the slope the player can climb depends on it and the generator can't read a node.
 const SUMMIT_HEIGHT: float = Walkability.SUMMIT_UNITS
 
+var _material: ShaderMaterial
+
 
 func _init() -> void:
 	scale.y = SUMMIT_HEIGHT
@@ -18,13 +20,20 @@ func show_island(meshes: Array[ArrayMesh], island: IslandData) -> void:
 		# Removed now, so _apply_lod_bias doesn't also walk the chunks waiting to be freed.
 		remove_child(chunk)
 		chunk.queue_free()
-	var material: ShaderMaterial = TerrainMaterial.create(island)
+	_material = TerrainMaterial.create(island)
 	for mesh: ArrayMesh in meshes:
 		var chunk := MeshInstance3D.new()
 		chunk.mesh = mesh
-		chunk.material_override = material
+		chunk.material_override = _material
 		add_child(chunk)
 	_apply_lod_bias()
+
+
+## Fades the terrain that stands between the camera and feet, the player's feet in world units.
+## Call it after show_island(), which makes a new material without the fade.
+func fade_around(feet: Vector3) -> void:
+	_material.set_shader_parameter("fade", true)
+	_material.set_shader_parameter("player_position", feet)
 
 
 ## Stretches the terrain so the highest cell stands height world units above sea level.

@@ -27,6 +27,7 @@ func _ready() -> void:
 	# The middle of the island while it generates. The player moves the camera once it stands on it.
 	_camera.place()
 	_player.camera = _camera
+	_player.terrain = _terrain
 	add_child(_player)
 	_loader.loaded.connect(_on_loaded)
 	add_child(_loader)
