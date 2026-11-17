@@ -26,7 +26,7 @@ var _sprite := Sprite2D.new()
 var _camera := Camera2D.new()
 var _seed_field := LineEdit.new()
 var _info := Label.new()
-## The material layer as a texture, built once per island for both the 2D layer and the 3D mesh.
+## The material layer as a texture, built once per island.
 var _material_texture: ImageTexture
 var _view_3d := DebugView3D.new()
 ## The 3D view's sliders, shown only with it.
@@ -179,7 +179,7 @@ func _finish_generating() -> void:
 	print("Seed %d: %s, total %d ms, then the mesh %d ms" % [_island.island_seed, ", ".join(steps), total, result[2]])
 	_info.text = "%d ms" % total
 	_material_texture = ImageTexture.create_from_image(_material_image(_island.material, _island.main_island))
-	_view_3d.show_island(result[1], _material_texture)
+	_view_3d.show_island(result[1], _island)
 	_charting.hide()
 	if not _view_3d.visible:
 		_show(_layer)

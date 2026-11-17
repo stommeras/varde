@@ -67,16 +67,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		_zoom.value *= WHEEL_FACTOR
 
 
-## Replaces the terrain with a new island's mesh, colored from a grid-sized material texture.
-func show_island(arrays: Array, material_texture: Texture2D) -> void:
+## Replaces the terrain with a new island's mesh, drawn by the terrain shader.
+func show_island(arrays: Array, island: IslandData) -> void:
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	var material := StandardMaterial3D.new()
-	material.albedo_texture = material_texture
-	# Nearest filtering gives each cell one flat color with a hard edge to the next material.
-	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	material.roughness = 1.0
-	mesh.surface_set_material(0, material)
+	mesh.surface_set_material(0, TerrainMaterial.create(island))
 	_mesh.mesh = mesh
 
 
