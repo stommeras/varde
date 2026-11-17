@@ -35,7 +35,7 @@ A run starts from a title screen with "Ny øy" and an optional seed field. Quitt
 
 The style is detailed pixel art: individual pixels everywhere, textured materials, per-pixel lighting, glow and movement. None of it is drawn by hand.
 
-**The world is 3D, rendered as pixel art.** A terrain mesh built from the heightmap is drawn into a low-resolution viewport and scaled up with integer scaling. You move in 2D on the grid (left, right, forward, back), and the terrain rises and falls under you. The camera is orthographic, faces north and looks down at about 40° from vertical. The player can't rotate it, so "gå østover" in a note always points right on screen and on the map. Orthographic projection keeps every pixel the same size at any distance.
+**The world is 3D, rendered as pixel art.** A terrain mesh built from the heightmap is drawn into a low-resolution viewport and scaled up with integer scaling. You move in 2D on the grid (left, right, forward, back), and the terrain rises and falls under you. The camera is orthographic, faces north and looks down at 45° from vertical. The player can't rotate it, so "gå østover" in a note always points right on screen and on the map. Orthographic projection keeps every pixel the same size at any distance.
 
 - Each material (sand, grass, forest, rock, snow, water) has a ramp of 4 to 6 colors. The terrain shader snaps lighting to the ramp steps with ordered dithering instead of blending smoothly. All ramps, including the foam ramp and a warm ramp for the lamp, live in `world/ramps.gd`.
 - A directional light is the sun. Its shadows fall across the terrain and move as the sun moves through the day. The sun crosses the sky from east to west in a half circle that stands 45° above the southern horizon at noon. A cast shadow is one ramp step darker than a face turned away from the sun. Under a low sun, flat ground gets little more light than the shade side, and without the extra step its shadows barely show. The debug view has a sun-angle slider to check the shadows from morning to evening.
@@ -55,15 +55,15 @@ The style is detailed pixel art: individual pixels everywhere, textured material
 | Item | Value |
 |---|---|
 | Engine | Godot 4.7, GDScript |
-| Base resolution | Chosen by eye in milestone 2 from 480×270, 640×360 and 960×540 (each scales exactly to 1080p). Stretch mode `viewport`, integer scaling |
+| Base resolution | 960×540, chosen by eye in milestone 2 over 480×270 and 640×360. It scales exactly to 1080p. Stretch mode `viewport`, integer scaling |
 | Logic grid | 1024×1024 cells |
-| World size | One world unit per cell. The summit stands about 60 units high, a value to tune in milestone 2 |
-| Camera | Orthographic, facing north, about 40° from vertical, no rotation. The zoom (how many cells fit on screen, about 90 top to bottom to start) gets chosen by eye in milestone 2 |
+| World size | One world unit per cell. The summit stands 100 units high, chosen by eye in milestone 2 |
+| Camera | Orthographic, facing north, 45° from vertical, no rotation. The zoom fits 80 cells of flat ground from the top to the bottom of the screen. Milestone 2 chose both by eye, and they can change once walking shows how far ahead the player needs to see |
 | Shader inputs | Grid-sized textures for height (`FORMAT_RF`), material (`FORMAT_R8`), rivers and lakes (`FORMAT_R8`) and knowledge (`FORMAT_R8`) |
 | Noise | Godot's built-in `FastNoiseLite` |
 | Controls | WASD or arrow keys to walk, E to survey a peak, M for the map |
 
-The terrain shader generates detail finer than a cell from grid-sized textures. The terrain mesh comes in chunks of 64×64 cells, because a single mesh of 1M cells is too heavy. The renderer skips the chunks off screen, which at the game's zoom of 90 cells leaves 6 to 12 of the 256. Each chunk also has a coarser level with every second vertex, which Godot draws when a pixel covers 2 cells or more. The camera is orthographic, so the level follows the zoom instead of the distance from the camera, and all chunks on screen draw at the same level and meet without cracks.
+The terrain shader generates detail finer than a cell from grid-sized textures. The terrain mesh comes in chunks of 64×64 cells, because a single mesh of 1M cells is too heavy. The renderer skips the chunks off screen, which at the game's zoom of 80 cells leaves 6 to 12 of the 256. Each chunk also has a coarser level with every second vertex, which Godot draws when a pixel covers 2 cells or more. The camera is orthographic, so the level follows the zoom instead of the distance from the camera, and all chunks on screen draw at the same level and meet without cracks.
 
 ## Generator pipeline
 

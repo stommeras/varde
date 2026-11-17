@@ -47,8 +47,8 @@ uniform float strata_spacing = 5.0;
 uniform float strata_wobble = 0.6;
 // Ramp position, from 0 to 1, of faces turned away from the sun, before shadow_steps darkens the ones
 // in shadow. Raising it lightens the shade side, lowering it to 0 makes the shade side the ramp's
-// darkest step.
-uniform float shade = 0.15;
+// darkest step. At 0.15 a cast shadow on the shade side reached the darkest step, and valleys read as black.
+uniform float shade = 0.3;
 // Ramp steps a cast shadow takes off on top of the shade. Under a low sun, flat ground gets little
 // more light than the shade side, and without this its shadows are a faint change in the dither.
 // Raising it darkens shadows, 0 shades them like faces turned away from the sun.
