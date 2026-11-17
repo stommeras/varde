@@ -15,6 +15,11 @@ const FADE_SECONDS: float = 0.25
 ## World units between the samples hidden() takes toward the camera. Half a cell finds a ridge one
 ## cell wide, and raising it can step over a thin one.
 const HIDE_STEP: float = 0.5
+## World units the figure sits nearer the camera than its feet. The orthographic camera shows it on
+## the same pixels, but terrain must stand this far in front of it to hide it. Without it the boots
+## sink into a slope that rises to the side. Raising it lets the figure show over more of a bump or
+## ridge that stands in front of it.
+const DEPTH_PUSH: float = 0.3
 ## Speed multiplier in god mode. At 8 the player crosses the 1024-cell grid in about 21 s.
 const GOD_SPEED: float = 8.0
 ## The camera that follows the player. Set it before adding the player.
@@ -98,7 +103,7 @@ func _update_position() -> void:
 	camera.place()
 	# The same snap as the camera's, so the figure stays on the same screen pixel while the ground
 	# moves under it in whole pixels.
-	position = camera.snap(point)
+	position = camera.snap(point) + camera.basis.z * DEPTH_PUSH
 	_feet = point
 	# The middle and the top of the figure. Terrain that only hides the feet leaves the fade shut, so
 	# a small bump in front doesn't open a hole in the hills beside the player.

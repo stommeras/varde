@@ -4,6 +4,8 @@ shader_type spatial;
 // two nearest steps. The head also paints the eyes and the hair from its own normals, so they turn
 // with the figure.
 render_mode ambient_light_disabled;
+// Marks the pixels where the figure shows, so silhouette.gdshader leaves them alone.
+stencil_mode write, compare_always, 1;
 
 #include "res://world/dither.gdshaderinc"
 
