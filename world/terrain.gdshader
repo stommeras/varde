@@ -94,11 +94,12 @@ uniform bool fade = false;
 // The player's feet in world units.
 uniform vec3 player_position;
 // World units on screen from the feet to where the fade ends, about 10 screen pixels per unit at
-// zoom 80. Raising it opens a wider hole around the player in a ridge.
-uniform float fade_radius = 4.0;
-// World units over which the fade dithers out at its rim and at fade_ground above the feet. Raising
-// it gives a softer, wider dithered edge, and at 0 the hole has a hard rim.
-uniform float fade_edge = 1.5;
+// zoom 80. Raising it opens a wider hole around the player in a ridge. At 4 and 7 a ridge in front
+// still hid most of the ground behind the player, and the hole read as a bite out of the rock.
+uniform float fade_radius = 10.0;
+// World units over which the fade dithers out at its rim, at fade_ground above the feet and at the
+// feet's depth. Raising it gives a softer, wider dithered edge, and at 0 the hole has a hard rim.
+uniform float fade_edge = 2.5;
 // World units the view ray behind a faded pixel must clear the ground by, at that height above the
 // feet. A pixel whose ray is still inside a hill there stays, because cutting it would show the empty
 // space under the terrain. The mesh runs straight between cell centers and the height map blends
@@ -234,10 +235,12 @@ void fragment() {
 		float edge = max(fade_edge, 0.001);
 		float keep = max(smoothstep(fade_radius - edge, fade_radius, length(VERTEX.xy - feet.xy)),
 			1.0 - smoothstep(fade_ground, fade_ground + edge, rise));
+		// Terrain that crosses the feet's depth dithers out too, instead of ending in a straight line.
+		keep = max(keep, 1.0 - smoothstep(0.0, edge, VERTEX.z - feet.z));
 		// The pixels that survive in the dithered rim have low thresholds, and light() rounds them down
 		// a ramp step with the same threshold, so the rim reads as a darker outline. A shifted Bayer
 		// pattern evens that out but draws stripes along the rim.
-		if (VERTEX.z > feet.z && keep < dither(world_pixel)) {
+		if (keep < dither(world_pixel)) {
 			float check = player_position.y + fade_ground;
 			vec3 ray = -INV_VIEW_MATRIX[2].xyz;
 			vec3 landing = world_position + ray * (check - world_position.y) / ray.y;
