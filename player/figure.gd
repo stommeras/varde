@@ -6,6 +6,8 @@ extends Node3D
 ## faces -z until face() turns it.
 
 const SHADER: Shader = preload("res://player/figure.gdshader")
+## The color of the parts terrain hides, the lightest step of a ramp in Ramps.FIGURE.
+const SILHOUETTE: Ramps.FigurePart = Ramps.FigurePart.COAT
 ## World units from the soles to the crown of the head, with the beanie a little above. Every part is
 ## sized in units of it, so raising it scales the whole figure. At zoom 40, where one screen pixel is
 ## 0.052 units and the camera looks down at 45°, it draws the figure about 25 pixels tall and 12 wide.
@@ -31,6 +33,8 @@ var _body := Node3D.new()
 
 ## The ramps as a texture, one row per Ramps.FigurePart, built once for every figure.
 static var _ramps: ImageTexture
+## The silhouette pass every part shares, built once.
+static var _silhouette: ShaderMaterial
 
 
 func _init() -> void:
@@ -107,6 +111,7 @@ func _part(mesh: Mesh, part: Ramps.FigurePart, parent: Node3D, at: Vector3) -> M
 	material.set_shader_parameter("ramps", ramps())
 	material.set_shader_parameter("steps", Ramps.FIGURE[part].size())
 	material.set_shader_parameter("part", part)
+	material.next_pass = silhouette()
 	instance.material_override = material
 	parent.add_child(instance)
 	return instance
@@ -134,6 +139,15 @@ static func _box(size: Vector3) -> BoxMesh:
 	var mesh := BoxMesh.new()
 	mesh.size = size
 	return mesh
+
+
+## The pass that draws the parts terrain hides in one flat color.
+static func silhouette() -> ShaderMaterial:
+	if _silhouette == null:
+		_silhouette = ShaderMaterial.new()
+		_silhouette.shader = preload("res://player/silhouette.gdshader")
+		_silhouette.set_shader_parameter("color", Ramps.FIGURE[SILHOUETTE][2])
+	return _silhouette
 
 
 ## Ramps.FIGURE as a texture, one row per part with its steps from darkest on the left.
