@@ -63,7 +63,7 @@ The style is detailed pixel art: individual pixels everywhere, textured material
 | Noise | Godot's built-in `FastNoiseLite` |
 | Controls | WASD or arrow keys to walk, E to survey a peak, M for the map |
 
-The terrain shader generates detail finer than a cell from grid-sized textures. The terrain mesh comes in chunks, with fewer vertices for chunks far from the camera, because a single mesh of 1M cells is too heavy.
+The terrain shader generates detail finer than a cell from grid-sized textures. The terrain mesh comes in chunks of 64×64 cells, because a single mesh of 1M cells is too heavy. The renderer skips the chunks off screen, which at the game's zoom leaves about 5 of the 256. Each chunk also has a coarser level with every second vertex, which Godot draws when a pixel covers 2 cells or more. The camera is orthographic, so the level follows the zoom instead of the distance from the camera, and all chunks on screen draw at the same level and meet without cracks.
 
 ## Generator pipeline
 

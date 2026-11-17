@@ -155,12 +155,12 @@ func _generate(island_seed: int) -> void:
 	_thread.start(_build.bind(island_seed))
 
 
-## Runs on the generator thread. Returns the island, its terrain mesh arrays and the mesh's build time.
+## Runs on the generator thread. Returns the island, its terrain chunk meshes and their build time.
 static func _build(island_seed: int) -> Array:
 	var island: IslandData = IslandGenerator.generate(island_seed)
 	var started: int = Time.get_ticks_msec()
-	var arrays: Array = TerrainMesh.build_arrays(island)
-	return [island, arrays, Time.get_ticks_msec() - started]
+	var meshes: Array[ArrayMesh] = TerrainMesh.build(island)
+	return [island, meshes, Time.get_ticks_msec() - started]
 
 
 func _finish_generating() -> void:

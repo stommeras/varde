@@ -14,7 +14,8 @@ const PAN_SCREENS_PER_SECOND: float = 1.0
 ## How much one wheel step zooms. Raising it zooms in bigger jumps, lowering it in finer ones.
 const WHEEL_FACTOR: float = 1.25
 
-var _mesh := MeshInstance3D.new()
+## Holds one MeshInstance3D per terrain chunk. Its y scale is the summit height.
+var _terrain := Node3D.new()
 var _camera := Camera3D.new()
 ## The ground point at sea level in the middle of the screen. Panning moves it.
 var _focus := Vector3(IslandData.SIZE / 2.0, 0.0, IslandData.SIZE / 2.0)
@@ -28,7 +29,7 @@ var _summit_height := HSlider.new()
 
 
 func _ready() -> void:
-	add_child(_mesh)
+	add_child(_terrain)
 	_camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 	_camera.far = DISTANCE * 2.0
 	add_child(_camera)
@@ -67,12 +68,17 @@ func _unhandled_input(event: InputEvent) -> void:
 		_zoom.value *= WHEEL_FACTOR
 
 
-## Replaces the terrain with a new island's mesh, drawn by the terrain shader.
-func show_island(arrays: Array, island: IslandData) -> void:
-	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	mesh.surface_set_material(0, TerrainMaterial.create(island))
-	_mesh.mesh = mesh
+## Replaces the terrain with a new island's chunk meshes, drawn by the terrain shader.
+func show_island(meshes: Array[ArrayMesh], island: IslandData) -> void:
+	for chunk: Node in _terrain.get_children():
+		chunk.queue_free()
+	var material: ShaderMaterial = TerrainMaterial.create(island)
+	for mesh: ArrayMesh in meshes:
+		var chunk := MeshInstance3D.new()
+		chunk.mesh = mesh
+		chunk.material_override = material
+		_terrain.add_child(chunk)
+	_apply_lod_bias()
 
 
 ## The sliders, for the debug view to place in its UI.
@@ -106,12 +112,20 @@ func _add_slider(box: VBoxContainer, slider: HSlider, low: float, high: float, s
 func _apply() -> void:
 	var resolution: Vector2i = RESOLUTIONS[int(_resolution.value)]
 	get_window().content_scale_size = resolution
-	_mesh.scale.y = _summit_height.value
+	_terrain.scale.y = _summit_height.value
+	_apply_lod_bias()
 	_label(_resolution).text = tr("BASE_RESOLUTION") % [resolution.x, resolution.y]
 	_label(_zoom).text = tr("ZOOM_CELLS") % _zoom.value
 	_label(_tilt).text = tr("TILT_DEGREES") % _tilt.value
 	_label(_summit_height).text = tr("SUMMIT_HEIGHT") % _summit_height.value
 	_place_camera()
+
+
+# Godot scales a mesh's level-of-detail distances by the node's largest scale, which is the summit
+# height here. That only stretches heights, so the bias cancels it and the level follows the zoom.
+func _apply_lod_bias() -> void:
+	for chunk: MeshInstance3D in _terrain.get_children():
+		chunk.lod_bias = 1.0 / maxf(_terrain.scale.y, 1.0)
 
 
 ## Each slider's label sits just before it.
