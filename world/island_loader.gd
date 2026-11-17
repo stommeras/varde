@@ -41,6 +41,17 @@ func start(island_seed: int) -> void:
 	_thread.start(_build.bind(island_seed))
 
 
+## The seed for text typed into a seed field. A whole number is used as it is, so a seed shown on
+## screen loads the same island again. Other text is hashed, and empty text gives a random seed.
+static func seed_from(text: String) -> int:
+	var trimmed: String = text.strip_edges()
+	if trimmed.is_empty():
+		return randi()
+	if trimmed.is_valid_int():
+		return trimmed.to_int()
+	return trimmed.hash()
+
+
 ## Runs on the generator thread. Returns the island, its terrain chunk meshes and their build time.
 static func _build(island_seed: int) -> Array:
 	var island: IslandData = IslandGenerator.generate(island_seed)

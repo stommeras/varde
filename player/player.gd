@@ -3,7 +3,7 @@ extends Node3D
 ## The figure the player walks. It moves freely in 8 directions, checks each step from cell to cell
 ## with Walkability, stands on the terrain mesh's surface, and keeps the game camera centered on it.
 
-## Cells per second on open ground. Raising it crosses the island faster. At 6, walking across the
+## Cells per second on any ground. Raising it crosses the island faster. At 6, walking across the
 ## 142 cells of a 960×540 screen at zoom 80 takes about 24 s.
 const SPEED: float = 6.0
 ## Longest frame the movement takes in one go. A longer one, such as a hitch while loading, moves
@@ -81,8 +81,7 @@ func _process(delta: float) -> void:
 		_show_frame()
 		return
 	_facing = facing(direction)
-	var speed: float = SPEED * Walkability.speed(_island, _cell(grid_position))
-	var moved: Vector2 = move(_island, grid_position, direction * speed * minf(delta, MAX_DELTA))
+	var moved: Vector2 = move(_island, grid_position, direction * SPEED * minf(delta, MAX_DELTA))
 	# Pushing into a wall moves nothing, so the legs stand instead of freezing mid-step.
 	_walked = 0.0 if moved == grid_position else _walked + moved.distance_to(grid_position)
 	grid_position = moved

@@ -128,8 +128,7 @@ func _build_ui() -> void:
 
 func _on_seed_submitted(text: String) -> void:
 	_seed_field.release_focus()
-	if text.is_valid_int():
-		_loader.start(text.to_int())
+	_loader.start(IslandLoader.seed_from(text))
 
 
 func _on_loaded(island: IslandData, meshes: Array[ArrayMesh], msec: int) -> void:
