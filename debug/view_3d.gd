@@ -67,16 +67,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		_zoom.value *= WHEEL_FACTOR
 
 
-## Replaces the terrain with a new island's mesh, colored from a grid-sized material texture.
-func show_island(arrays: Array, material_texture: Texture2D) -> void:
+## Replaces the terrain with a new island's mesh, drawn by the terrain shader.
+func show_island(arrays: Array, island: IslandData) -> void:
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	var material := StandardMaterial3D.new()
-	material.albedo_texture = material_texture
-	# Nearest filtering gives each cell one flat color with a hard edge to the next material.
-	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	material.roughness = 1.0
-	mesh.surface_set_material(0, material)
+	mesh.surface_set_material(0, TerrainMaterial.create(island))
 	_mesh.mesh = mesh
 
 
@@ -127,7 +122,14 @@ func _label(slider: HSlider) -> Label:
 func _place_camera() -> void:
 	var tilt: float = deg_to_rad(_tilt.value)
 	_camera.rotation = Vector3(tilt - PI / 2.0, 0.0, 0.0)
-	_camera.position = _focus + _camera.basis.z * DISTANCE
 	# Flat ground along north-south shrinks by cos(tilt) on screen, so the view is that much
 	# shorter than the ground it covers.
 	_camera.size = _zoom.value * cos(tilt)
+	# A camera that moves by part of a pixel makes every edge and dither pattern crawl. Snapping its
+	# position along its right and up axes to whole pixels moves the image in whole pixels instead.
+	# _focus keeps the exact position, so slow panning still adds up.
+	var pixel: float = _camera.size / get_window().content_scale_size.y
+	var local: Vector3 = _camera.basis.inverse() * (_focus + _camera.basis.z * DISTANCE)
+	local.x = snappedf(local.x, pixel)
+	local.y = snappedf(local.y, pixel)
+	_camera.position = _camera.basis * local

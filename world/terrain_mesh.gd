@@ -10,7 +10,7 @@ const STEP: int = 1
 ## Surface arrays for ArrayMesh.add_surface_from_arrays. A vertex sits at every STEP-th cell's center.
 ## Its y is the cell's height, from 0.0 at sea level to 1.0 at the summit, so the node's y scale sets
 ## the summit height and Godot's normal matrix keeps the normals right under that scale. The sea is
-## flat at 0.0. Each UV points at its cell's center in a grid-sized texture.
+## flat at 0.0.
 static func build_arrays(island: IslandData) -> Array:
 	var size: int = IslandData.SIZE
 	var n: int = size / STEP
@@ -22,10 +22,8 @@ static func build_arrays(island: IslandData) -> Array:
 
 	var vertices := PackedVector3Array()
 	var normals := PackedVector3Array()
-	var uvs := PackedVector2Array()
 	vertices.resize(n * n)
 	normals.resize(n * n)
-	uvs.resize(n * n)
 	for row: int in n:
 		var north: int = maxi(row - 1, 0) * n
 		var south: int = mini(row + 1, n - 1) * n
@@ -34,7 +32,6 @@ static func build_arrays(island: IslandData) -> Array:
 			var x: float = column * STEP + 0.5
 			var z: float = row * STEP + 0.5
 			vertices[i] = Vector3(x, heights[i], z)
-			uvs[i] = Vector2(x, z) / size
 			# Central differences give the slope, and the surface y = h(x, z) has the normal
 			# (-dh/dx, 1, -dh/dz). At the edges the difference spans one step instead of two,
 			# which only flattens the outermost ring of sea.
@@ -64,6 +61,5 @@ static func build_arrays(island: IslandData) -> Array:
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = vertices
 	arrays[Mesh.ARRAY_NORMAL] = normals
-	arrays[Mesh.ARRAY_TEX_UV] = uvs
 	arrays[Mesh.ARRAY_INDEX] = indices
 	return arrays
