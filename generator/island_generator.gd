@@ -12,7 +12,11 @@ static func generate(island_seed: int) -> IslandData:
 	var started: int = Time.get_ticks_msec()
 	var smooth: PackedFloat32Array = Height.smooth(rng)
 	started = _record(data, "height", started)
-	Erosion.apply(smooth, rng)
+	# Erosion draws hundreds of thousands of numbers, as many as its tuning asks for, so it gets a
+	# generator of its own. Retuning it then leaves the noise of the later steps as it was.
+	var erosion_rng := RandomNumberGenerator.new()
+	erosion_rng.seed = rng.randi()
+	Erosion.apply(smooth, erosion_rng)
 	started = _record(data, "erosion", started)
 	data.height = Height.crags(smooth, rng)
 	started = _record(data, "crags", started)

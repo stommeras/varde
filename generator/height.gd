@@ -6,7 +6,7 @@ class_name Height
 ## Raises land heights to this power, so most land is lowland and the peaks stand out.
 const PEAK_SHARPNESS: float = 1.8
 
-## Only high ground gets rock detail and cliffs. Ruggedness fades in as the smooth height rises
+## Only high ground gets rock detail and cliffs. Ruggedness fades in as the eroded height rises
 ## from RUGGED_FROM to RUGGED_TO, against a summit of about 1.0 before scaling. Lowering either
 ## value makes smaller mountains and hills rugged too, raising them leaves only the tallest tops.
 const RUGGED_FROM: float = 0.5

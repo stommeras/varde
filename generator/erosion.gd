@@ -27,11 +27,14 @@ const CHANNEL_AREA: float = 8.0
 ## Erosion fades in as the height before erosion rises from ERODE_FROM to ERODE_TO, in the units of
 ## Height.smooth, where the tallest mountain reaches about 1. Lowering them erodes smaller hills too.
 const ERODE_FROM: float = 0.3
+## Height where erosion reaches full strength. See ERODE_FROM.
 const ERODE_TO: float = 0.55
 
 ## The eight neighbors, with the distance to each, so diagonal slopes aren't overstated.
 const NEIGHBOR_OFFSET: Array[int] = [-GRID - 1, -GRID, -GRID + 1, -1, 1, GRID - 1, GRID, GRID + 1]
 const NEIGHBOR_DISTANCE: Array[float] = [1.4142135, 1.0, 1.4142135, 1.0, 1.0, 1.4142135, 1.0, 1.4142135]
+## The 3x3 blur kernel's weight for each neighbor, with 4 for the cell itself, out of 16.
+const NEIGHBOR_BLUR: Array[float] = [1.0, 2.0, 1.0, 2.0, 2.0, 1.0, 2.0, 1.0]
 
 
 ## Erodes a height from Height.smooth in place. Routing the water takes random choices from rng.
@@ -99,8 +102,10 @@ static func _erode(grid: PackedFloat32Array, rng: RandomNumberGenerator) -> Pack
 				var i: int = y * GRID + x
 				receiver[i] = i
 				distance[i] = 1.0
-				# Heights stay above -4, so the key stays positive and sorts by height.
-				order[i] = (int((grid[i] + 4.0) * 1e7) << 16) | i
+				# The sea floor reaches about -4.3 in the corners, so the offset of 8 keeps the key positive.
+				# The scale of 1e9 gives any two float32 heights above 0.01 different keys, so a cell
+				# always sorts above the lower cell it drains to.
+				order[i] = (int((grid[i] + 8.0) * 1e9) << 16) | i
 				if x == 0 or y == 0 or x == GRID - 1 or y == GRID - 1:
 					continue
 				# A random downhill neighbor, weighted by slope. Always taking the steepest one lined
@@ -138,7 +143,7 @@ static func _erode(grid: PackedFloat32Array, rng: RandomNumberGenerator) -> Pack
 			grid[i] = lerpf(before[i], grid[r] + distance[i] * slope, weight[i])
 
 	# One blur of the change. Without it the random routing left a row of small tops along each
-	# ridge, 143 to 284 per island on seeds 0 to 9 against 55 to 86 with it.
+	# ridge, 126 to 302 per island on seeds 0 to 9 against 46 to 90 with it.
 	var change := PackedFloat32Array()
 	change.resize(cells)
 	for i: int in cells:
@@ -151,6 +156,6 @@ static func _erode(grid: PackedFloat32Array, rng: RandomNumberGenerator) -> Pack
 				continue
 			var sum: float = change[i] * 4.0
 			for k: int in 8:
-				sum += change[i + NEIGHBOR_OFFSET[k]] * (1.0 if NEIGHBOR_DISTANCE[k] > 1.0 else 2.0)
+				sum += change[i + NEIGHBOR_OFFSET[k]] * NEIGHBOR_BLUR[k]
 			blurred[i] = sum / 16.0
 	return blurred
