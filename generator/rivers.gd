@@ -41,8 +41,8 @@ var _owner := PackedInt32Array()
 ## Fill n marks the rim cells it looked at with 2n and the lake's cells with 2n + 1.
 var _flood_mark := PackedInt32Array()
 var _floods: int = 0
-## Every lake cell, once for each fill that covered it.
-var _lake_cells := PackedInt32Array()
+## 1 on every cell a lake covers. _paint adds the rivers to it.
+var _fresh_water := PackedByteArray()
 
 
 func _init(height: PackedFloat32Array, rng: RandomNumberGenerator) -> void:
@@ -50,6 +50,7 @@ func _init(height: PackedFloat32Array, rng: RandomNumberGenerator) -> void:
 	_rng = rng
 	_owner.resize(height.size())
 	_flood_mark.resize(height.size())
+	_fresh_water.resize(height.size())
 
 
 ## Traces the rivers of data from its height and main island, fills data.height flat where they made
@@ -117,11 +118,16 @@ func _trace(spring: int) -> PackedInt32Array:
 			total += drops[k]
 		if total > 0.0:
 			var pick: float = _rng.randf() * total
+			# Rounding can leave pick a hair above 0 after the last drop, so the last downhill
+			# neighbor seen is the fallback instead of staying on this cell.
+			var next: int = -1
 			for k: int in 8:
-				pick -= drops[k]
-				if drops[k] > 0.0 and pick <= 0.0:
-					cell = IslandData.index(x + NEIGHBOR_X[k], y + NEIGHBOR_Y[k])
-					break
+				if drops[k] > 0.0:
+					next = k
+					pick -= drops[k]
+					if pick <= 0.0:
+						break
+			cell = IslandData.index(x + NEIGHBOR_X[next], y + NEIGHBOR_Y[next])
 			path.append(cell)
 			continue
 		var outlet: int = _fill_pit(cell)
@@ -152,7 +158,9 @@ func _fill_pit(pit: int) -> int:
 	var region := PackedInt32Array([pit])
 	_flood_mark[pit] = lake
 	# A min-heap of the cells on the lake's rim, keyed by height in the high bits and the index in the
-	# low 20. Heights stay above -8, and the scale of 1e9 keeps any two float32 heights apart.
+	# low 20. Heights stay above -8. The scale of 1e9 orders heights more than 1e-9 apart, and closer
+	# ones pop by index. A slightly higher cell popping first then makes the next one spill early, and
+	# the trace fills again from there, so the lake still ends at its rim.
 	var rim := PackedInt64Array()
 	var cell: int = pit
 	while true:
@@ -172,7 +180,7 @@ func _fill_pit(pit: int) -> int:
 		region.append(cell)
 	for i: int in region:
 		_height[i] = level
-	_lake_cells.append_array(region)
+		_fresh_water[i] = 1
 	return cell
 
 
@@ -207,10 +215,6 @@ func _cross(entry: int, outlet: int, lake: int) -> PackedInt32Array:
 ## that count.
 func _paint(rivers: Array[PackedInt32Array]) -> PackedByteArray:
 	var size: int = IslandData.SIZE
-	var mask := PackedByteArray()
-	mask.resize(_height.size())
-	for i: int in _lake_cells:
-		mask[i] = 1
 	# Flow that tributaries bring into each cell. A river only joins an earlier one, so going from
 	# the last river to the first adds every tributary before its river is painted.
 	var inflow: Dictionary[int, int] = {}
@@ -229,8 +233,8 @@ func _paint(rivers: Array[PackedInt32Array]) -> PackedByteArray:
 				for dx: int in range(-radius, radius + 1):
 					# The extra radius rounds the disc, so radius 1 is a plus instead of a lone cell.
 					if dx * dx + dy * dy <= radius * radius + radius:
-						mask[IslandData.index(x + dx, y + dy)] = 1
-	return mask
+						_fresh_water[IslandData.index(x + dx, y + dy)] = 1
+	return _fresh_water
 
 
 ## Adds key to the min-heap.
