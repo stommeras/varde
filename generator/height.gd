@@ -39,9 +39,11 @@ static func generate(rng: RandomNumberGenerator) -> PackedFloat32Array:
 	# Rock detail on rugged mountains. 3 octaves from 0.012 makes features 20 to 80 cells wide,
 	# coarser than the bumps #31 removed.
 	var rock := make_noise(rng, 0.012, 3)
-	# Moves the terrace steps up and down, so the ledges don't form level rings.
+	# Moves the terrace steps up and down, so the ledges don't form level rings. Raising the
+	# frequency makes the ledges wander over shorter distances, lowering it gives longer level runs.
 	var strata := make_noise(rng, 0.006, 2)
 	# Turns the terraces on and off across a mountain, so some sides are cliffs and others slopes.
+	# Raising the frequency gives smaller patches of cliff, lowering it gives whole cliffy sides.
 	var cliffs := make_noise(rng, 0.008, 2)
 
 	var height := PackedFloat32Array()
@@ -68,7 +70,8 @@ static func generate(rng: RandomNumberGenerator) -> PackedFloat32Array:
 			if rugged > 0.0:
 				h += rock.get_noise_2d(x, y) * ROCK * rugged
 				var shift: float = strata.get_noise_2d(x, y) * BAND * STRATA_WARP
-				# About 70% of each rugged mountain gets cliffs. Moving both edges up gives fewer.
+				# About 90% of each rugged mountain gets some cliff and 40% full cliff. Moving both edges up
+				# gives fewer cliffs.
 				var cliff: float = smoothstep(-0.4, 0.1, cliffs.get_noise_2d(x, y))
 				h = lerpf(h, _terrace(h + shift) - shift, rugged * cliff * TERRACE)
 			var i: int = IslandData.index(x, y)

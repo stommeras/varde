@@ -34,6 +34,16 @@ func test_islands_have_sea_edges_and_a_summit() -> void:
 		expect(border_land == 0, "seed %d: %d border cells are land" % [island_seed, border_land])
 
 
+## A gap or dip in the terrace would put a seam or a ditch along every ledge.
+func test_terrace_is_continuous_and_rising() -> void:
+	var previous: float = Height._terrace(-1.0)
+	for k: int in range(1, 20001):
+		var v: float = -1.0 + k * 0.0001
+		var t: float = Height._terrace(v)
+		expect(t >= previous and t - previous < 0.001, "terrace jumps from %f to %f at %f" % [previous, t, v])
+		previous = t
+
+
 ## Fine noise octaves put a small top on every bump. Before #31 the high ground had 150 to 370
 ## local tops per island. With smooth lowland and craggy tops on the big mountains it has 18 to 54
 ## on seeds 0 to 9.
