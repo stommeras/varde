@@ -11,8 +11,9 @@ const SPEED: float = 6.0
 const MAX_DELTA: float = 0.1
 ## Cells walked per frame of the walk cycle. Raising it slows the legs against the ground.
 const CELLS_PER_FRAME: float = 0.5
-## Size of one frame of the figure in pixels.
-const FRAME_SIZE := Vector2i(6, 10)
+## Size of one frame of the figure in pixels. Chosen by eye over 6×10 and 8×13, which were hard to
+## find on screen at 1080p. Keep both even, so the frame's edges land on whole pixels.
+const FRAME_SIZE := Vector2i(10, 16)
 ## The walk cycle as columns of the sheet: standing, left foot forward, standing, right foot forward.
 const CYCLE: Array[int] = [0, 1, 0, 2]
 
@@ -171,44 +172,53 @@ static func _draw_frame(image: Image, origin: Vector2i, facing: int, step: int) 
 	var rect := func(x: int, y: int, w: int, h: int, color: int) -> void:
 		image.fill_rect(Rect2i(origin + Vector2i(x, y), Vector2i(w, h)), ramp[color])
 	if facing == Facing.EAST:
-		rect.call(2, 0, 3, 1, 3)  # cap
-		rect.call(2, 1, 3, 2, 4)  # face
-		rect.call(2, 1, 1, 2, 0)  # hair at the back of the head
-		rect.call(1, 3, 1, 3, 1)  # pack
-		rect.call(2, 3, 3, 3, 3)  # coat
-		rect.call(2, 6, 3, 1, 2)  # hem
+		rect.call(3, 0, 4, 1, 3)  # cap, with the brim forward
+		rect.call(3, 1, 5, 1, 3)
+		rect.call(3, 2, 5, 3, 4)  # face
+		rect.call(3, 2, 2, 1, 0)  # hair at the back of the head
+		rect.call(3, 3, 1, 2, 0)
+		rect.call(6, 3, 1, 1, 0)  # eye
+		rect.call(1, 5, 2, 5, 1)  # pack
+		rect.call(3, 5, 4, 5, 3)  # coat
+		rect.call(3, 10, 4, 1, 2)  # hem
+		rect.call(3, 11, 4, 1, 1)  # hips
 		if step == 0:
-			rect.call(3, 3, 1, 3, 2)  # arm at the side
-			rect.call(3, 6, 1, 1, 4)
-			rect.call(2, 7, 2, 2, 1)
-			rect.call(2, 9, 3, 1, 0)
+			rect.call(4, 6, 1, 4, 2)  # arm at the side
+			rect.call(4, 10, 1, 1, 4)
+			rect.call(4, 12, 2, 3, 1)
+			rect.call(4, 15, 3, 1, 0)
 		else:
-			# The near arm swings against the near leg.
-			rect.call(3, 3, 1, 2, 2)
-			rect.call(2 if step == 1 else 4, 5, 1, 1, 4)
-			rect.call(2, 7, 2, 1, 1)
-			rect.call(1, 8, 1, 1, 1)  # back leg
-			rect.call(1, 9, 1, 1, 0)
-			rect.call(4, 8, 1, 1, 1)  # front leg
-			rect.call(4, 9, 2, 1, 0)
+			# The near arm swings forward on one step and back on the other.
+			var hand: int = 6 if step == 1 else 2
+			rect.call(5 if step == 1 else 3, 6, 1, 3, 2)
+			rect.call(hand, 9, 1, 1, 4)
+			rect.call(3, 12, 1, 1, 1)  # back leg
+			rect.call(2, 13, 1, 2, 1)
+			rect.call(1, 15, 2, 1, 0)
+			rect.call(5, 12, 1, 1, 1)  # front leg
+			rect.call(6, 13, 1, 2, 1)
+			rect.call(6, 15, 2, 1, 0)
 		return
 	var front: bool = facing == Facing.SOUTH
-	rect.call(1, 0, 4, 1, 3)  # cap
-	rect.call(1, 1, 4, 2, 4 if front else 0)  # face or hair
-	rect.call(0, 3, 6, 3, 3)  # coat
-	rect.call(0, 3, 1, 3, 2)  # arms
-	rect.call(5, 3, 1, 3, 2)
+	rect.call(3, 0, 4, 1, 3)  # cap
+	rect.call(2, 1, 6, 1, 3)
+	rect.call(2, 2, 6, 3, 4 if front else 0)  # face or hair
+	if front:
+		rect.call(3, 3, 1, 1, 0)  # eyes
+		rect.call(6, 3, 1, 1, 0)
+	rect.call(1, 5, 8, 5, 3)  # coat
+	rect.call(0, 5, 1, 5, 2)  # arms
+	rect.call(9, 5, 1, 5, 2)
 	if not front:
-		rect.call(1, 3, 4, 3, 1)  # pack
-	rect.call(1, 6, 4, 1, 2)  # hem
-	rect.call(1, 7, 4, 1, 1)  # hips
-	# Each leg is its column of trousers ending in a boot. A foot forward lifts that leg a pixel and
+		rect.call(2, 5, 6, 4, 1)  # pack
+	rect.call(1, 10, 8, 1, 2)  # hem
+	rect.call(1, 11, 8, 1, 1)  # hips
+	# Each leg is two columns of trousers ending in a boot. A foot forward lifts that leg a pixel and
 	# raises the hand on the other side.
 	for side: int in 2:
-		var x: int = 1 if side == 0 else 4
+		var x: int = 2 if side == 0 else 6
 		var lifted: bool = step == side + 1
 		var swung: bool = step != 0 and not lifted
-		rect.call(0 if side == 0 else 5, 5 if swung else 6, 1, 1, 4)  # hand
-		rect.call(x, 8, 1, 1, 0 if lifted else 1)
-		if not lifted:
-			rect.call(x, 9, 1, 1, 0)
+		rect.call(0 if side == 0 else 9, 9 if swung else 10, 1, 1, 4)  # hand
+		rect.call(x, 12, 2, 2 if lifted else 3, 1)
+		rect.call(x - 1 + side, 14 if lifted else 15, 3, 1, 0)  # boot, turned out
