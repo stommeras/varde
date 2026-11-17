@@ -8,52 +8,18 @@ shader_type spatial;
 // terrain, and light() replaces Godot's lighting with the ramp lookup.
 render_mode ambient_light_disabled;
 
-// One float per cell. Sea level is 0.0 and the summit 1.0, as in IslandData.height.
-uniform sampler2D height_map : filter_linear, repeat_disable;
-// One byte per cell, a Ramps.Terrain value.
-uniform sampler2D material_map : filter_nearest, repeat_disable;
-// One byte per cell, 1 where a river or lake covers it, which the shader reads as 1 / 255. Linear,
-// so a river's edge runs between cells instead of along their sides.
-uniform sampler2D fresh_water_map : filter_linear, repeat_disable;
-// Row t holds the steps of ramp t, darkest first. TerrainMaterial builds it from Ramps.RAMPS.
-uniform sampler2D ramps : source_color, filter_nearest, repeat_disable;
-// How many steps each ramp in `ramps` has, indexed by Ramps.Terrain.
-uniform int ramp_sizes[8];
-// Seamless FastNoiseLite noise from 0 to 1, tiled across the world.
-uniform sampler2D noise : filter_linear, repeat_enable;
+#include "res://world/ground.gdshaderinc"
 
-// Cells one tile of `noise` covers when warping material boundaries. Raising it makes the
-// boundaries wander in longer, smoother curves, lowering it makes them more ragged.
-uniform float warp_scale = 24.0;
-// How far, in cells, a boundary can move from the grid. Below about 0.5 the grid's straight edges
-// show, and above about 3 thin bands of a material break up into islands.
-uniform float warp_cells = 1.5;
 // Cells one tile of `noise` covers for the grain inside a material. Lower is finer grain.
 uniform float grain_scale = 6.0;
 // How many ramp steps the grain shifts the light up or down. 0 gives flat dithering, above about
 // 1 the grain drowns out the shape of the land.
 uniform float grain_steps = 0.6;
-// The normal's y below which a face counts as a cliff and turns to rock. cos(73°) is about 0.3.
-// TerrainMaterial sets it from Walkability.CLIFF_NORMAL_Y, because the player can't climb these faces.
-// Raising it turns gentler slopes to rock too. At 0.5 (60°) the eroded valley sides of #33 turned
-// whole mountains to rock, and their strata drew contour rings around them.
-uniform float cliff_normal_y = 0.3;
-// How much noise moves the cliff threshold, so rock edges on a slope are ragged instead of following
-// one contour of steepness.
-uniform float cliff_wobble = 0.15;
 // World units between the tops of two strata. Lower gives thinner bands. At 1.2 the bands read as
 // fine rings around each mountain instead of layers in a cliff.
 uniform float strata_spacing = 5.0;
 // How many spacings noise can bend a stratum up or down along the cliff, so the bands aren't perfectly level.
 uniform float strata_wobble = 0.6;
-// Ramp position, from 0 to 1, of faces turned away from the sun, before shadow_steps darkens the ones
-// in shadow. Raising it lightens the shade side, lowering it to 0 makes the shade side the ramp's
-// darkest step. At 0.15 a cast shadow on the shade side reached the darkest step, and valleys read as black.
-uniform float shade = 0.3;
-// Ramp steps a cast shadow takes off on top of the shade. Under a low sun, flat ground gets little
-// more light than the shade side, and without this its shadows are a faint change in the dither.
-// Raising it darkens shadows, 0 shades them like faces turned away from the sun.
-uniform float shadow_steps = 1.0;
 
 // Depth below sea level, in height-map units, where the sea reaches its darkest step. The summit is
 // 1.0, and the sea floor drops about 0.012 per cell from the coast. Raising it widens the light
@@ -83,53 +49,6 @@ uniform float foam_width = 0.45;
 // Depth of the unbroken line of foam along the coast. 0.008 is about one cell. Raising it widens the line.
 uniform float foam_edge = 0.008;
 
-// The interpolated fresh water map above which a pixel is water. At 0.5 a river one cell wide pinches
-// shut where it steps diagonally, because the corner between two diagonal cells reads 0.5. Lowering
-// it widens every river.
-uniform float river_edge = 0.35;
-
-// How far the fade in front of the player is open, from 0 (shut) to 1 (fade_radius). The player
-// opens it while terrain hides the figure and moves player_position to the feet each frame. The
-// debug view has no player and leaves it shut.
-uniform float fade_amount = 0.0;
-// The player's feet in world units.
-uniform vec3 player_position;
-// World units on screen from the feet to where the fade ends, about 10 screen pixels per unit at
-// zoom 80. Raising it opens a wider hole around the player in a ridge. At 4 and 7 a ridge in front
-// still hid most of the ground behind the player, and the hole read as a bite out of the rock.
-uniform float fade_radius = 10.0;
-// World units over which the fade dithers out at its rim, at fade_ground above the feet and at the
-// feet's depth. Raising it gives a softer, wider dithered edge, and at 0 the hole has a hard rim.
-uniform float fade_edge = 2.5;
-// World units the view ray behind a faded pixel must clear the ground by somewhere past the pixel.
-// A pixel whose ray never leaves the ground stays, because cutting it would show the empty space
-// under the terrain. The mesh runs straight between cell centers and the height map blends four of
-// them, so on steep rock they disagree by up to a unit or so, and below about 1 the hole shows specks
-// of that space. Terrain less than this above the feet never fades, which keeps the ground the player
-// stands on. Raising it leaves more of the terrain in front of the player.
-uniform float fade_ground = 1.0;
-// World units between the samples the fade takes along the view ray, and how many it takes. A gap
-// narrower than a step between a ridge and the land behind it can be missed, which keeps that pixel.
-// 96 steps of 1 reach about 68 units down, more than a ridge stands above the valley behind it.
-uniform float fade_step = 1.0;
-uniform int fade_steps = 96;
-
-// A 4×4 Bayer matrix. Each pixel in a 4×4 block gets a different threshold, so a light level between
-// two steps shows as an even pattern of both.
-const float BAYER[16] = float[](
-	0.0, 8.0, 2.0, 10.0,
-	12.0, 4.0, 14.0, 6.0,
-	3.0, 11.0, 1.0, 9.0,
-	15.0, 7.0, 13.0, 5.0
-);
-
-// The dither threshold, between 0 and 1, of the pixel at pixel, counted as in world_pixel.
-float dither(vec2 pixel) {
-	// Float mod, because the count is negative left of and below the origin, where % on ints is undefined.
-	ivec2 cell = ivec2(mod(floor(pixel), 4.0));
-	return (BAYER[cell.y * 4 + cell.x] + 0.5) / 16.0;
-}
-
 varying vec3 world_position;
 // The Ramps.Terrain value whose ramp this pixel uses. Floats, because light() reads it.
 varying float terrain;
@@ -157,41 +76,23 @@ void vertex() {
 void fragment() {
 	// A cell's center sits at (column + 0.5, row + 0.5) in the world, which is its texel center.
 	vec2 cell = world_position.xz;
-	vec2 texel = 1.0 / vec2(textureSize(height_map, 0));
-	vec2 uv = cell * texel;
+	vec2 uv = cell / vec2(textureSize(height_map, 0));
 	// The mesh's y scale is the summit height in world units.
 	float summit = length(MODEL_MATRIX[1].xyz);
 
 	float height = texture(height_map, uv).r;
 
 	// The normal comes from the height texture instead of the mesh, so the shading keeps its detail on
-	// coarse meshes far from the camera. The surface y = h(x, z) has the normal (-dh/dx, 1, -dh/dz),
-	// and the sea is flat, as in the mesh, so water next to a slope doesn't take its tilt.
-	float west = max(texture(height_map, uv - vec2(texel.x, 0.0)).r, 0.0);
-	float east = max(texture(height_map, uv + vec2(texel.x, 0.0)).r, 0.0);
-	float north = max(texture(height_map, uv - vec2(0.0, texel.y)).r, 0.0);
-	float south = max(texture(height_map, uv + vec2(0.0, texel.y)).r, 0.0);
-	vec3 world_normal = height <= 0.0 ? vec3(0.0, 1.0, 0.0) : normalize(vec3((west - east) * summit * 0.5, 1.0, (north - south) * summit * 0.5));
+	// coarse meshes far from the camera.
+	vec3 world_normal = ground_normal(uv, height, summit);
 	NORMAL = normalize((VIEW_MATRIX * vec4(world_normal, 0.0)).xyz);
 
-	// Two samples far apart in the same noise tile act as two independent noises for x and z.
-	vec2 warp_uv = cell / warp_scale;
-	vec2 warp = vec2(texture(noise, warp_uv).r, texture(noise, warp_uv + vec2(0.5, 0.31)).r) - 0.5;
-	ivec2 size = textureSize(material_map, 0);
-	ivec2 warped = clamp(ivec2(floor(cell + warp * 2.0 * warp_cells)), ivec2(0), size - 1);
-	int kind = int(round(texelFetch(material_map, warped, 0).r * 255.0));
-
-	// The interpolated height crosses sea level on a smooth curve, which draws the coast without the
-	// grid. Warping can still land a shore pixel on a sea cell, and all land at the shore is beach.
-	if (height <= 0.0) {
-		kind = 0;  // Ramps.Terrain.WATER
-	} else if (kind == 0) {
-		kind = 1;  // Ramps.Terrain.BEACH
-	}
+	vec2 warp = warp_at(cell);
+	int kind = material_at(cell, warp, height);
 
 	float grain = texture(noise, cell / grain_scale + vec2(0.17, 0.73)).r - 0.5;
 	step_offset = grain * 2.0 * grain_steps;
-	if (kind != 0 && world_normal.y + warp.y * 2.0 * cliff_wobble < cliff_normal_y) {
+	if (kind != 0 && is_cliff(world_normal, warp)) {
 		kind = 5;  // Ramps.Terrain.ROCK
 		// Every other stratum is one step darker, which draws level bands across the cliff.
 		float stratum = floor(height * summit / strata_spacing + warp.x * 2.0 * strata_wobble);
@@ -212,10 +113,9 @@ void fragment() {
 			step_offset = ripple(cell);
 		}
 	}
-	// The same warp as the material boundaries, so rivers and lake shores wander off the grid's lines.
 	// A river runs over cliffs too, as a waterfall. It keeps the slope's normal and the ramp's full
 	// reach, so it shades like shallow water on the slope, and a lake is flat.
-	if (height > 0.0 && texture(fresh_water_map, (cell + warp * 2.0 * warp_cells) * texel).r * 255.0 > river_edge) {
+	if (height > 0.0 && is_fresh_water(cell, warp)) {
 		kind = 0;  // Ramps.Terrain.WATER
 		step_offset = ripple(cell);
 	}
@@ -229,54 +129,14 @@ void fragment() {
 	float pixel_size = 2.0 / (PROJECTION_MATRIX[1][1] * VIEWPORT_SIZE.y);
 	world_pixel = vec2(dot(world_position, INV_VIEW_MATRIX[0].xyz), dot(world_position, INV_VIEW_MATRIX[1].xyz)) / pixel_size;
 
-	// The fade cuts terrain that is nearer the camera than the player and higher than the feet, so on
-	// open ground nothing fades. The shadow pass skips it, so a faded ridge still casts its shadow.
-	if (fade_amount > 0.0 && !IN_SHADOW_PASS) {
-		vec3 feet = (VIEW_MATRIX * vec4(player_position, 1.0)).xyz;
-		float rise = world_position.y - player_position.y;
-		// smoothstep is undefined when its edges meet, so a fade_edge of 0 keeps a sliver of width.
-		float edge = max(fade_edge, 0.001);
-		float radius = fade_radius * fade_amount;
-		float keep = max(smoothstep(radius - edge, radius, length(VERTEX.xy - feet.xy)),
-			1.0 - smoothstep(fade_ground, fade_ground + edge, rise));
-		// Terrain that crosses the feet's depth dithers out too, instead of ending in a straight line.
-		keep = max(keep, 1.0 - smoothstep(0.0, edge, VERTEX.z - feet.z));
-		// The pixels that survive in the dithered rim have low thresholds, and light() rounds them down
-		// a ramp step with the same threshold, so the rim reads as a darker outline. A shifted Bayer
-		// pattern evens that out but draws stripes along the rim.
-		if (keep < dither(world_pixel)) {
-			// Marches the view ray on past this pixel. Once it lies fade_ground above the height map, it
-			// has come out of the ground, and the land it meets next shows through the hole. That land
-			// fades only if its own ray comes out again further on, so some land always shows.
-			vec3 ray = -INV_VIEW_MATRIX[2].xyz;
-			for (int i = 1; i <= fade_steps; i++) {
-				vec3 point = world_position + ray * float(i) * fade_step;
-				// The height map never drops below sea level, so a ray this low can't clear it any more.
-				if (point.y < fade_ground) {
-					break;
-				}
-				float ground = max(texture(height_map, point.xz * texel).r, 0.0) * summit;
-				if (ground < point.y - fade_ground) {
-					discard;
-				}
-			}
-		}
+	// The shadow pass skips the fade, so a faded ridge still casts its shadow.
+	if (!IN_SHADOW_PASS && is_faded(world_position, VERTEX, VIEW_MATRIX, INV_VIEW_MATRIX, summit, dither(world_pixel))) {
+		discard;
 	}
 }
 
 void light() {
-	// ATTENUATION is the sun's shadow, 0 in full shadow. A shadowed face shades like one turned away
-	// from the sun, and then shadow_steps darker, so a shadow on flat ground still shows under a low sun.
-	float facing = clamp(dot(NORMAL, LIGHT), 0.0, 1.0);
-	float lit = facing * ATTENUATION;
-	// Faces turned away from the sun always fall in the shadow map's shadow, because the sun's ray to
-	// them passes through the hill. Only faces turned toward it take the extra steps, so the shade side
-	// keeps the shade step. The short ramp in from the terminator hides shadow acne at grazing angles.
-	float cast = (1.0 - ATTENUATION) * smoothstep(0.0, 0.05, facing);
-	int kind = int(terrain);
-	int steps = ramp_sizes[kind];
-	float position = mix(shade, 1.0, lit) * ramp_reach * float(steps - 1) + step_offset - shadow_steps * cast;
-	int ramp_step = clamp(int(floor(position + dither(world_pixel))), 0, steps - 1);
-	// The albedo is white, so this is the pixel's final color.
-	DIFFUSE_LIGHT = texelFetch(ramps, ivec2(ramp_step, kind), 0).rgb;
+	// ATTENUATION is the sun's shadow, 0 in full shadow. The albedo is white, so this is the pixel's
+	// final color.
+	DIFFUSE_LIGHT = ramp_color(clamp(dot(NORMAL, LIGHT), 0.0, 1.0), ATTENUATION, int(terrain), ramp_reach, step_offset, dither(world_pixel));
 }
