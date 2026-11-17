@@ -83,12 +83,12 @@ func show_island(arrays: Array, material_texture: Texture2D) -> void:
 ## The sliders, for the debug view to place in its UI.
 func build_controls() -> Control:
 	var box := VBoxContainer.new()
-	# The starting values are SPEC.md's, which milestone 2 replaces with the ones chosen here by eye.
-	_add_slider(box, _resolution, 0, RESOLUTIONS.size() - 1, 1, 1)
-	_add_slider(box, _zoom, 20, IslandData.SIZE, 1, 90)
+	# Starting points from #23, to replace with the values chosen here by eye once the terrain is smooth (#31).
+	_add_slider(box, _resolution, 0, RESOLUTIONS.size() - 1, 1, 2)
+	_add_slider(box, _zoom, 20, IslandData.SIZE, 1, 80)
 	_zoom.exp_edit = true
-	_add_slider(box, _tilt, 0, 80, 1, 40)
-	_add_slider(box, _summit_height, 5, 300, 1, 60)
+	_add_slider(box, _tilt, 0, 80, 1, 45)
+	_add_slider(box, _summit_height, 5, 300, 1, 100)
 	for slider: HSlider in [_resolution, _zoom, _tilt, _summit_height]:
 		slider.value_changed.connect(_apply.unbind(1))
 	_apply()
