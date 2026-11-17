@@ -100,12 +100,18 @@ uniform float fade_radius = 10.0;
 // World units over which the fade dithers out at its rim, at fade_ground above the feet and at the
 // feet's depth. Raising it gives a softer, wider dithered edge, and at 0 the hole has a hard rim.
 uniform float fade_edge = 2.5;
-// World units the view ray behind a faded pixel must clear the ground by, at that height above the
-// feet. A pixel whose ray is still inside a hill there stays, because cutting it would show the empty
-// space under the terrain. The mesh runs straight between cell centers and the height map blends
-// four of them, so on steep rock they disagree by up to a unit or so, and below about 1 the hole
-// shows specks of that space. Raising it leaves more of a slope that rises toward the camera.
+// World units the view ray behind a faded pixel must clear the ground by somewhere past the pixel.
+// A pixel whose ray never leaves the ground stays, because cutting it would show the empty space
+// under the terrain. The mesh runs straight between cell centers and the height map blends four of
+// them, so on steep rock they disagree by up to a unit or so, and below about 1 the hole shows specks
+// of that space. Terrain less than this above the feet never fades, which keeps the ground the player
+// stands on. Raising it leaves more of the terrain in front of the player.
 uniform float fade_ground = 1.0;
+// World units between the samples the fade takes along the view ray, and how many it takes. A gap
+// narrower than a step between a ridge and the land behind it can be missed, which keeps that pixel.
+// 96 steps of 1 reach about 68 units down, more than a ridge stands above the valley behind it.
+uniform float fade_step = 1.0;
+uniform int fade_steps = 96;
 
 // A 4×4 Bayer matrix. Each pixel in a 4×4 block gets a different threshold, so a light level between
 // two steps shows as an even pattern of both.
@@ -226,10 +232,6 @@ void fragment() {
 	// open ground nothing fades. The shadow pass skips it, so a faded ridge still casts its shadow.
 	if (fade && !IN_SHADOW_PASS) {
 		vec3 feet = (VIEW_MATRIX * vec4(player_position, 1.0)).xyz;
-		// Follows the view ray on from this pixel down to fade_ground above the feet. Ground that lies
-		// fade_ground below the ray there means the ray has come out of the hill this pixel belongs to,
-		// so the land behind it shows through the hole. Only pixels higher than that point fade, so the
-		// first land the ray meets past it never fades too.
 		float rise = world_position.y - player_position.y;
 		// smoothstep is undefined when its edges meet, so a fade_edge of 0 keeps a sliver of width.
 		float edge = max(fade_edge, 0.001);
@@ -241,12 +243,20 @@ void fragment() {
 		// a ramp step with the same threshold, so the rim reads as a darker outline. A shifted Bayer
 		// pattern evens that out but draws stripes along the rim.
 		if (keep < dither(world_pixel)) {
-			float check = player_position.y + fade_ground;
+			// Marches the view ray on past this pixel. Once it lies fade_ground above the height map, it
+			// has come out of the ground, and the land it meets next shows through the hole. That land
+			// fades only if its own ray comes out again further on, so some land always shows.
 			vec3 ray = -INV_VIEW_MATRIX[2].xyz;
-			vec3 landing = world_position + ray * (check - world_position.y) / ray.y;
-			float ground = max(texture(height_map, landing.xz * texel).r, 0.0) * summit;
-			if (ground < player_position.y) {
-				discard;
+			for (int i = 1; i <= fade_steps; i++) {
+				vec3 point = world_position + ray * float(i) * fade_step;
+				// The height map never drops below sea level, so a ray this low can't clear it any more.
+				if (point.y < fade_ground) {
+					break;
+				}
+				float ground = max(texture(height_map, point.xz * texel).r, 0.0) * summit;
+				if (ground < point.y - fade_ground) {
+					discard;
+				}
 			}
 		}
 	}
