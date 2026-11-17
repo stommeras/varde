@@ -19,9 +19,11 @@ const MATERIAL_SPEED: Dictionary[int, float] = {
 	Ramps.Terrain.FOREST: 0.75,
 	Ramps.Terrain.MARSH: 0.6,
 }
-## Walking speed while wading a river, whatever ground lies under it.
+## Walking speed while wading a river, whatever ground lies under it. Lowering it makes rivers more
+## of a detour, raising it toward 1.0 makes them no obstacle.
 const WADE_SPEED: float = 0.5
-## Random cells start_cell() tries before it gives up.
+## Random cells start_cell() tries before it gives up. Most tries land off the beach and cost little.
+## Raising it only matters on an island with very little beach, and lowering it risks no start.
 const START_TRIES: int = 100000
 ## Cells a start cell must reach. It keeps the player out of a cove walled in by cliffs. Raising it
 ## costs a longer search for each beach cell tried.
@@ -36,19 +38,22 @@ static func blocked(data: IslandData, cell: int) -> bool:
 
 ## True when the player can step from cell from to its neighbor to, edge or corner. The step blocks
 ## where to is blocked or the slope between the two is steeper than MAX_SLOPE, going up or down. A
-## corner step also needs both cells beside it open, so the player can't slip between two corners.
+## corner step also needs the edge steps to both cells beside it open, so the player can't slip
+## between two corners of water or cliff.
 static func can_step(data: IslandData, from: int, to: int) -> bool:
-	if blocked(data, to):
-		return false
 	var size: int = IslandData.SIZE
 	var dx: int = to % size - from % size
 	var dy: int = to / size - from / size
-	var distance: float = 1.0
 	if dx != 0 and dy != 0:
-		if blocked(data, from + dx) or blocked(data, from + dy * size):
+		if not _edge_step(data, from, from + dx) or not _edge_step(data, from, from + dy * size):
 			return false
-		distance = sqrt(2.0)
-	return absf(data.height[to] - data.height[from]) <= MAX_SLOPE * distance
+		return not blocked(data, to) and absf(data.height[to] - data.height[from]) <= MAX_SLOPE * sqrt(2.0)
+	return _edge_step(data, from, to)
+
+
+## True when the edge step from from to to is open, with no corner rule.
+static func _edge_step(data: IslandData, from: int, to: int) -> bool:
+	return not blocked(data, to) and absf(data.height[to] - data.height[from]) <= MAX_SLOPE
 
 
 ## Walking speed on cell, as a share of full speed.

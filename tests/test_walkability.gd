@@ -33,6 +33,9 @@ func test_steps_block_water_lakes_and_cliffs() -> void:
 	var data: IslandData = island(0)
 	var size: int = IslandData.SIZE
 	var a: int = data.start
+	if a < 0:
+		failures.append("seed 0 has no start cell to build the patch around")
+		return
 	var east: int = a + 1
 	var south: int = a + size
 	var corner: int = a + size + 1
@@ -50,6 +53,12 @@ func test_steps_block_water_lakes_and_cliffs() -> void:
 	data.height[corner] = 0.1 + Walkability.MAX_SLOPE * 1.2
 	data.height[east] = 0.1
 	expect(Walkability.can_step(data, a, corner), "a corner step blocks below the cliff slope over its length")
+	data.height[corner] = 0.1
+	data.height[east] = 0.1 + Walkability.MAX_SLOPE * 2.0
+	data.height[south] = 0.1 + Walkability.MAX_SLOPE * 2.0
+	expect(not Walkability.can_step(data, a, corner), "a corner step slips between two cliffs")
+	data.height[east] = 0.1
+	data.height[south] = 0.1
 	data.height[corner] = 0.1
 	data.fresh_water[east] = 1
 	expect(Walkability.can_step(data, a, east), "a river blocks")

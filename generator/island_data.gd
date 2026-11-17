@@ -24,7 +24,7 @@ var rivers: Array[PackedInt32Array] = []
 var fresh_water: PackedByteArray
 ## 1 on every cell a lake covers and 0 elsewhere, so the fresh water cells it leaves out are rivers.
 var lake: PackedByteArray
-## The cell the player starts on, a beach cell of the main island.
+## The cell the player starts on, a beach cell of the main island, or -1 if the generator found none.
 var start: int
 ## Milliseconds each generator step took, in the order the steps ran. Timing differs between runs,
 ## so this is the one field that the same seed doesn't reproduce.

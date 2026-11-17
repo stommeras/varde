@@ -34,6 +34,7 @@ uniform float grain_scale = 6.0;
 // 1 the grain drowns out the shape of the land.
 uniform float grain_steps = 0.6;
 // The normal's y below which a face counts as a cliff and turns to rock. cos(73°) is about 0.3.
+// TerrainMaterial sets it from Walkability.CLIFF_NORMAL_Y, because the player can't climb these faces.
 // Raising it turns gentler slopes to rock too. At 0.5 (60°) the eroded valley sides of #33 turned
 // whole mountains to rock, and their strata drew contour rings around them.
 uniform float cliff_normal_y = 0.3;

@@ -43,8 +43,6 @@ var _flood_mark := PackedInt32Array()
 var _floods: int = 0
 ## 1 on every cell a lake covers. _paint adds the rivers to it.
 var _fresh_water := PackedByteArray()
-## 1 on every cell a lake covers, and only those.
-var _lake := PackedByteArray()
 
 
 func _init(height: PackedFloat32Array, rng: RandomNumberGenerator) -> void:
@@ -53,7 +51,6 @@ func _init(height: PackedFloat32Array, rng: RandomNumberGenerator) -> void:
 	_owner.resize(height.size())
 	_flood_mark.resize(height.size())
 	_fresh_water.resize(height.size())
-	_lake.resize(height.size())
 
 
 ## Traces the rivers of data from its height and main island, fills data.height flat where they made
@@ -71,8 +68,9 @@ static func generate(data: IslandData, rng: RandomNumberGenerator) -> void:
 		rivers.append(path)
 	data.height = tracer._height
 	data.rivers = rivers
+	# Before _paint adds the rivers, the fresh water is the lakes alone.
+	data.lake = tracer._fresh_water.duplicate()
 	data.fresh_water = tracer._paint(rivers)
-	data.lake = tracer._lake
 
 
 ## Picks spring cells on the main island's high ground, at least SPRING_SPACING apart.
@@ -185,7 +183,6 @@ func _fill_pit(pit: int) -> int:
 	for i: int in region:
 		_height[i] = level
 		_fresh_water[i] = 1
-		_lake[i] = 1
 	return cell
 
 

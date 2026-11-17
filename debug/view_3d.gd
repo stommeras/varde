@@ -103,7 +103,7 @@ func build_controls() -> Control:
 	_add_slider(box, _zoom, 20, IslandData.SIZE, 1, 80)
 	_zoom.exp_edit = true
 	_add_slider(box, _tilt, 0, 80, 1, 45)
-	_add_slider(box, _summit_height, 5, 300, 1, 100)
+	_add_slider(box, _summit_height, 5, 300, 1, Walkability.SUMMIT_UNITS)
 	# 120° is mid-afternoon, with the sun in the south-west and the slopes that face the camera lit.
 	_add_slider(box, _sun_angle, 5, 175, 1, 120)
 	for slider: HSlider in [_resolution, _zoom, _tilt, _summit_height, _sun_angle]:
