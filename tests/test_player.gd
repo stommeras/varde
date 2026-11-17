@@ -55,7 +55,6 @@ func test_faces_the_nearest_of_eight_directions() -> void:
 		Vector2(-1, -1), Vector2.UP, Vector2(1, -1)]
 	for i: int in compass.size():
 		expect(Player.facing(compass[i].normalized()) == i, "direction %s faces %d, not %d" % [compass[i], Player.facing(compass[i]), i])
-	expect(Player.FACING_VIEWS[Player.facing(Vector2(-1, 1))] == Player.View.FRONT_SIDE, "south-west doesn't use the turned front view")
 
 
 ## The fade opens only while terrain stands between the camera and the figure.

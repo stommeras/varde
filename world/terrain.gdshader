@@ -122,12 +122,7 @@ void fragment() {
 	terrain = float(kind);
 	ALBEDO = vec3(1.0);
 
-	// A dither pattern fixed to the screen stays still while the land slides under it, so panning
-	// shimmers. Counting pixels along the camera's right and up axes from the world origin moves
-	// the pattern with the land. An orthographic PROJECTION_MATRIX[1][1] is 2 / the view's height
-	// in world units. The camera moves in whole pixels, so each pixel's count stays put as it pans.
-	float pixel_size = 2.0 / (PROJECTION_MATRIX[1][1] * VIEWPORT_SIZE.y);
-	world_pixel = vec2(dot(world_position, INV_VIEW_MATRIX[0].xyz), dot(world_position, INV_VIEW_MATRIX[1].xyz)) / pixel_size;
+	world_pixel = screen_pixel(world_position, INV_VIEW_MATRIX, PROJECTION_MATRIX, VIEWPORT_SIZE);
 
 	// The shadow pass skips the fade, so a faded ridge still casts its shadow.
 	if (!IN_SHADOW_PASS && is_faded(world_position, VERTEX, VIEW_MATRIX, INV_VIEW_MATRIX, summit, dither(world_pixel))) {
