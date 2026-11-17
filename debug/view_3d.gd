@@ -11,6 +11,7 @@ const RESOLUTIONS: Array[Vector2i] = [Vector2i(480, 270), Vector2i(640, 360), Ve
 const DISTANCE: float = 2000.0
 ## Screen heights the camera pans per second, so panning feels the same at any zoom.
 const PAN_SCREENS_PER_SECOND: float = 1.0
+## How much one wheel step zooms. Raising it zooms in bigger jumps, lowering it in finer ones.
 const WHEEL_FACTOR: float = 1.25
 
 var _mesh := MeshInstance3D.new()
@@ -73,6 +74,7 @@ func show_island(arrays: Array, material_texture: Texture2D) -> void:
 ## The sliders, for the debug view to place in its UI.
 func build_controls() -> Control:
 	var box := VBoxContainer.new()
+	# The starting values are SPEC.md's, which milestone 2 replaces with the ones chosen here by eye.
 	_add_slider(box, _resolution, 0, RESOLUTIONS.size() - 1, 1, 1)
 	_add_slider(box, _zoom, 20, IslandData.SIZE, 1, 90)
 	_zoom.exp_edit = true

@@ -26,6 +26,8 @@ var _sprite := Sprite2D.new()
 var _camera := Camera2D.new()
 var _seed_field := LineEdit.new()
 var _info := Label.new()
+## The material layer as a texture, built once per island for both the 2D layer and the 3D mesh.
+var _material_texture: ImageTexture
 var _view_3d := DebugView3D.new()
 ## The 3D view's sliders, shown only with it.
 var _controls_3d: Control
@@ -169,7 +171,8 @@ func _finish_generating() -> void:
 		steps.append("%s %d ms" % [step, _island.step_msec[step]])
 	print("Seed %d: %s, total %d ms, then the mesh %d ms" % [_island.island_seed, ", ".join(steps), total, result[2]])
 	_info.text = "%d ms" % total
-	_view_3d.show_island(result[1], ImageTexture.create_from_image(_material_image(_island.material, _island.main_island)))
+	_material_texture = ImageTexture.create_from_image(_material_image(_island.material, _island.main_island))
+	_view_3d.show_island(result[1], _material_texture)
 	_charting.hide()
 	if not _view_3d.visible:
 		_show(_layer)
@@ -191,15 +194,13 @@ func _show(layer: Layer) -> void:
 	_view_3d.hide()
 	_controls_3d.hide()
 	_sprite.show()
-	var image: Image
 	match layer:
 		Layer.HEIGHT:
-			image = _height_image(_island.height)
+			_sprite.texture = ImageTexture.create_from_image(_height_image(_island.height))
 		Layer.MOISTURE:
-			image = _moisture_image(_island.moisture)
+			_sprite.texture = ImageTexture.create_from_image(_moisture_image(_island.moisture))
 		Layer.MATERIAL:
-			image = _material_image(_island.material, _island.main_island)
-	_sprite.texture = ImageTexture.create_from_image(image)
+			_sprite.texture = _material_texture
 
 
 func _show_3d() -> void:
