@@ -8,11 +8,15 @@ const PEAK_SHARPNESS: float = 1.8
 ## Each noise layer takes its seed from rng, in a fixed order.
 static func generate(rng: RandomNumberGenerator) -> PackedFloat32Array:
 	var size: int = IslandData.SIZE
-	var base := make_noise(rng, 0.004, 6)
+	# Base and ridges stop at 3 octaves, so the finest detail is about 30 cells wide. Each octave
+	# more halves that width and puts bumps on every slope, which the 3D view shows as noise (#31).
+	var base := make_noise(rng, 0.004, 3)
 	# Ridged noise gives sharp crests, and a slow mask decides where the mountains rise.
-	var ridges := make_noise(rng, 0.005, 5)
+	var ridges := make_noise(rng, 0.005, 3)
 	ridges.fractal_type = FastNoiseLite.FRACTAL_RIDGED
-	var mountains := make_noise(rng, 0.003, 2)
+	# One bump of the mask is one mountain. Raising the frequency gives more and smaller mountains,
+	# lowering it fewer and larger. 0.0035 gives 7 to 12 peaks with 15% prominence on seeds 0 to 9.
+	var mountains := make_noise(rng, 0.0035, 2)
 	# Bends the falloff so the coast isn't a rounded square.
 	var coast := make_noise(rng, 0.002, 3)
 
@@ -26,7 +30,10 @@ static func generate(rng: RandomNumberGenerator) -> PackedFloat32Array:
 			var dy: float = (y - half) / half
 			# 0 at the center, 1 at the middle of each edge, 2 in the corners, plus coast noise.
 			var falloff: float = dx * dx + dy * dy + coast.get_noise_2d(x, y) * 0.5
-			var mask: float = clampf(mountains.get_noise_2d(x, y) * 2.0 + 0.4, 0.0, 1.0)
+			# The mask has no upper clamp, so it keeps rising to the middle of each mountain and the
+			# ridge crest nearest that middle becomes the one clear top. A clamp at 1 made a plateau
+			# where every crest reached the same height, a crown of equal tops.
+			var mask: float = maxf(mountains.get_noise_2d(x, y) * 2.0 + 0.4, 0.0)
 			# The last term sinks the outer 15% of the map, so the edge is sea whatever the noise does.
 			var h: float = 0.15 + base.get_noise_2d(x, y) * 0.35 \
 				+ (ridges.get_noise_2d(x, y) * 0.5 + 0.5) * mask * 0.8 \

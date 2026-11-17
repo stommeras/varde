@@ -32,3 +32,26 @@ func test_islands_have_sea_edges_and_a_summit() -> void:
 				if height[cell] >= 0.0:
 					border_land += 1
 		expect(border_land == 0, "seed %d: %d border cells are land" % [island_seed, border_land])
+
+
+## Fine noise octaves put a small top on every bump. Before #31 the high ground had 150 to 370
+## local tops per island, and with smooth mountains it has under 90.
+func test_high_ground_has_few_tops() -> void:
+	const MAX_TOPS: int = 120
+	var size: int = IslandData.SIZE
+	for island_seed: int in SEEDS:
+		var height: PackedFloat32Array = island(island_seed).height
+		var tops: int = 0
+		for y: int in range(1, size - 1):
+			for x: int in range(1, size - 1):
+				var h: float = height[IslandData.index(x, y)]
+				if h < 0.3:
+					continue
+				var top: bool = true
+				for ny: int in range(y - 1, y + 2):
+					for nx: int in range(x - 1, x + 2):
+						if (nx != x or ny != y) and height[IslandData.index(nx, ny)] >= h:
+							top = false
+				if top:
+					tops += 1
+		expect(tops <= MAX_TOPS, "seed %d: %d tops above 0.3, more than %d" % [island_seed, tops, MAX_TOPS])
