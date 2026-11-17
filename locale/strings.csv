@@ -11,3 +11,4 @@ BASE_RESOLUTION,Oppløsning: %d×%d
 ZOOM_CELLS,Zoom: %d ruter
 TILT_DEGREES,Helning: %d°
 SUMMIT_HEIGHT,Topphøyde: %d
+SUN_ANGLE,Solvinkel: %d°

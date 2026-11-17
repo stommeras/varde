@@ -40,9 +40,14 @@ uniform float cliff_wobble = 0.15;
 uniform float strata_spacing = 1.2;
 // How many spacings noise can bend a stratum up or down along the cliff, so the bands aren't perfectly level.
 uniform float strata_wobble = 0.6;
-// Ramp position, from 0 to 1, of faces turned away from the sun. Raising it lightens the shade
-// side, lowering it to 0 makes the shade side the ramp's darkest step.
+// Ramp position, from 0 to 1, of faces turned away from the sun, before shadow_steps darkens the ones
+// in shadow. Raising it lightens the shade side, lowering it to 0 makes the shade side the ramp's
+// darkest step.
 uniform float shade = 0.15;
+// Ramp steps a cast shadow takes off on top of the shade. Under a low sun, flat ground gets little
+// more light than the shade side, and without this its shadows are a faint change in the dither.
+// Raising it darkens shadows, 0 shades them like faces turned away from the sun.
+uniform float shadow_steps = 1.0;
 
 // Depth below sea level, in height-map units, where the sea reaches its darkest step. The summit is
 // 1.0, and the sea floor drops about 0.012 per cell from the coast. Raising it widens the light
@@ -170,12 +175,17 @@ void fragment() {
 }
 
 void light() {
-	// ATTENUATION carries the shadow once the sun casts one, so a shadowed face shades like one
-	// turned away from the sun.
-	float lit = clamp(dot(NORMAL, LIGHT), 0.0, 1.0) * ATTENUATION;
+	// ATTENUATION is the sun's shadow, 0 in full shadow. A shadowed face shades like one turned away
+	// from the sun, and then shadow_steps darker, so a shadow on flat ground still shows under a low sun.
+	float facing = clamp(dot(NORMAL, LIGHT), 0.0, 1.0);
+	float lit = facing * ATTENUATION;
+	// Faces turned away from the sun always fall in the shadow map's shadow, because the sun's ray to
+	// them passes through the hill. Only faces turned toward it take the extra steps, so the shade side
+	// keeps the shade step. The short ramp in from the terminator hides shadow acne at grazing angles.
+	float cast = (1.0 - ATTENUATION) * smoothstep(0.0, 0.05, facing);
 	int kind = int(terrain);
 	int steps = ramp_sizes[kind];
-	float position = mix(shade, 1.0, lit) * ramp_reach * float(steps - 1) + step_offset;
+	float position = mix(shade, 1.0, lit) * ramp_reach * float(steps - 1) + step_offset - shadow_steps * cast;
 	// Float mod, because the count is negative left of and below the origin, where % on ints is undefined.
 	ivec2 pixel = ivec2(mod(floor(world_pixel), 4.0));
 	float threshold = (BAYER[pixel.y * 4 + pixel.x] + 0.5) / 16.0;
