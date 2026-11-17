@@ -12,6 +12,9 @@ render_mode ambient_light_disabled;
 uniform sampler2D height_map : filter_linear, repeat_disable;
 // One byte per cell, a Ramps.Terrain value.
 uniform sampler2D material_map : filter_nearest, repeat_disable;
+// One byte per cell, 1 where a river or lake covers it, which the shader reads as 1 / 255. Linear,
+// so a river's edge runs between cells instead of along their sides.
+uniform sampler2D fresh_water_map : filter_linear, repeat_disable;
 // Row t holds the steps of ramp t, darkest first. TerrainMaterial builds it from Ramps.RAMPS.
 uniform sampler2D ramps : source_color, filter_nearest, repeat_disable;
 // How many steps each ramp in `ramps` has, indexed by Ramps.Terrain.
@@ -79,6 +82,11 @@ uniform float foam_width = 0.45;
 // Depth of the unbroken line of foam along the coast. 0.008 is about one cell. Raising it widens the line.
 uniform float foam_edge = 0.008;
 
+// The interpolated fresh water map above which a pixel is water. At 0.5 a river one cell wide pinches
+// shut where it steps diagonally, because the corner between two diagonal cells reads 0.5. Lowering
+// it widens every river.
+uniform float river_edge = 0.35;
+
 // A 4×4 Bayer matrix. Each pixel in a 4×4 block gets a different threshold, so a light level between
 // two steps shows as an even pattern of both.
 const float BAYER[16] = float[](
@@ -97,6 +105,16 @@ varying float step_offset;
 varying float ramp_reach;
 // This pixel's position in screen pixels, measured from the world origin instead of the screen corner.
 varying vec2 world_pixel;
+
+// Ramp steps that the drifting ripple crests lift the water at cell. Two layers of the noise drift
+// in different directions, and a crest is drawn where their values meet. That traces thin,
+// wandering lines that change shape as the layers slide.
+float ripple(vec2 cell) {
+	vec2 ripple_uv = cell / ripple_scale;
+	float a = texture(noise, ripple_uv + TIME * ripple_speed * vec2(0.6, 0.8)).r;
+	float b = texture(noise, ripple_uv * 1.3 + vec2(0.41, 0.07) - TIME * ripple_speed * vec2(0.8, -0.3)).r;
+	return ripple_steps * (1.0 - smoothstep(0.0, ripple_width, abs(a - b)));
+}
 
 void vertex() {
 	world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -157,13 +175,15 @@ void fragment() {
 			kind = 7;  // Ramps.Terrain.FOAM, which keeps the grain and the full ramp.
 		} else {
 			ramp_reach = 1.0 - smoothstep(0.0, deep_water, depth);
-			// Two layers of the noise drift in different directions, and a crest is drawn where their
-			// values meet. That traces thin, wandering lines that change shape as the layers slide.
-			vec2 ripple_uv = cell / ripple_scale;
-			float a = texture(noise, ripple_uv + TIME * ripple_speed * vec2(0.6, 0.8)).r;
-			float b = texture(noise, ripple_uv * 1.3 + vec2(0.41, 0.07) - TIME * ripple_speed * vec2(0.8, -0.3)).r;
-			step_offset = ripple_steps * (1.0 - smoothstep(0.0, ripple_width, abs(a - b)));
+			step_offset = ripple(cell);
 		}
+	}
+	// The same warp as the material boundaries, so rivers and lake shores wander off the grid's lines.
+	// A river runs over cliffs too, as a waterfall. It keeps the slope's normal and the ramp's full
+	// reach, so it shades like shallow water on the slope, and a lake is flat.
+	if (height > 0.0 && texture(fresh_water_map, (cell + warp * 2.0 * warp_cells) * texel).r * 255.0 > river_edge) {
+		kind = 0;  // Ramps.Terrain.WATER
+		step_offset = ripple(cell);
 	}
 	terrain = float(kind);
 	ALBEDO = vec3(1.0);

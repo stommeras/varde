@@ -19,6 +19,8 @@ static func create(island: IslandData) -> ShaderMaterial:
 	var terrain := Image.create_from_data(IslandData.SIZE, IslandData.SIZE, false, Image.FORMAT_R8, island.material)
 	material.set_shader_parameter("height_map", ImageTexture.create_from_image(height))
 	material.set_shader_parameter("material_map", ImageTexture.create_from_image(terrain))
+	var fresh_water := Image.create_from_data(IslandData.SIZE, IslandData.SIZE, false, Image.FORMAT_R8, island.fresh_water)
+	material.set_shader_parameter("fresh_water_map", ImageTexture.create_from_image(fresh_water))
 	if _ramps == null:
 		_ramps = ImageTexture.create_from_image(ramp_image())
 		_noise = _noise_texture()
