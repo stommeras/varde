@@ -1,8 +1,8 @@
 class_name Game
 extends Node3D
 ## One run on one island. The island generates on a background thread behind "Kartlegger øya" and
-## then shows through the game camera at the view values in SPEC.md. Escape ends the run and goes
-## back to the title screen.
+## then shows through the game camera at the view values in SPEC.md. Once the island shows, Escape
+## ends the run and goes back to the title screen.
 
 const TITLE_SCREEN: String = "res://game/title_screen.tscn"
 
@@ -11,6 +11,9 @@ var island_seed: int = 0
 var _terrain := IslandTerrain.new()
 var _camera := GameCamera.new()
 var _loader := IslandLoader.new()
+## False while the island generates. Leaving then would join the generator thread on the main thread
+## and freeze the window for the rest of the load, about 3 s.
+var _loaded: bool = false
 
 
 func _ready() -> void:
@@ -27,9 +30,10 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel"):
+	if _loaded and event.is_action_pressed("ui_cancel"):
 		get_tree().change_scene_to_file(TITLE_SCREEN)
 
 
 func _on_loaded(island: IslandData, meshes: Array[ArrayMesh], _msec: int) -> void:
 	_terrain.show_island(meshes, island)
+	_loaded = true
