@@ -1,5 +1,6 @@
 extends Node2D
 ## Shows a generated island's layers as images, with a seed field, layer buttons and a free camera.
+## The island generates on a background thread behind a "charting the island" screen.
 ## Arrow keys pan, the scroll wheel zooms, and 1x zoom matches the game's scale.
 
 const PIXELS_PER_CELL: int = 4
@@ -24,6 +25,10 @@ var _sprite := Sprite2D.new()
 var _camera := Camera2D.new()
 var _seed_field := LineEdit.new()
 var _info := Label.new()
+## Covers the view while the generator runs.
+var _charting := ColorRect.new()
+## Null means no generation is running.
+var _thread: Thread
 
 
 func _ready() -> void:
@@ -37,6 +42,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _thread != null and not _thread.is_alive():
+		_finish_generating()
 	var direction: Vector2 = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	_camera.position += direction * PAN_SPEED * delta / _camera.zoom.x
 
@@ -92,6 +99,17 @@ func _build_ui() -> void:
 	for control: Control in row.get_children():
 		control.add_theme_font_size_override("font_size", 10)
 
+	_charting.color = Ramps.RAMPS[Ramps.Terrain.WATER][0]
+	_charting.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(_charting)
+	var charting_label := Label.new()
+	charting_label.text = tr("CHARTING_ISLAND")
+	charting_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	charting_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	charting_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	charting_label.add_theme_color_override("font_color", Ramps.RAMPS[Ramps.Terrain.SNOW][3])
+	_charting.add_child(charting_label)
+
 
 func _on_seed_submitted(text: String) -> void:
 	_seed_field.release_focus()
@@ -99,16 +117,42 @@ func _on_seed_submitted(text: String) -> void:
 		_generate(text.to_int())
 
 
+## Starts the generator on a thread. A request while one is running is dropped.
 func _generate(island_seed: int) -> void:
-	var started: int = Time.get_ticks_msec()
-	_island = IslandGenerator.generate(island_seed)
-	_info.text = "%d ms" % (Time.get_ticks_msec() - started)
-	_seed_field.text = str(island_seed)
+	if _thread != null:
+		return
+	_charting.show()
+	_thread = Thread.new()
+	_thread.start(IslandGenerator.generate.bind(island_seed))
+
+
+func _finish_generating() -> void:
+	_island = _thread.wait_to_finish()
+	_thread = null
+	# Set here, not in _generate, so a request dropped mid-run can't leave the wrong seed showing.
+	_seed_field.text = str(_island.island_seed)
+	# The total sums the steps instead of timing from _generate, because a hidden window runs at
+	# about 1 frame per second and the poll in _process would add up to a second.
+	var total: int = 0
+	var steps := PackedStringArray()
+	for step: String in _island.step_msec:
+		total += _island.step_msec[step]
+		steps.append("%s %d ms" % [step, _island.step_msec[step]])
+	print("Seed %d: %s, total %d ms" % [_island.island_seed, ", ".join(steps), total])
+	_info.text = "%d ms" % total
+	_charting.hide()
 	_show(_layer)
 	# Fit the whole island on screen.
 	var world: float = IslandData.SIZE * PIXELS_PER_CELL
 	_camera.position = Vector2.ONE * world / 2.0
 	_set_zoom(get_viewport_rect().size.y / world)
+
+
+# A thread still running when the node leaves must be joined, or Godot reports a leaked thread.
+func _exit_tree() -> void:
+	if _thread != null:
+		_thread.wait_to_finish()
+		_thread = null
 
 
 func _show(layer: Layer) -> void:

@@ -1,0 +1,18 @@
+extends "res://tests/test_case.gd"
+
+
+## The game generates on a background thread, so the result there must match the main thread's.
+func test_thread_gives_same_island() -> void:
+	var thread := Thread.new()
+	thread.start(IslandGenerator.generate.bind(7))
+	var threaded: IslandData = thread.wait_to_finish()
+	var data: IslandData = island(7)
+	expect(threaded.height == data.height, "seed 7 gave a different height on a thread")
+	expect(threaded.moisture == data.moisture, "seed 7 gave a different moisture on a thread")
+	expect(threaded.material == data.material, "seed 7 gave a different material on a thread")
+	expect(threaded.main_island == data.main_island, "seed 7 gave a different main island on a thread")
+
+
+func test_every_step_is_timed() -> void:
+	var steps: Array[String] = island(0).step_msec.keys()
+	expect(steps == ["height", "moisture", "material", "main_island"], "timed steps are %s" % [steps])
