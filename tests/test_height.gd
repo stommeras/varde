@@ -45,8 +45,8 @@ func test_terrace_is_continuous_and_rising() -> void:
 
 
 ## Fine noise octaves put a small top on every bump. Before #31 the high ground had 150 to 370
-## local tops per island. With smooth lowland and craggy tops on the big mountains it has 17 to 51
-## on seeds 0 to 9.
+## local tops per island. With smooth lowland and craggy tops on the big mountains it had 17 to 51
+## on seeds 0 to 9, and with the eroded ridges of #33 it has 55 to 86.
 func test_high_ground_has_few_tops() -> void:
 	# Room for crags on the big mountains, but well under the 150 tops of the old bumpy terrain.
 	const MAX_TOPS: int = 100

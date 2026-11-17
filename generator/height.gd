@@ -1,5 +1,7 @@
 class_name Height
 ## Generator step 1: layered noise, pulled down toward the edges so the island sits in the sea.
+## It runs in two halves around the erosion step: smooth() makes the massifs for the rivers to cut,
+## and crags() adds rock detail and cliffs to what is left, so the cliffs follow the valley walls.
 
 ## Raises land heights to this power, so most land is lowland and the peaks stand out.
 const PEAK_SHARPNESS: float = 1.8
@@ -25,8 +27,10 @@ const STRATA_WARP: float = 1.5
 const TERRACE: float = 0.85
 
 
-## Each noise layer takes its seed from rng, in a fixed order.
-static func generate(rng: RandomNumberGenerator) -> PackedFloat32Array:
+## The smooth island before erosion: lowland, one massif per mountain, and the sea. Heights run to
+## about 1.0 on the tallest mountain, and the sea floor is negative. Each noise layer takes its
+## seed from rng, in a fixed order.
+static func smooth(rng: RandomNumberGenerator) -> PackedFloat32Array:
 	var size: int = IslandData.SIZE
 	# Base noise stops at 3 octaves, so its finest detail is about 30 cells wide. Each octave more
 	# halves that width and puts bumps on every slope, which the 3D view shows as noise (#31).
@@ -36,21 +40,10 @@ static func generate(rng: RandomNumberGenerator) -> PackedFloat32Array:
 	var mountains := make_noise(rng, 0.005, 2)
 	# Bends the falloff so the coast isn't a rounded square.
 	var coast := make_noise(rng, 0.002, 3)
-	# Rock detail on rugged mountains. 3 octaves from 0.012 makes features 20 to 80 cells wide,
-	# coarser than the bumps #31 removed.
-	var rock := make_noise(rng, 0.012, 3)
-	# Moves the terrace steps up and down, so the ledges don't form level rings. Raising the
-	# frequency makes the ledges wander over shorter distances, lowering it gives longer level runs.
-	# At 0.02 each ledge carried the warp as bumps about 50 cells wide.
-	var strata := make_noise(rng, 0.006, 2)
-	# Turns the terraces on and off across a mountain, so some sides are cliffs and others slopes.
-	# Raising the frequency gives smaller patches of cliff, lowering it gives whole cliffy sides.
-	var cliffs := make_noise(rng, 0.008, 2)
 
 	var height := PackedFloat32Array()
 	height.resize(size * size)
 	var half: float = (size - 1) / 2.0
-	var highest: float = 0.0
 	for y: int in size:
 		for x: int in size:
 			var dx: float = (x - half) / half
@@ -63,10 +56,34 @@ static func generate(rng: RandomNumberGenerator) -> PackedFloat32Array:
 			# Each mountain is the mask's bump. The smoothstep starts it with zero slope at the mask's
 			# edge, so the foothills meet the lowland without a crease.
 			# The last term sinks the outer 15% of the map, so the edge is sea whatever the noise does.
-			var h: float = 0.15 + base.get_noise_2d(x, y) * 0.35 \
+			height[IslandData.index(x, y)] = 0.15 + base.get_noise_2d(x, y) * 0.35 \
 				+ mask * smoothstep(0.0, 0.6, mask) * 0.5 \
 				- falloff * 1.1 \
 				- smoothstep(0.85, 1.0, maxf(absf(dx), absf(dy))) * 2.0
+	return height
+
+
+## Adds rock detail and cliffs to the high ground of a smooth height, after erosion, and scales land
+## so the summit is exactly 1.0. Each noise layer takes its seed from rng, in a fixed order.
+static func crags(smooth_height: PackedFloat32Array, rng: RandomNumberGenerator) -> PackedFloat32Array:
+	var size: int = IslandData.SIZE
+	# Rock detail on rugged mountains. 3 octaves from 0.012 makes features 20 to 80 cells wide,
+	# coarser than the bumps #31 removed.
+	var rock := make_noise(rng, 0.012, 3)
+	# Moves the terrace steps up and down, so the ledges don't form level rings. Raising the
+	# frequency makes the ledges wander over shorter distances, lowering it gives longer level runs.
+	# At 0.02 each ledge carried the warp as bumps about 50 cells wide.
+	var strata := make_noise(rng, 0.006, 2)
+	# Turns the terraces on and off across a mountain, so some sides are cliffs and others slopes.
+	# Raising the frequency gives smaller patches of cliff, lowering it gives whole cliffy sides.
+	var cliffs := make_noise(rng, 0.008, 2)
+
+	var height: PackedFloat32Array = smooth_height.duplicate()
+	var highest: float = 0.0
+	for y: int in size:
+		for x: int in size:
+			var i: int = IslandData.index(x, y)
+			var h: float = height[i]
 			var rugged: float = smoothstep(RUGGED_FROM, RUGGED_TO, h)
 			if rugged > 0.0:
 				h += rock.get_noise_2d(x, y) * ROCK * rugged
@@ -75,8 +92,7 @@ static func generate(rng: RandomNumberGenerator) -> PackedFloat32Array:
 				# closed into rings round each mountain, like a layer cake. Moving both edges up gives fewer.
 				var cliff: float = smoothstep(-0.1, 0.3, cliffs.get_noise_2d(x, y))
 				h = lerpf(h, _terrace(h + shift) - shift, rugged * cliff * TERRACE)
-			var i: int = IslandData.index(x, y)
-			height[i] = h
+				height[i] = h
 			# Read back the stored 32-bit value, so dividing by it gives exactly 1.0.
 			highest = maxf(highest, height[i])
 

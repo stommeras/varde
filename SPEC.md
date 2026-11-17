@@ -69,7 +69,7 @@ The terrain shader generates detail finer than a cell from grid-sized textures. 
 
 Each step reads the arrays the earlier steps produced. All data lives in packed arrays of length 1024×1024.
 
-1. **Height.** Layered noise, multiplied by a falloff from the center so the edges sink into the sea.
+1. **Height.** Layered noise, multiplied by a falloff from the center so the edges sink into the sea. River erosion then cuts the big mountains into branching valleys with sharp ridges between them. It runs on a 256×256 grid: water routes downhill to a random lower neighbor weighted by slope, and each cell is rebuilt from the lowland up with a slope that shrinks as more water drains through it. Crags and cliffs go onto the high ground after erosion, so the cliffs follow the valley walls.
 2. **Moisture.** A second noise layer.
 3. **Material.** A lookup table from height and moisture to beach, grass, forest, marsh, rock or snow. A flood fill then marks the main island, the largest connected land area. Islets off its coast stay as scenery the player can see but not reach, and stats, peaks, vardes and points of interest use only the main island.
 4. **Rivers.** Fill pits so water can flow out, then trace from springs at high points down the steepest slope to the sea.

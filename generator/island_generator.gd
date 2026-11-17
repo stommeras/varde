@@ -10,8 +10,12 @@ static func generate(island_seed: int) -> IslandData:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = island_seed
 	var started: int = Time.get_ticks_msec()
-	data.height = Height.generate(rng)
+	var smooth: PackedFloat32Array = Height.smooth(rng)
 	started = _record(data, "height", started)
+	Erosion.apply(smooth, rng)
+	started = _record(data, "erosion", started)
+	data.height = Height.crags(smooth, rng)
+	started = _record(data, "crags", started)
 	data.moisture = Moisture.generate(rng)
 	started = _record(data, "moisture", started)
 	data.material = MaterialLookup.generate(data.height, data.moisture)
