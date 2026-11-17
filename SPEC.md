@@ -39,7 +39,7 @@ The style is detailed pixel art: individual pixels everywhere, textured material
 
 - Each material (sand, grass, forest, rock, snow, water) has a ramp of 4 to 6 colors. The terrain shader snaps lighting to the ramp steps with ordered dithering instead of blending smoothly. All ramps, including the foam ramp and a warm ramp for the lamp, live in `world/ramps.gd`.
 - A directional light is the sun. Its shadows fall across the terrain and move as the sun moves through the day. The sun crosses the sky from east to west in a half circle that stands 45° above the southern horizon at noon. A cast shadow is one ramp step darker than a face turned away from the sun. Under a low sun, flat ground gets little more light than the shade side, and without the extra step its shadows barely show. The debug view has a sun-angle slider to check the shadows from morning to evening.
-- Steep faces use the rock ramp with horizontal strata, so cliffs read as cliffs from the tilted camera.
+- Faces steeper than about 73° use the rock ramp with wide horizontal strata, about 5 world units apart, so cliffs read as cliffs from the tilted camera. With a 60° threshold and bands 1.2 units apart, the eroded mountainsides turned to rock and the strata drew rings around whole mountains.
 - Water gets its color from depth, with animated ripples and foam at the shore. The sea is part of the terrain mesh, flat at sea level, and the terrain shader reads its depth from the height map. Shallow water reaches the light end of the water ramp, and water about 50 cells out reaches its darkest step. Thin ripple crests, one step lighter, drift across the whole sea. Bands of foam roll in toward the coast over the last 6 cells and thin out with depth, and an unbroken line of foam runs along the coast. Foam has its own ramp, so it shades with the sun like the land.
 - Noise distorts material boundaries so the logic grid never shows.
 - Trees, rocks and grass tufts are sprites generated at startup, with 20 to 30 variants per biome, scattered using noise and drawn as billboards. 3D trees are a `later` idea if billboards look flat.
@@ -69,7 +69,7 @@ The terrain shader generates detail finer than a cell from grid-sized textures. 
 
 Each step reads the arrays the earlier steps produced. All data lives in packed arrays of length 1024×1024.
 
-1. **Height.** Layered noise, multiplied by a falloff from the center so the edges sink into the sea.
+1. **Height.** Layered noise, multiplied by a falloff from the center so the edges sink into the sea. River erosion then cuts the big mountains into branching valleys with sharp ridges between them. It runs on a 256×256 grid: water routes downhill to a random lower neighbor weighted by slope, and each cell is rebuilt from the lowland up with a slope that shrinks as more water drains through it. Crags and cliffs go onto the high ground after erosion, so the cliffs follow the valley walls.
 2. **Moisture.** A second noise layer.
 3. **Material.** A lookup table from height and moisture to beach, grass, forest, marsh, rock or snow. A flood fill then marks the main island, the largest connected land area. Islets off its coast stay as scenery the player can see but not reach, and stats, peaks, vardes and points of interest use only the main island.
 4. **Rivers.** Fill pits so water can flow out, then trace from springs at high points down the steepest slope to the sea.
