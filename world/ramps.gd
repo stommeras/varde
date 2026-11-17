@@ -16,6 +16,10 @@ static var RAMPS: Dictionary[Terrain, PackedColorArray] = {
 	Terrain.FOAM: PackedColorArray([Color("6f97a8"), Color("a3c4cc"), Color("d3e5e6"), Color("f2f7f4")]),
 }
 
+## The walking figure, from boots and hair through trousers, coat shade and coat to skin. The red coat
+## stands out against every terrain ramp, so the player is easy to find on screen.
+static var FIGURE := PackedColorArray([Color("1c1a22"), Color("3b3d52"), Color("8a2c2a"), Color("c4473a"), Color("e8b48a")])
+
 
 ## The middle step of a ramp, used where a terrain needs one flat color, as in the debug view.
 static func base(terrain: Terrain) -> Color:
