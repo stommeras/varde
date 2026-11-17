@@ -1,6 +1,7 @@
 class_name IslandTerrain
 extends Node3D
-## Holds one MeshInstance3D per terrain chunk, drawn by the terrain shader. Its y scale is the summit height.
+## Holds two MeshInstance3D per terrain chunk, one for the ground drawn by the terrain shader and one
+## for the ground details standing on it. Its y scale is the summit height.
 
 ## World units from sea level to the highest cell, chosen by eye in milestone 2. Raising it makes the
 ## mountains steeper and their shadows longer, lowering it flattens the island. Walkability holds the
@@ -8,6 +9,7 @@ extends Node3D
 const SUMMIT_HEIGHT: float = Walkability.SUMMIT_UNITS
 
 var _material: ShaderMaterial
+var _details: ShaderMaterial
 
 
 func _init() -> void:
@@ -21,11 +23,21 @@ func show_island(meshes: Array[ArrayMesh], island: IslandData) -> void:
 		remove_child(chunk)
 		chunk.queue_free()
 	_material = TerrainMaterial.create(island)
+	_details = GroundDetails.create(_material, island.island_seed)
 	for mesh: ArrayMesh in meshes:
 		var chunk := MeshInstance3D.new()
 		chunk.mesh = mesh
 		chunk.material_override = _material
 		add_child(chunk)
+	for i: int in meshes.size():
+		var details := MeshInstance3D.new()
+		details.mesh = GroundDetails.mesh()
+		details.material_override = _details
+		# The shader builds each quad facing the view, which in the shadow pass is the sun's, so its
+		# shadow wouldn't match the sprite.
+		details.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		details.position = Vector3(i % TerrainMesh.CHUNKS, 0, i / TerrainMesh.CHUNKS) * TerrainMesh.CHUNK
+		add_child(details)
 	_apply_lod_bias()
 
 
@@ -33,8 +45,9 @@ func show_island(meshes: Array[ArrayMesh], island: IslandData) -> void:
 ## amount runs from 0, shut, to 1, the full radius. Call it after show_island(), which makes a new
 ## material with the fade shut.
 func fade_around(feet: Vector3, amount: float) -> void:
-	_material.set_shader_parameter("fade_amount", amount)
-	_material.set_shader_parameter("player_position", feet)
+	for material: ShaderMaterial in [_material, _details]:
+		material.set_shader_parameter("fade_amount", amount)
+		material.set_shader_parameter("player_position", feet)
 
 
 ## Stretches the terrain so the highest cell stands height world units above sea level.
