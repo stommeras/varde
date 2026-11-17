@@ -13,8 +13,8 @@ const RUGGED_TO: float = 0.8
 ## gives craggier tops and more small peaks, lowering it rounds the mountains toward smooth domes.
 const ROCK: float = 0.2
 ## Height of one terrace step, the ledge and the cliff above it. Raising it gives fewer and
-## taller cliffs, lowering it gives many thin bands that read as stacked rings.
-const BAND: float = 0.15
+## taller cliffs, lowering it gives many thin bands that read as stacked rings, as at 0.15.
+const BAND: float = 0.22
 ## Share of each step taken by the cliff face. Lowering it makes cliffs steeper and ledges wider.
 const RISER: float = 0.3
 ## How far noise moves the steps up and down, in steps. Below about 1 the ledges line up into
@@ -41,6 +41,7 @@ static func generate(rng: RandomNumberGenerator) -> PackedFloat32Array:
 	var rock := make_noise(rng, 0.012, 3)
 	# Moves the terrace steps up and down, so the ledges don't form level rings. Raising the
 	# frequency makes the ledges wander over shorter distances, lowering it gives longer level runs.
+	# At 0.02 each ledge carried the warp as bumps about 50 cells wide.
 	var strata := make_noise(rng, 0.006, 2)
 	# Turns the terraces on and off across a mountain, so some sides are cliffs and others slopes.
 	# Raising the frequency gives smaller patches of cliff, lowering it gives whole cliffy sides.
@@ -70,9 +71,9 @@ static func generate(rng: RandomNumberGenerator) -> PackedFloat32Array:
 			if rugged > 0.0:
 				h += rock.get_noise_2d(x, y) * ROCK * rugged
 				var shift: float = strata.get_noise_2d(x, y) * BAND * STRATA_WARP
-				# About 90% of each rugged mountain gets some cliff and 40% full cliff. Moving both edges up
-				# gives fewer cliffs.
-				var cliff: float = smoothstep(-0.4, 0.1, cliffs.get_noise_2d(x, y))
+				# About 60% of each rugged mountain gets some cliff and 20% full cliff. At 90% the ledges
+				# closed into rings round each mountain, like a layer cake. Moving both edges up gives fewer.
+				var cliff: float = smoothstep(-0.1, 0.3, cliffs.get_noise_2d(x, y))
 				h = lerpf(h, _terrace(h + shift) - shift, rugged * cliff * TERRACE)
 			var i: int = IslandData.index(x, y)
 			height[i] = h
