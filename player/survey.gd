@@ -44,8 +44,10 @@ var player: Player
 var camera: GameCamera
 var terrain: IslandTerrain
 var _island: IslandData
-## One byte per peak in _island.peaks, 1 once surveyed.
-var _surveyed := PackedByteArray()
+## In god mode, every peak not yet surveyed shows its zone ring, however far away it is.
+var show_all: bool = false
+## One byte per peak in the island's peaks, 1 once surveyed.
+var surveyed := PackedByteArray()
 ## The index of the peak being surveyed, or -1.
 var _peak: int = -1
 ## Seconds since the survey started.
@@ -61,6 +63,11 @@ var _marker: float = 0.0
 ## The index of the peak whose zone ring shows, or -1.
 var _marker_peak: int = -1
 var _zone_ring := ZoneRing.new()
+## A ring per peak for show_all, made the first time show_all is on for this island.
+var _all_rings: Array[ZoneRing] = []
+## The camera zoom _all_rings were placed at. They're placed again when it changes, so a ring keeps
+## its size on screen and still shows on a peak when the camera zooms far out.
+var _rings_zoom: float = 0.0
 ## Bands marked so far. Each is marked when the ring reaches it, because marking all of them in one
 ## frame took 6 to 11 ms for the 60,000 to 126,000 cells of a survey.
 var _marked: int = 0
@@ -88,24 +95,28 @@ func _ready() -> void:
 func start(island: IslandData) -> void:
 	_finish_task()
 	_island = island
-	_surveyed.resize(island.peaks.size())
-	_surveyed.fill(0)
+	surveyed.resize(island.peaks.size())
+	surveyed.fill(0)
 	_peak = -1
 	player.frozen = false
 	_marker = 0.0
 	_marker_peak = -1
 	_zone_ring.fade(0.0)
+	for ring: ZoneRing in _all_rings:
+		ring.queue_free()
+	_all_rings.clear()
+	_rings_zoom = 0.0
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if _island == null or _peak >= 0 or not event.is_action_pressed("survey"):
 		return
-	var peak: int = peak_in_reach(_island, player.grid_position, _surveyed)
+	var peak: int = peak_in_reach(_island, player.grid_position, surveyed)
 	if peak < 0:
 		return
 	get_viewport().set_input_as_handled()
 	_peak = peak
-	_surveyed[peak] = 1
+	surveyed[peak] = 1
 	_time = 0.0
 	_marked = 0
 	player.frozen = true
@@ -126,9 +137,10 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	if _island == null:
 		return
-	var wanted: bool = _peak < 0 and peak_in_reach(_island, player.grid_position, _surveyed) >= 0
+	var wanted: bool = _peak < 0 and peak_in_reach(_island, player.grid_position, surveyed) >= 0
 	_prompt.modulate.a = move_toward(_prompt.modulate.a, 1.0 if wanted else 0.0, delta / PROMPT_SECONDS)
 	_update_marker(delta)
+	_update_all_rings()
 	if _peak < 0:
 		return
 	_time += delta
@@ -157,13 +169,28 @@ func _process(delta: float) -> void:
 # Dithers in the zone ring of the nearest unsurveyed peak within MARKER_REACH, and out once the player
 # leaves or surveys it. Another peak's ring shows only after the old one has gone.
 func _update_marker(delta: float) -> void:
-	var near: int = -1 if _peak >= 0 else peak_in_reach(_island, player.grid_position, _surveyed, MARKER_REACH)
+	var near: int = -1 if _peak >= 0 else peak_in_reach(_island, player.grid_position, surveyed, MARKER_REACH)
 	if _marker <= 0.0 and near != _marker_peak:
 		_marker_peak = near
 		if near >= 0:
 			_zone_ring.place(_island, _island.peaks[near].cell, ZONE_RADIUS)
 	_marker = move_toward(_marker, 1.0 if near >= 0 and near == _marker_peak else 0.0, delta / MARKER_FADE_SECONDS)
 	_zone_ring.fade(_marker)
+
+
+func _update_all_rings() -> void:
+	if show_all and _all_rings.is_empty():
+		for peak: Peak in _island.peaks:
+			var ring := ZoneRing.new()
+			add_child(ring)
+			_all_rings.append(ring)
+	if show_all and camera.zoom != _rings_zoom:
+		_rings_zoom = camera.zoom
+		var scale: float = maxf(_rings_zoom / GameCamera.ZOOM, 1.0)
+		for i: int in _all_rings.size():
+			_all_rings[i].place(_island, _island.peaks[i].cell, ZONE_RADIUS * scale, scale)
+	for i: int in _all_rings.size():
+		_all_rings[i].fade(1.0 if show_all and surveyed[i] == 0 else 0.0)
 
 
 func _finish_task() -> void:

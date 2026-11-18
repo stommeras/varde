@@ -43,8 +43,8 @@ func _init() -> void:
 
 
 ## Puts the ring radius cells around the top of cell on island, LIFT above the highest ground along
-## its edge.
-func place(island: IslandData, cell: int, radius: float) -> void:
+## its edge. thickness scales the tube, so god mode keeps the ring as thick on screen when zoomed out.
+func place(island: IslandData, cell: int, radius: float, thickness: float = 1.0) -> void:
 	var top := Vector2(cell % IslandData.SIZE + 0.5, cell / IslandData.SIZE + 0.5)
 	var highest: float = -INF
 	for i: int in SAMPLES:
@@ -52,8 +52,8 @@ func place(island: IslandData, cell: int, radius: float) -> void:
 	_height = highest + LIFT
 	position = Vector3(top.x, _height, top.y)
 	var torus := TorusMesh.new()
-	torus.inner_radius = radius - TUBE
-	torus.outer_radius = radius + TUBE
+	torus.inner_radius = radius - TUBE * thickness
+	torus.outer_radius = radius + TUBE * thickness
 	torus.rings = 64
 	torus.ring_segments = 8
 	_mesh.mesh = torus

@@ -29,3 +29,15 @@ STEP_PEAKS,Måler fjelltoppene
 STEP_START,Finner en strand å gå i land på
 STEP_MESH,Tegner kartet
 SURVEY_PEAK,[E] Kartlegg toppen
+GOD_MODE,Gudemodus ×%d (%d km/t)
+GOD_CELL,"Rute: %d, %d"
+GOD_GROUND,"%s, %s"
+GOD_MAIN_ISLAND,hovedøya
+GOD_ISLET,holme eller hav
+GOD_BLOCKED,sperret
+GOD_OPEN,kan gås på
+GOD_PEAKS,Topper kartlagt: %d av %d
+GOD_NEAREST,"Nærmeste topp: #%d, %s %s, %d moh, primærfaktor %d m"
+GOD_HEIGHT,Høyde: %d moh
+GOD_SLOPE,Bratthet: %d° (grense %d°)
+GOD_HELP,[1–5] fart  [hjul] zoom  [T] til toppen  [G] av
