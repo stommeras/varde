@@ -7,6 +7,9 @@ func test_erosion_keeps_coast_and_lowland() -> void:
 		var rng := RandomNumberGenerator.new()
 		rng.seed = island_seed
 		var smooth: PackedFloat32Array = Height.smooth(rng)
+		var massif_rng := RandomNumberGenerator.new()
+		massif_rng.seed = rng.randi()
+		Massifs.place(smooth, massif_rng)
 		var eroded: PackedFloat32Array = smooth.duplicate()
 		Erosion.apply(eroded, rng)
 		var coast_moved: int = 0

@@ -15,7 +15,7 @@ const SPRITE_SEED: int = 56
 ## The terrain material's parameters the details read too, so both decide material, water and light alike.
 const SHARED: Array[String] = ["height_map", "material_map", "fresh_water_map", "knowledge_map", "reveal_map", "ramps", "ramp_sizes", "noise", "cliff_normal_y"]
 
-enum Detail { TUFT, FLOWER, STONE, SHRUB, REED, DRIFTWOOD, PEBBLES }
+enum Detail { TUFT, FLOWER, STONE, SHRUB, REED, DRIFTWOOD, PEBBLES, SCREE }
 
 ## What each ground holds, as the detail, how many of the VARIANTS sprites, and the ramp it is drawn
 ## in. Each row's counts add up to VARIANTS, and the ground's share of each detail is its count over
@@ -28,6 +28,11 @@ static var ROWS: Dictionary[Ramps.Terrain, Array] = {
 	Ramps.Terrain.ROCK: [[Detail.STONE, 16], [Detail.TUFT, 8, Ramps.Terrain.GRASS]],
 	Ramps.Terrain.SNOW: [[Detail.STONE, 20], [Detail.PEBBLES, 4]],
 }
+
+## The atlas row of the scree that gathers under walls, after one row per Ramps.Terrain value. Only
+## the massifs have walls, so scree marks a peak from afar. The shader picks it by the slope above a
+## cell, not by its material.
+const SCREE_ROW: int = Ramps.Terrain.FOG + 1
 
 ## Built once, because they are the same for every island.
 static var _atlas: ImageTexture
@@ -45,6 +50,7 @@ static func create(terrain: ShaderMaterial, island_seed: int) -> ShaderMaterial:
 	material.set_shader_parameter("atlas", _atlas)
 	material.set_shader_parameter("sprite_pixels", SPRITE)
 	material.set_shader_parameter("island_seed", island_seed)
+	material.set_shader_parameter("scree_row", SCREE_ROW)
 	return material
 
 
@@ -83,11 +89,12 @@ static func mesh() -> ArrayMesh:
 	return _mesh
 
 
-## The sprites, one row per Ramps.Terrain value and VARIANTS squares of SPRITE pixels across. Each
+## The sprites, one row per Ramps.Terrain value and the scree's row, VARIANTS squares of SPRITE
+## pixels across. Each
 ## pixel holds its ramp in red and its step offset plus 8 in green, and a sprite stands on the
 ## bottom of its square with its base between the two middle columns.
 static func atlas() -> Image:
-	var image := Image.create_empty(SPRITE * VARIANTS, SPRITE * Ramps.Terrain.size(), false, Image.FORMAT_RGBA8)
+	var image := Image.create_empty(SPRITE * VARIANTS, SPRITE * (SCREE_ROW + 1), false, Image.FORMAT_RGBA8)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = SPRITE_SEED
 	for ground: Ramps.Terrain in ROWS:
@@ -99,13 +106,16 @@ static func atlas() -> Image:
 				_draw(sprite, entry[0], ramp, rng)
 				column += 1
 		assert(column == VARIANTS, "GroundDetails.ROWS: %d sprites on ground %d" % [column, ground])
+	for column: int in VARIANTS:
+		# Scree lies on rock under the walls, so its contact shadow takes the rock ramp.
+		_draw(Sprite.new(image, Vector2i(column, SCREE_ROW) * SPRITE, Ramps.Terrain.ROCK), Detail.SCREE, Ramps.Terrain.ROCK, rng)
 	return image
 
 
 # The ramp a detail takes when ROWS doesn't name one. Stones and driftwood are gray, the rest
 # grow in the ground's own colors.
 static func _ramp(detail: Detail, ground: Ramps.Terrain) -> Ramps.Terrain:
-	if detail in [Detail.STONE, Detail.DRIFTWOOD, Detail.PEBBLES]:
+	if detail in [Detail.STONE, Detail.DRIFTWOOD, Detail.PEBBLES, Detail.SCREE]:
 		return Ramps.Terrain.ROCK
 	return ground
 
@@ -157,6 +167,14 @@ static func _draw(sprite: Sprite, detail: Detail, ramp: Ramps.Terrain, rng: Rand
 			sprite.put(left + rng.randi_range(1, length - 2), 1, ramp, -1)
 			if rng.randf() < 0.6:
 				sprite.put(left + rng.randi_range(1, length - 2), 2, ramp, 0)
+		Detail.SCREE:
+			# A heap of broken stones side by side across most of the square, so a band of it reads as
+			# rubble and not as single boulders. Fresh breaks are a step lighter than the weathered rock,
+			# or the rubble vanished into the rock it lies on. With stones 2 to 4 pixels wide it barely
+			# showed at zoom 40.
+			for stone: int in rng.randi_range(3, 4):
+				var width: int = rng.randi_range(3, 6)
+				_stone(sprite, rng.randi_range(0, SPRITE - 1 - width), width, rng.randi_range(2, 4), ramp, 1)
 		Detail.PEBBLES:
 			for pebble: int in rng.randi_range(2, 4):
 				var x: int = rng.randi_range(4, 11)
@@ -176,8 +194,8 @@ static func _blade(sprite: Sprite, x: int, height: int, lean: int, ramp: Ramps.T
 
 
 # A stone width pixels across and height pixels high from left, rounded at the top corners, on a
-# dark shadow that reaches one pixel past its right side.
-static func _stone(sprite: Sprite, left: int, width: int, height: int, ramp: Ramps.Terrain) -> void:
+# dark shadow that reaches one pixel past its right side. light moves every pixel that many steps.
+static func _stone(sprite: Sprite, left: int, width: int, height: int, ramp: Ramps.Terrain, light: int = 0) -> void:
 	sprite.shadow(left + 1, width)
 	for up: int in height:
 		var inset: int = 1 if up == height - 1 and width > 3 else 0
@@ -187,7 +205,7 @@ static func _stone(sprite: Sprite, left: int, width: int, height: int, ramp: Ram
 				offset = 1
 			elif up == 0 or x == left + width - 1:
 				offset = -1
-			sprite.put(x, up, ramp, offset)
+			sprite.put(x, up, ramp, offset + light)
 
 
 # A round bush width pixels across and height high, ragged at its edge, lit on the upper left and

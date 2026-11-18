@@ -18,13 +18,72 @@ func test_summit_is_a_peak_and_every_peak_is_valid() -> void:
 		if data.peaks.is_empty():
 			continue
 		expect(data.peaks[0].height == highest, "seed %d: the highest peak is %f, the highest cell %f" % [island_seed, data.peaks[0].height, highest])
-		# A loose guard around SPEC's 5 to 10, so a retune that floods or empties the islands fails.
-		expect(data.peaks.size() >= 3 and data.peaks.size() <= 12, "seed %d has %d peaks" % [island_seed, data.peaks.size()])
+		# One peak per massif, so a massif lost to a high saddle or an islet shows up here.
+		expect(data.peaks.size() >= Massifs.MIN_COUNT and data.peaks.size() <= Massifs.MAX_COUNT, "seed %d has %d peaks" % [island_seed, data.peaks.size()])
 		for peak: Peak in data.peaks:
 			expect(data.main_island[peak.cell] == 1, "seed %d: a peak is off the main island" % island_seed)
 			expect(data.height[peak.cell] == peak.height, "seed %d: a peak's height is not its cell's" % island_seed)
 			expect(peak.prominence >= Peaks.MIN_PROMINENCE * highest and peak.prominence <= peak.height,
 				"seed %d: a peak of height %f has prominence %f" % [island_seed, peak.height, peak.prominence])
+
+
+## The player must be able to walk from the start to every top, through the way up past the walls.
+func test_every_peak_is_reachable_from_the_start() -> void:
+	for island_seed: int in SEEDS:
+		var data: IslandData = island(island_seed)
+		var reached := PackedByteArray()
+		reached.resize(data.height.size())
+		for cell: int in Walkability.reachable(data, data.start):
+			reached[cell] = 1
+		for peak: Peak in data.peaks:
+			expect(reached[peak.cell] == 1, "seed %d: the peak at %d can't be reached from the start" % [island_seed, peak.cell])
+
+
+## Each peak is one pointed top. A broad dome put its highest cell at one end, so the survey ring sat
+## on a shoulder while a top 0.05 lower looked taller. Every cell near a peak is lower, and the land
+## 10 to 15 cells out stands at least 0.03 (3 world units) under it.
+func test_each_peak_has_one_clear_top() -> void:
+	const NEAR: int = 15
+	const SHOULDER: int = 10
+	const DROP: float = 0.03
+	var size: int = IslandData.SIZE
+	for island_seed: int in SEEDS:
+		var data: IslandData = island(island_seed)
+		for peak: Peak in data.peaks:
+			var shoulder: float = -INF
+			var ties: int = 0
+			for dy: int in range(-NEAR, NEAR + 1):
+				for dx: int in range(-NEAR, NEAR + 1):
+					var d2: int = dx * dx + dy * dy
+					if d2 == 0 or d2 > NEAR * NEAR:
+						continue
+					var h: float = data.height[peak.cell + dy * size + dx]
+					if h >= peak.height:
+						ties += 1
+					if d2 >= SHOULDER * SHOULDER:
+						shoulder = maxf(shoulder, h)
+			expect(ties == 0, "seed %d: %d cells near the peak at %d are as high" % [island_seed, ties, peak.cell])
+			expect(peak.height - shoulder >= DROP, "seed %d: the peak at %d stands only %.3f over its shoulder" % [island_seed, peak.cell, peak.height - shoulder])
+
+
+## Only massifs reach the snow, so every snow cell lies on a peak's massif.
+func test_only_peaks_have_snow() -> void:
+	var size: int = IslandData.SIZE
+	var reach: float = Massifs.MAX_RADIUS * (1.0 + Massifs.OUTLINE_WARP)
+	for island_seed: int in SEEDS:
+		var data: IslandData = island(island_seed)
+		var stray: int = 0
+		for i: int in data.height.size():
+			if data.material[i] != Ramps.Terrain.SNOW:
+				continue
+			var near: bool = false
+			for peak: Peak in data.peaks:
+				if Vector2(i % size - peak.cell % size, i / size - peak.cell / size).length() < reach:
+					near = true
+					break
+			if not near:
+				stray += 1
+		expect(stray == 0, "seed %d: %d snow cells lie off every massif" % [island_seed, stray])
 
 
 ## A ridge with a summit of 1.0, a second peak of 0.8, and a knoll of 0.55 on the second's slope. The

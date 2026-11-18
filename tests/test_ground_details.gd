@@ -6,7 +6,7 @@ extends "res://tests/test_case.gd"
 func test_atlas_holds_a_standing_sprite_in_every_square() -> void:
 	var image: Image = GroundDetails.atlas()
 	var size: int = GroundDetails.SPRITE
-	for ground: Ramps.Terrain in Ramps.Terrain.values():
+	for ground: int in GroundDetails.SCREE_ROW + 1:
 		for column: int in GroundDetails.VARIANTS:
 			var pixels: int = 0
 			var on_bottom: bool = false
@@ -21,7 +21,7 @@ func test_atlas_holds_a_standing_sprite_in_every_square() -> void:
 					if pixel.r8 >= Ramps.Terrain.size() or offset < -4 or offset > 4:
 						expect(false, "ground %d sprite %d has ramp %d, offset %d" % [ground, column, pixel.r8, offset])
 						return
-			if not GroundDetails.ROWS.has(ground):
+			if not GroundDetails.ROWS.has(ground) and ground != GroundDetails.SCREE_ROW:
 				expect(pixels == 0, "ground %d holds no details, but sprite %d has pixels" % [ground, column])
 			else:
 				expect(on_bottom, "ground %d sprite %d doesn't reach the ground" % [ground, column])

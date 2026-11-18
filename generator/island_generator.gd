@@ -12,6 +12,9 @@ static func generate(island_seed: int, on_step: Callable = Callable()) -> Island
 	rng.seed = island_seed
 	var started: int = Time.get_ticks_msec()
 	var smooth: PackedFloat32Array = Height.smooth(rng)
+	var massif_rng := RandomNumberGenerator.new()
+	massif_rng.seed = rng.randi()
+	var massifs: Array[Massifs.Massif] = Massifs.place(smooth, massif_rng)
 	started = _record(data, "height", started, on_step)
 	# Erosion draws hundreds of thousands of numbers, as many as its tuning asks for, so it gets a
 	# generator of its own. Retuning it then leaves the noise of the later steps as it was.
@@ -19,7 +22,7 @@ static func generate(island_seed: int, on_step: Callable = Callable()) -> Island
 	erosion_rng.seed = rng.randi()
 	Erosion.apply(smooth, erosion_rng)
 	started = _record(data, "erosion", started, on_step)
-	data.height = Height.crags(smooth, rng)
+	data.height = Height.crags(smooth, massifs, rng)
 	started = _record(data, "crags", started, on_step)
 	data.moisture = Moisture.generate(rng)
 	started = _record(data, "moisture", started, on_step)

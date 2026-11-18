@@ -40,16 +40,19 @@ func test_terrace_is_continuous_and_rising() -> void:
 	for k: int in range(1, 20001):
 		var v: float = -1.0 + k * 0.0001
 		var t: float = Height._terrace(v)
-		expect(t >= previous and t - previous < 0.001, "terrace jumps from %f to %f at %f" % [previous, t, v])
+		# A smoothstep rises at most 1.5 times its average, over RISER of each band.
+		expect(t >= previous and t - previous <= 0.0001 * 1.5 / Height.RISER * 1.01, "terrace jumps from %f to %f at %f" % [previous, t, v])
 		previous = t
 
 
 ## Fine noise octaves put a small top on every bump. Before #31 the high ground had 150 to 370
 ## local tops per island. With smooth lowland and craggy tops on the big mountains it had 17 to 51
-## on seeds 0 to 9, and with the eroded ridges of #33 it has 46 to 90.
+## on seeds 0 to 9, with the eroded ridges of #33 46 to 90, and with the walls, ledges and outcrops
+## of the massifs of #94 up to 154. Those tops sit on the massifs' ledges and outcrops, not on every
+## slope as before #31.
 func test_high_ground_has_few_tops() -> void:
-	# Room for crags on the big mountains, but well under the 150 tops of the old bumpy terrain.
-	const MAX_TOPS: int = 100
+	# Room for the massifs' outcrops and ledge rims, so a retune that brings back bumps everywhere fails.
+	const MAX_TOPS: int = 180
 	var size: int = IslandData.SIZE
 	for island_seed: int in SEEDS:
 		var height: PackedFloat32Array = island(island_seed).height
