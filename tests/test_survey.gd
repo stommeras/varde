@@ -25,11 +25,12 @@ func test_a_survey_reaches_twice_the_walking_radius() -> void:
 
 func test_only_unsurveyed_peaks_in_their_zone_are_in_reach() -> void:
 	var island := IslandData.new()
-	island.peaks = [Peak.new(IslandData.index(100, 100), 1.0, 1.0), Peak.new(IslandData.index(110, 100), 0.8, 0.5)]
+	island.peaks = [Peak.new(IslandData.index(100, 100), 1.0, 1.0), Peak.new(IslandData.index(105, 100), 0.8, 0.5)]
 	var surveyed := PackedByteArray([0, 0])
 	expect(Survey.peak_in_reach(island, Vector2(100.5, 100.5), surveyed) == 0, "the peak underfoot is out of reach")
-	expect(Survey.peak_in_reach(island, Vector2(106.5, 100.5), surveyed) == 1, "the nearer of two zones isn't chosen")
-	expect(Survey.peak_in_reach(island, Vector2(100.5, 110.5), surveyed) == -1, "a peak 10 cells away is in reach")
+	expect(Survey.peak_in_reach(island, Vector2(103.5, 100.5), surveyed) == 1, "the nearer of two zones isn't chosen")
+	expect(Survey.peak_in_reach(island, Vector2(100.5, 105.5), surveyed) == -1, "a peak 5 cells away is in reach")
+	expect(Survey.peak_in_reach(island, Vector2(100.5, 105.5), surveyed, Survey.CIRCLE_REACH) == 0, "a peak 5 cells away shows no circle")
 	surveyed[0] = 1
 	expect(Survey.peak_in_reach(island, Vector2(100.5, 100.5), surveyed) == -1, "a surveyed peak is in reach again")
 

@@ -6,24 +6,30 @@ extends Node
 ## varde on the peak as the camera comes back. Each peak can be surveyed once.
 
 ## Cells from a peak's top within which the player can survey it. Raising it lets the player survey
-## from further down the slope.
-const ZONE_RADIUS: float = 6.0
+## from further down the slope. At 6 the prompt came up well below the top of a steep peak, so the
+## survey didn't feel like it happened on the top.
+const ZONE_RADIUS: float = 3.0
+## Cells from a peak's top within which a circle painted on the ground shows the edge of its zone, so
+## the player can find the top. Raising it shows the circle from further down.
+const CIRCLE_REACH: float = 6.0
+## Seconds the circle takes to dither in or out.
+const CIRCLE_FADE_SECONDS: float = 0.5
 ## How many times the walking view radius a survey reaches.
 const REACH_SCALE: float = 2.0
-## Seconds the figure takes to turn through all 8 facings, looking out. The ring spreads in the same
-## time, so raising it slows the whole reveal.
-const LOOK_SECONDS: float = 3.0
-## Seconds the ring takes to reach the edge of the survey. Shorter than LOOK_SECONDS, so the fog has
-## cleared from the farthest land before the camera comes back in.
-const RING_SECONDS: float = 2.5
+## Seconds the figure takes to turn once around, looking out. Raising it slows the whole reveal. At
+## 3 s the turn looked hurried, and at 5 s it rests about 0.6 s on each of the 8 directions.
+const LOOK_SECONDS: float = 5.0
+## Seconds the ring of clearing fog takes to reach the edge of the survey. Shorter than LOOK_SECONDS,
+## so the fog has cleared from the farthest land before the camera comes back in.
+const RING_SECONDS: float = 4.5
 ## Seconds the stones take to go up, while the camera eases back in.
-const BUILD_SECONDS: float = 1.0
+const BUILD_SECONDS: float = 1.5
 ## Seconds the camera takes to pull out at the start.
-const ZOOM_SECONDS: float = 1.0
-## Cells from the top to the bottom of the screen at the furthest pull-out. At 80 it shows twice the
-## walking view, about a third of the survey's radius from the summit. At 160 the figure and the
-## varde shrank to a few pixels.
-const SURVEY_ZOOM: float = 80.0
+const ZOOM_SECONDS: float = 2.0
+## Cells from the top to the bottom of the screen at the furthest pull-out. At 120 it shows three
+## times the walking view, half the survey's radius from the summit. At 80 the pull-out was too tame,
+## and at 160 the figure and the varde shrank to a few pixels.
+const SURVEY_ZOOM: float = 120.0
 ## Cells between the player and the varde at the least. The varde's base is about 0.6 units wide,
 ## so at 1 the stones stand clear of the figure.
 const VARDE_GAP: float = 1.0
@@ -50,6 +56,10 @@ var _varde: Varde
 var _task: int = -1
 ## The survey's cells in RINGS bands from the peak outward, written by the task.
 var _rings: Array[PackedInt32Array] = []
+## How far the zone circle shows, from 0 to 1.
+var _circle: float = 0.0
+## The index of the peak whose circle shows, or -1.
+var _circle_peak: int = -1
 ## Bands marked so far. Each is marked when the ring reaches it, because marking all of them in one
 ## frame took 6 to 11 ms for the 60,000 to 126,000 cells of a survey.
 var _marked: int = 0
@@ -80,6 +90,9 @@ func start(island: IslandData) -> void:
 	_surveyed.fill(0)
 	_peak = -1
 	player.frozen = false
+	_circle = 0.0
+	_circle_peak = -1
+	terrain.show_zone(Vector2.ZERO, ZONE_RADIUS, 0.0)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -113,6 +126,7 @@ func _process(delta: float) -> void:
 		return
 	var wanted: bool = _peak < 0 and peak_in_reach(_island, player.grid_position, _surveyed) >= 0
 	_prompt.modulate.a = move_toward(_prompt.modulate.a, 1.0 if wanted else 0.0, delta / PROMPT_SECONDS)
+	_update_circle(delta)
 	if _peak < 0:
 		return
 	_time += delta
@@ -138,6 +152,18 @@ func _process(delta: float) -> void:
 		player.frozen = false
 
 
+# Dithers in the circle of the nearest unsurveyed peak within CIRCLE_REACH, and out once the player
+# leaves or surveys it. Another peak's circle shows only after the old one has gone.
+func _update_circle(delta: float) -> void:
+	var near: int = -1 if _peak >= 0 else peak_in_reach(_island, player.grid_position, _surveyed, CIRCLE_REACH)
+	if _circle <= 0.0:
+		_circle_peak = near
+	_circle = move_toward(_circle, 1.0 if near >= 0 and near == _circle_peak else 0.0, delta / CIRCLE_FADE_SECONDS)
+	if _circle_peak >= 0:
+		var cell: int = _island.peaks[_circle_peak].cell
+		terrain.show_zone(Vector2(cell % IslandData.SIZE + 0.5, cell / IslandData.SIZE + 0.5), ZONE_RADIUS, _circle)
+
+
 func _finish_task() -> void:
 	if _task >= 0:
 		WorkerThreadPool.wait_for_task_completion(_task)
@@ -149,11 +175,11 @@ func _exit_tree() -> void:
 	_finish_task()
 
 
-## The index in island.peaks of the peak not yet surveyed whose zone holds point, the nearest if
-## several do, or -1. surveyed holds a byte per peak, 1 once surveyed.
-static func peak_in_reach(island: IslandData, point: Vector2, surveyed: PackedByteArray) -> int:
+## The index in island.peaks of the peak not yet surveyed whose top lies within reach cells of point,
+## the nearest if several do, or -1. surveyed holds a byte per peak, 1 once surveyed.
+static func peak_in_reach(island: IslandData, point: Vector2, surveyed: PackedByteArray, reach: float = ZONE_RADIUS) -> int:
 	var nearest: int = -1
-	var best: float = ZONE_RADIUS
+	var best: float = reach
 	for i: int in island.peaks.size():
 		if surveyed[i] != 0:
 			continue

@@ -58,6 +58,17 @@ uniform float fog_scale = 90.0;
 uniform float fog_speed = 0.008333333;
 // How many ramp steps the patches move the fog's light up or down. 0 gives an even, dithered grey.
 uniform float fog_steps = 1.5;
+// The circle painted on the ground around a peak's survey zone, centered on zone_center in cells
+// with a radius of zone_radius cells. zone_amount runs from 0, hidden, to 1, and dithers it in and out.
+uniform vec2 zone_center;
+uniform float zone_radius = 3.0;
+uniform float zone_amount = 0.0;
+// Cells across the circle's white line. At zoom 40 a cell is about 13 pixels wide on flat ground, so
+// 0.3 draws a line about 4 pixels wide. Raising it widens the line.
+uniform float zone_width = 0.3;
+// Cells across the dark edge on each side of the line. The line is the lightest snow, which on a
+// snowy peak shows only by its edges. Raising it thickens the edges, 0 removes them.
+uniform float zone_edge = 0.12;
 
 // The depth buffer's value just short of the far plane, where fog pixels go. Godot stores depth
 // reversed, 1 at the near plane and 0 at the far one, in Compatibility too: 0.99999 there drew the
@@ -144,6 +155,21 @@ void fragment() {
 		step_offset = ripple(cell);
 	}
 	world_pixel = screen_pixel(world_position, INV_VIEW_MATRIX, PROJECTION_MATRIX, VIEWPORT_SIZE);
+
+	// The circle lies on the ground before the fog, so fog covers it like the land under it. The step
+	// offsets push past either end of the ramp, so the line stays the lightest step and its edges
+	// the darkest whatever the light.
+	float off_circle = abs(distance(cell, zone_center) - zone_radius);
+	if (off_circle < zone_width * 0.5 + zone_edge && dither(world_pixel) < zone_amount) {
+		if (off_circle < zone_width * 0.5) {
+			kind = 6;  // Ramps.Terrain.SNOW
+			step_offset = 8.0;
+		} else {
+			kind = 5;  // Ramps.Terrain.ROCK
+			step_offset = -8.0;
+		}
+		ramp_reach = 1.0;
+	}
 
 	// The fog covers unknown sea too, or the coast's outline would give the island's shape away.
 	// It dithers out as it clears. Unknown land casts no shadow, which would show its shape.
