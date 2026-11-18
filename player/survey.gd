@@ -2,7 +2,7 @@ class_name Survey
 extends Node
 ## Surveying from a peak. Inside a peak's survey zone it shows "Kartlegg toppen", and the survey
 ## action starts the survey: the camera pulls out while the figure turns to look around and the
-## surveyed land rises from the fog in a ring that spreads from the peak, then the figure stacks a
+## fog clears from the surveyed land in a ring that spreads from the peak, then the figure stacks a
 ## varde on the peak as the camera comes back. Each peak can be surveyed once.
 
 ## Cells from a peak's top within which the player can survey it. Raising it lets the player survey
@@ -13,8 +13,8 @@ const REACH_SCALE: float = 2.0
 ## Seconds the figure takes to turn through all 8 facings, looking out. The ring spreads in the same
 ## time, so raising it slows the whole reveal.
 const LOOK_SECONDS: float = 3.0
-## Seconds the ring takes to reach the edge of the survey. Shorter than LOOK_SECONDS, so the farthest
-## land has risen before the camera comes back in.
+## Seconds the ring takes to reach the edge of the survey. Shorter than LOOK_SECONDS, so the fog has
+## cleared from the farthest land before the camera comes back in.
 const RING_SECONDS: float = 2.5
 ## Seconds the stones take to go up, while the camera eases back in.
 const BUILD_SECONDS: float = 1.0

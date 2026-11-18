@@ -15,8 +15,8 @@ static var RAMPS: Dictionary[Terrain, PackedColorArray] = {
 	Terrain.ROCK: PackedColorArray([Color("2e2c2e"), Color("4a4648"), Color("6a6466"), Color("8e8786"), Color("b3aca8")]),
 	Terrain.SNOW: PackedColorArray([Color("8a98b0"), Color("aebbd0"), Color("d2dbe8"), Color("eef2f8")]),
 	Terrain.FOAM: PackedColorArray([Color("6f97a8"), Color("a3c4cc"), Color("d3e5e6"), Color("f2f7f4")]),
-	# Grey with a little of the sea's blue, darker than snow and foam, so a snowy peak rising out of
-	# it and the surf along a known coast both stand apart from it.
+	# Grey with a little of the sea's blue, darker than snow and foam, so a snowy peak in front of it
+	# and the surf along a known coast both stand apart from it.
 	Terrain.FOG: PackedColorArray([Color("3c4552"), Color("566170"), Color("717d8b"), Color("8e98a4"), Color("aab2bb")]),
 }
 
