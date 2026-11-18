@@ -107,7 +107,9 @@ void fragment() {
 
 	float grain = texture(noise, cell / grain_scale + vec2(0.17, 0.73)).r - 0.5;
 	step_offset = grain * 2.0 * grain_steps;
-	if (kind != 0 && is_cliff(world_normal, warp)) {
+	// The slope at full height, so a cliff draws as rock while it rises instead of turning from
+	// grass to rock as it steepens.
+	if (kind != 0 && is_cliff(ground_normal(uv, height, summit), warp)) {
 		kind = 5;  // Ramps.Terrain.ROCK
 		// Every other stratum is one step darker, which draws level bands across the cliff.
 		float stratum = floor(height * summit / strata_spacing + warp.x * 2.0 * strata_wobble);

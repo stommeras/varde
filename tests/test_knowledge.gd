@@ -33,3 +33,10 @@ func test_a_cell_rises_from_the_time_it_was_first_seen() -> void:
 	expect(knowledge.revealed_at(3) == 5.0, "surveying moved the reveal time to %f" % knowledge.revealed_at(3))
 	knowledge.mark_all(Knowledge.Level.SURVEYED, Knowledge.LONG_AGO)
 	expect(knowledge.revealed_at(3) == 5.0 and knowledge.revealed_at(4) == Knowledge.LONG_AGO, "mark_all gave the wrong reveal times")
+
+
+func test_mark_cells_starts_the_rise_of_unknown_cells_only() -> void:
+	var knowledge := Knowledge.new()
+	knowledge.mark(1, Knowledge.Level.SEEN, 2.0)
+	knowledge.mark_cells(PackedInt32Array([1, 2]), Knowledge.Level.SEEN, 7.0)
+	expect(knowledge.revealed_at(1) == 2.0 and knowledge.revealed_at(2) == 7.0, "mark_cells gave reveal times %f and %f" % [knowledge.revealed_at(1), knowledge.revealed_at(2)])

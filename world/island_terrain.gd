@@ -16,6 +16,10 @@ var _details: ShaderMaterial
 
 func _init() -> void:
 	scale.y = SUMMIT_HEIGHT
+	# After the default 0, so the upload in _process sees this frame's marks: the player's, and the
+	# start's cast marked when the loader emits from its own _process. Otherwise the first frame of an
+	# island draws all of it as flat fog.
+	process_priority = 1
 
 
 ## Replaces the terrain with a new island's chunk meshes.
