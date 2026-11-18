@@ -53,7 +53,7 @@ static var MAP: Dictionary[MapPart, PackedColorArray] = {
 	# and the outlines of forest and snow.
 	MapPart.INK: PackedColorArray([Color("3a2a1c"), Color("8a6c4c")]),
 	# Blue ink for rivers and lakes, and a pale wash for the sea the player has seen.
-	MapPart.WATER: PackedColorArray([Color("2f5a7a"), Color("a9b9b0")]),
+	MapPart.WATER: PackedColorArray([Color("2f5a7a"), Color("a3b8b4")]),
 	# Red ink for the player's marker, the coat's red, so the marker reads as the figure.
 	MapPart.MARKER: PackedColorArray([Color("6a1e22"), Color("a8342e")]),
 }

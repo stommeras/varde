@@ -69,10 +69,9 @@ void fragment() {
 		float h = height_at(cell);
 		ivec2 sides[4] = ivec2[](ivec2(1, 0), ivec2(-1, 0), ivec2(0, 1), ivec2(0, -1));
 		if (h <= 0.0) {
-			// The sea under a checkered wash, so the part of it the player has seen still reads as sea.
-			if ((cell.x + cell.y) % 2 == 0) {
-				COLOR = sea_wash;
-			}
+			// The sea the player has seen under a pale wash, so the coast reads from both sides. A
+			// checkered wash blended back into the paper at zoom 1 and below.
+			COLOR = sea_wash;
 		} else {
 			COLOR = paper_land;
 			int band = int(floor(h / contour_interval));

@@ -19,7 +19,7 @@ const PAN_SPEED: float = 400.0
 ## Radius of the player's marker in screen pixels.
 const MARKER_RADIUS: float = 4.0
 ## Half the width of a varde's cairn in screen pixels. Its height is twice this.
-const VARDE_SIZE: float = 3.0
+const VARDE_SIZE: float = 4.0
 
 ## Set these before adding the node.
 var player: Player
@@ -154,9 +154,13 @@ func _draw_map() -> void:
 	var corner: Vector2 = _to_screen(Vector2.ZERO)
 	_view.draw_texture_rect(_viewport.get_texture(), Rect2(corner, Vector2(IslandData.SIZE, IslandData.SIZE) * ZOOMS[_zoom]), false)
 	var ink: Color = Ramps.MAP[Ramps.MapPart.INK][0]
+	var paper: Color = Ramps.MAP[Ramps.MapPart.PAPER][2]
 	for cell: int in survey.varde_cells():
 		var top: Vector2 = _to_screen(Vector2(cell % IslandData.SIZE + 0.5, cell / IslandData.SIZE + 0.5))
-		_view.draw_colored_polygon(PackedVector2Array([top + Vector2(-VARDE_SIZE, VARDE_SIZE), top + Vector2(VARDE_SIZE, VARDE_SIZE), top + Vector2(0.0, -VARDE_SIZE)]), ink)
+		var cairn := PackedVector2Array([top + Vector2(-VARDE_SIZE, VARDE_SIZE), top + Vector2(VARDE_SIZE, VARDE_SIZE), top + Vector2(0.0, -VARDE_SIZE)])
+		# A rim of light paper, so the cairn stands apart from the dense contours of a peak.
+		_view.draw_polyline(cairn + PackedVector2Array([cairn[0]]), paper, 3.0)
+		_view.draw_colored_polygon(cairn, ink)
 	var marker: PackedColorArray = Ramps.MAP[Ramps.MapPart.MARKER]
 	var at: Vector2 = _to_screen(player.grid_position)
 	_view.draw_circle(at, MARKER_RADIUS + 1.0, marker[0])

@@ -57,7 +57,12 @@ The style is detailed pixel art: individual pixels everywhere, textured material
   - The edge of the fog averages 3 by 3 samples 2 cells apart, warped by noise 1.5 cells, and lies where half of them are clear, with a dither 30% of that range wide. The average rounds the edge and fills single cells the line of sight left out. Without it, the edge followed every such cell in ragged steps. With a dither across the whole range, the edge thinned out over a few cells, and on a steep peak whose top the player had seen, that band showed the unknown slope below as a see-through outline.
   - The title backdrop shows its island with no fog.
 
-**The map screen** is ink on aged paper, drawn once at 1024×1024 pixels (one pixel per cell) into a `SubViewport`. You pan and zoom the resulting texture, and the PNG export uses it at full size. North is always up, and a marker shows where you are. Surveyed land gets contour lines from marching squares over the heightmap, with every fifth line thicker. The map redraws only when the player surveys new land. The art style of the map is open for later.
+**The map screen** is ink on aged paper, drawn at 1024×1024 pixels (one pixel per cell) into a `SubViewport`. M opens it and M or Escape closes it, and the run pauses while it is open. The player pans it with the walking keys or by dragging, and zooms with the mouse wheel or + and - between 0.5, 1, 2 and 4 screen pixels per cell. North is always up. A red dot marks the player, and a small ink cairn marks each varde the player has built.
+
+- Unknown cells stay blank paper, with a grain of stained pixels and yellowed edges. Seen land is a lighter paper with the coast in ink, rivers and lakes in blue ink, and faint dotted outlines around forest and snow. The sea the player has seen gets a pale wash, so the coast reads from both sides.
+- Surveyed land adds contour lines every 0.02 of the summit's height, 2 world units, and every fifth line is two cells wide. One fragment shader, `map/map.gdshader`, draws the whole map. A cell is on a line when a neighbor's height falls in a lower band, so each line is one pixel wide and unbroken. Marching squares turned out to be unneeded, since lines drawn per cell show no ragged steps at one pixel per cell. On steep cliffs the lines merge into solid ink.
+- The map redraws each time it opens, because walking adds coast and rivers too, not only surveys. The redraw is one pass of the shader over a million pixels on the GPU.
+- The paper and inks are the `MAP` ramps in `world/ramps.gd`. The art style stays open for later.
 
 ## Specs
 
@@ -70,7 +75,7 @@ The style is detailed pixel art: individual pixels everywhere, textured material
 | Camera | Orthographic, facing north, 45° from vertical, no rotation. The zoom fits 40 cells of flat ground from the top to the bottom of the screen. Milestone 2 chose the tilt and a zoom of 80 by eye, and milestone 3 halved the zoom, because at 80 the figure was only about 6×12 pixels |
 | Shader inputs | Grid-sized textures for height (`FORMAT_RF`), material (`FORMAT_R8`), rivers and lakes (`FORMAT_R8`), knowledge (`FORMAT_R8`) and the time each cell was first seen (`FORMAT_RF`) |
 | Noise | Godot's built-in `FastNoiseLite` |
-| Controls | WASD or arrow keys to walk, E to survey a peak, M for the map |
+| Controls | WASD or arrow keys to walk, E to survey a peak, M for the map, where the walking keys pan and the mouse wheel or + and - zoom |
 | Web build | The `Web` preset in `export_presets.cfg`, with threads, so the island loader keeps its thread. It needs `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy` headers, which lab.tommeras.no sends |
 
 The game plays in the browser at lab.tommeras.no. `godot --headless --export-release Web build/web/index.html` exports it, and the lab repo commits the files. The web build has only the Compatibility renderer, so every shader has to look the same there as in Forward+. Three settings broke that. Compatibility doesn't decode a `source_color` texture read with `texelFetch`, so the ramp textures hold linear colors in half floats. HDR 2D added a second sRGB curve, so it is off. At the sun's default normal bias of 2, Compatibility drew shadow acne as dark polygons on sunlit slopes, so the bias is 5. With both changes, a frame in Compatibility differs from Forward+ in about 0.1% of its pixels, at dither and shadow edges. An island takes about 1.6 times as long to generate in Chrome as natively.
