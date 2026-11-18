@@ -59,6 +59,8 @@ func _on_loaded(island: IslandData, meshes: Array[ArrayMesh], _msec: int) -> voi
 
 func _show() -> void:
 	_terrain.show_island(_meshes, _island)
+	# The backdrop shows the whole island, already risen out of the fog.
+	_terrain.knowledge.mark_all(Knowledge.Level.SURVEYED, Knowledge.LONG_AGO)
 	var highest: int = 0
 	for i: int in _island.height.size():
 		if _island.height[i] > _island.height[highest]:

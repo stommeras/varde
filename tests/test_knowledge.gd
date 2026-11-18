@@ -21,3 +21,15 @@ func test_mark_all_raises_every_cell_and_keeps_higher_ones() -> void:
 	expect(knowledge.levels[0] == Knowledge.Level.SEEN and knowledge.levels[knowledge.levels.size() - 1] == Knowledge.Level.SEEN, "mark_all missed an end cell")
 	knowledge.mark_all(Knowledge.Level.SURVEYED)
 	expect(knowledge.levels.count(Knowledge.Level.SURVEYED) == knowledge.levels.size(), "some cell is not surveyed after mark_all")
+
+
+func test_a_cell_rises_from_the_time_it_was_first_seen() -> void:
+	var knowledge := Knowledge.new()
+	expect(knowledge.revealed_at(3) == Knowledge.NEVER, "an unknown cell has a reveal time")
+	knowledge.now = 5.0
+	knowledge.mark(3, Knowledge.Level.SEEN)
+	knowledge.now = 9.0
+	knowledge.mark(3, Knowledge.Level.SURVEYED)
+	expect(knowledge.revealed_at(3) == 5.0, "surveying moved the reveal time to %f" % knowledge.revealed_at(3))
+	knowledge.mark_all(Knowledge.Level.SURVEYED, Knowledge.LONG_AGO)
+	expect(knowledge.revealed_at(3) == 5.0 and knowledge.revealed_at(4) == Knowledge.LONG_AGO, "mark_all gave the wrong reveal times")

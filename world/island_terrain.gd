@@ -44,9 +44,13 @@ func show_island(meshes: Array[ArrayMesh], island: IslandData) -> void:
 	_apply_lod_bias()
 
 
-func _process(_delta: float) -> void:
-	if knowledge != null:
-		knowledge.upload()
+func _process(delta: float) -> void:
+	if knowledge == null:
+		return
+	knowledge.now += delta
+	knowledge.upload()
+	for material: ShaderMaterial in [_material, _details]:
+		material.set_shader_parameter("reveal_now", knowledge.now)
 
 
 ## Fades the terrain that stands between the camera and feet, the player's feet in world units.

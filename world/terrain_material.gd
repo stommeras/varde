@@ -23,6 +23,7 @@ static func create(island: IslandData, knowledge: Knowledge) -> ShaderMaterial:
 	var fresh_water := Image.create_from_data(IslandData.SIZE, IslandData.SIZE, false, Image.FORMAT_R8, island.fresh_water)
 	material.set_shader_parameter("fresh_water_map", ImageTexture.create_from_image(fresh_water))
 	material.set_shader_parameter("knowledge_map", knowledge.texture)
+	material.set_shader_parameter("reveal_map", knowledge.reveal_texture)
 	if _ramps == null:
 		_ramps = ImageTexture.create_from_image(Ramps.image(Ramps.RAMPS))
 		_noise = _noise_texture()
