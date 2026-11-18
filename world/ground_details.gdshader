@@ -65,10 +65,11 @@ float draw(uint h, uint salt) {
 	return float(hash(h ^ (salt * 0x9e3779b9u))) / 4294967295.0;
 }
 
-// The height of the terrain mesh's vertex on the cell at column and row, in height-map units.
+// The height of the terrain mesh's vertex on the cell at column and row, in height-map units,
+// lowered by its rise out of the fog as the terrain shader lowers it.
 float vertex_height(ivec2 cell) {
 	ivec2 size = textureSize(height_map, 0);
-	return max(texelFetch(height_map, clamp(cell, ivec2(0), size - 1), 0).r, 0.0);
+	return max(texelFetch(height_map, clamp(cell, ivec2(0), size - 1), 0).r, 0.0) * rise_of(cell);
 }
 
 // The height of the terrain mesh at point, in height-map units. The mesh has a vertex on each cell's
@@ -100,7 +101,7 @@ void vertex() {
 	// on ground the terrain draws in the material the detail belongs to.
 	vec2 uv = point / vec2(textureSize(height_map, 0));
 	float height = texture(height_map, uv).r;
-	vec3 normal = ground_normal(uv, height, summit);
+	vec3 normal = ground_normal(uv, height, summit * rise_at(point));
 	vec2 warp = warp_at(point);
 	int kind = material_at(point, warp, height);
 	float clump = 2.0 * smoothstep(0.3, 0.7, texture(noise, point / CLUMP_SCALE + vec2(0.61, 0.23)).r);
@@ -119,6 +120,9 @@ void vertex() {
 	// draw. A ridge in front always hides it, but once the fade cuts the ridge, a detail on it would
 	// float over the land beyond.
 	stands = stands && ground.z > 0.0;
+	// Hidden until the ground under it has risen all the way out of the fog. Showing them by the
+	// terrain's dithered test put sharp, full-color sprites on top of the thinning fog.
+	stands = stands && mist_at(point, warp, height * summit) <= 0.0;
 	if (!stands || is_faded(base, base_view, VIEW_MATRIX, INV_VIEW_MATRIX, summit, dither(base_pixel))) {
 		// All four corners on one point draw nothing.
 		VERTEX = vec3(0.0);

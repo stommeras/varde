@@ -31,6 +31,9 @@ const HIDE_STEP: float = 0.5
 ## sink into a slope that rises to the side. Raising it lets the figure show over more of a bump or
 ## ridge that stands in front of it.
 const DEPTH_PUSH: float = 0.3
+## Cells around the player that the stand-in for line of sight marks seen.
+# ponytail: a disk that sees through ridges, until line of sight (#69) replaces _look().
+const SIGHT_RADIUS: int = 40
 ## Speed multiplier in god mode. At 14 the player crosses the 1024-cell grid in about 21 s.
 const GOD_SPEED: float = 14.0
 ## The camera that follows the player. Set it before adding the player.
@@ -55,6 +58,8 @@ var _god: bool = false
 var _feet: Vector3
 ## True while terrain hides the figure, which opens the fade.
 var _hidden: bool = false
+## The cell _look() last marked around, so it marks only when the player enters a new cell.
+var _sight_cell: int = -1
 ## How far the fade is open, from 0 to 1.
 var _fade: float = 0.0
 
@@ -77,6 +82,9 @@ func place(island: IslandData, cell: int) -> void:
 	_velocity = Vector2.ZERO
 	_camera_height = height_at(island, grid_position)
 	visible = true
+	# Already risen, so the player doesn't stand above flat fog while the land around it comes up.
+	_sight_cell = -1
+	_look(Knowledge.LONG_AGO)
 	_update_position()
 
 
@@ -115,6 +123,7 @@ func _process(delta: float) -> void:
 	else:
 		_walked += moved.distance_to(grid_position)
 	grid_position = moved
+	_look(terrain.knowledge.now)
 	# The camera keeps catching up on height after the player stops, so this runs every frame.
 	_camera_height = lerpf(_camera_height, height_at(_island, grid_position), 1.0 - exp(-delta / CAMERA_LAG))
 	_update_position()
@@ -133,6 +142,22 @@ func _update_position() -> void:
 	# a small bump in front doesn't open a hole in the hills beside the player.
 	_hidden = hidden(_island, point + Vector3.UP * (Figure.HEIGHT / 2.0), camera.basis.z) \
 		or hidden(_island, point + Vector3.UP * Figure.HEIGHT, camera.basis.z)
+
+
+## Marks the cells within SIGHT_RADIUS of the player seen, rising from time at, once per cell entered.
+func _look(at: float) -> void:
+	var cell: int = _cell(grid_position)
+	if cell == _sight_cell or terrain.knowledge == null:
+		return
+	_sight_cell = cell
+	var center := Vector2i(grid_position)
+	for dy: int in range(-SIGHT_RADIUS, SIGHT_RADIUS + 1):
+		var row: int = center.y + dy
+		if row < 0 or row >= IslandData.SIZE:
+			continue
+		var half: int = floori(sqrt(float(SIGHT_RADIUS * SIGHT_RADIUS - dy * dy)))
+		for column: int in range(maxi(center.x - half, 0), mini(center.x + half, IslandData.SIZE - 1) + 1):
+			terrain.knowledge.mark(IslandData.index(column, row), Knowledge.Level.SEEN, at)
 
 
 ## The nearest of the 8 facings to a walking direction, x east and y south, counted clockwise from
