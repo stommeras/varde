@@ -20,8 +20,9 @@ static var RAMPS: Dictionary[Terrain, PackedColorArray] = {
 	Terrain.FOG: PackedColorArray([Color("3c4552"), Color("566170"), Color("717d8b"), Color("8e98a4"), Color("aab2bb")]),
 }
 
-## The parts of the walking figure that each have a ramp in FIGURE. HAIR also colors the eyes.
-enum FigurePart { SKIN, HAIR, COAT, TROUSERS, BOOTS, PACK }
+## The parts of the walking figure that each have a ramp in FIGURE. HAIR also colors the eyes. STONE is
+## not on the figure but on the vardes the player builds, drawn by the figure's shader.
+enum FigurePart { SKIN, HAIR, COAT, TROUSERS, BOOTS, PACK, STONE }
 
 ## The walking figure, lit like the terrain. Three steps per part give a shade side, a middle and a
 ## lit side. The red coat and cap stand out against every terrain ramp, so the player is easy to find
@@ -33,6 +34,9 @@ static var FIGURE: Dictionary[FigurePart, PackedColorArray] = {
 	FigurePart.TROUSERS: PackedColorArray([Color("23253a"), Color("3b3d52"), Color("5a5e78")]),
 	FigurePart.BOOTS: PackedColorArray([Color("1c1610"), Color("3a2a1e"), Color("58402c")]),
 	FigurePart.PACK: PackedColorArray([Color("4e3824"), Color("7a5a38"), Color("a07c50")]),
+	# Every other step of the rock ramp, so a varde reads as the mountain's own stone. With the middle
+	# three steps the shaded undersides barely differed from the lit tops, and the stones ran together.
+	FigurePart.STONE: PackedColorArray([Color("2e2c2e"), Color("6a6466"), Color("b3aca8")]),
 }
 
 

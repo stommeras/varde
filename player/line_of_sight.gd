@@ -33,12 +33,12 @@ static func radius(height: float) -> float:
 ## unknown sea too. It only reads island, so it can run on a worker thread, and on the summit it
 ## takes about 35 ms natively. Each ray walks out STEP cells at a time and keeps the steepest slope
 ## from the eye so far, and a cell shows when its ground rises to that slope, or lies within
-## NEAR_RADIUS of the player.
-static func visible_cells(island: IslandData, cell: int) -> PackedInt32Array:
+## NEAR_RADIUS of the player. reach_scale multiplies the view radius, 2 for a survey from a peak.
+static func visible_cells(island: IslandData, cell: int, reach_scale: float = 1.0) -> PackedInt32Array:
 	var size: int = IslandData.SIZE
 	var heights: PackedFloat32Array = island.height
 	var ground: float = maxf(heights[cell], 0.0)
-	var reach: float = radius(ground)
+	var reach: float = radius(ground) * reach_scale
 	var eye: float = ground * IslandTerrain.SUMMIT_HEIGHT + EYE_HEIGHT
 	var origin := Vector2(cell % size + 0.5, cell / size + 0.5)
 	# One ray per cell on the rim, so neighboring rays end at most a cell apart and leave no gaps.

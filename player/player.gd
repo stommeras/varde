@@ -33,6 +33,9 @@ const HIDE_STEP: float = 0.5
 const DEPTH_PUSH: float = 0.3
 ## Speed multiplier in god mode. At 14 the player crosses the 1024-cell grid in about 21 s.
 const GOD_SPEED: float = 14.0
+## True while something else, such as a survey, holds the player still. The figure stands and takes
+## no input, and the camera keeps following.
+var frozen: bool = false
 ## The camera that follows the player. Set it before adding the player.
 var camera: GameCamera
 ## The terrain that fades in front of the player. Set it before placing the player.
@@ -111,7 +114,7 @@ func _process(delta: float) -> void:
 	_fade = move_toward(_fade, 1.0 if _hidden else 0.0, delta / maxf(FADE_SECONDS, 0.001))
 	terrain.fade_around(_feet, _fade)
 	var step: float = minf(delta, MAX_DELTA)
-	var direction: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	var direction: Vector2 = Vector2.ZERO if frozen else Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	if direction != Vector2.ZERO:
 		_figure.face(Vector2.from_angle(facing(direction) * PI / 4.0))
 	_velocity = _velocity.move_toward(direction * SPEED, SPEED / maxf(EASE_SECONDS, 0.001) * step)
@@ -178,6 +181,11 @@ func _finish_sight(keep: bool) -> void:
 func _exit_tree() -> void:
 	# The task writes to this node, so it must end before the node is freed.
 	_finish_sight(false)
+
+
+## Turns the figure to face direction, x east and y south.
+func face(direction: Vector2) -> void:
+	_figure.face(direction)
 
 
 ## The nearest of the 8 facings to a walking direction, x east and y south, counted clockwise from
