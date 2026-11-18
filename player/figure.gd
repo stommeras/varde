@@ -150,14 +150,8 @@ static func silhouette() -> ShaderMaterial:
 	return _silhouette
 
 
-## Ramps.FIGURE as a texture, one row per part with its steps from darkest on the left. The colors
-## are linear, for the same reason as in TerrainMaterial.ramp_image().
+## Ramps.FIGURE as a texture, one row per part with its steps from darkest on the left.
 static func ramps() -> ImageTexture:
 	if _ramps == null:
-		var width: int = Ramps.FIGURE[Ramps.FigurePart.SKIN].size()
-		var image := Image.create_empty(width, Ramps.FigurePart.size(), false, Image.FORMAT_RGBH)
-		for part: Ramps.FigurePart in Ramps.FigurePart.values():
-			for i: int in width:
-				image.set_pixel(i, part, Ramps.FIGURE[part][i].srgb_to_linear())
-		_ramps = ImageTexture.create_from_image(image)
+		_ramps = ImageTexture.create_from_image(Ramps.image(Ramps.FIGURE))
 	return _ramps

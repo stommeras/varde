@@ -1,13 +1,15 @@
 extends "res://tests/test_case.gd"
 
 
+## The terrain and figure shaders read these images as linear colors.
 func test_ramp_image_holds_each_ramp_in_its_row() -> void:
-	var image: Image = TerrainMaterial.ramp_image()
-	for kind: Ramps.Terrain in Ramps.Terrain.values():
-		var ramp: PackedColorArray = Ramps.RAMPS[kind]
-		for i: int in ramp.size():
-			var pixel: Color = image.get_pixel(i, kind).linear_to_srgb()
-			expect(pixel.to_rgba32() == ramp[i].to_rgba32(), "ramp %d step %d is %s, expected %s" % [kind, i, pixel.to_html(false), ramp[i].to_html(false)])
+	for ramps: Dictionary in [Ramps.RAMPS, Ramps.FIGURE]:
+		var image: Image = Ramps.image(ramps)
+		for row: int in ramps:
+			var ramp: PackedColorArray = ramps[row]
+			for i: int in ramp.size():
+				var pixel: Color = image.get_pixel(i, row).linear_to_srgb()
+				expect(pixel.to_rgba32() == ramp[i].to_rgba32(), "ramp %d step %d is %s, expected %s" % [row, i, pixel.to_html(false), ramp[i].to_html(false)])
 
 
 ## terrain.gdshader writes these values as literals and sizes ramp_sizes for this many ramps.

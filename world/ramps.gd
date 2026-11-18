@@ -32,6 +32,22 @@ static var FIGURE: Dictionary[FigurePart, PackedColorArray] = {
 }
 
 
+## ramps as an image, row r holding ramps[r] with its steps from darkest on the left. Rows shorter than
+## the longest ramp end in black pixels that the shaders never read. The colors are linear, in half
+## floats, because the Compatibility renderer of the web build doesn't decode a source_color texture
+## that a shader reads with texelFetch, and its colors came out one sRGB curve too light.
+static func image(ramps: Dictionary) -> Image:
+	var width: int = 0
+	for ramp: PackedColorArray in ramps.values():
+		width = maxi(width, ramp.size())
+	var result := Image.create_empty(width, ramps.size(), false, Image.FORMAT_RGBH)
+	for row: int in ramps:
+		var ramp: PackedColorArray = ramps[row]
+		for i: int in ramp.size():
+			result.set_pixel(i, row, ramp[i].srgb_to_linear())
+	return result
+
+
 ## The middle step of a ramp, used where a terrain needs one flat color, as in the debug view.
 static func base(terrain: Terrain) -> Color:
 	var ramp: PackedColorArray = RAMPS[terrain]

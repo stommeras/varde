@@ -22,7 +22,7 @@ static func create(island: IslandData) -> ShaderMaterial:
 	var fresh_water := Image.create_from_data(IslandData.SIZE, IslandData.SIZE, false, Image.FORMAT_R8, island.fresh_water)
 	material.set_shader_parameter("fresh_water_map", ImageTexture.create_from_image(fresh_water))
 	if _ramps == null:
-		_ramps = ImageTexture.create_from_image(ramp_image())
+		_ramps = ImageTexture.create_from_image(Ramps.image(Ramps.RAMPS))
 		_noise = _noise_texture()
 	material.set_shader_parameter("ramps", _ramps)
 	material.set_shader_parameter("noise", _noise)
@@ -42,18 +42,3 @@ static func _noise_texture() -> ImageTexture:
 	noise.frequency = 4.0 / NOISE_SIZE
 	return ImageTexture.create_from_image(noise.get_seamless_image(NOISE_SIZE, NOISE_SIZE))
 
-
-## One row per Ramps.Terrain value, each ramp's steps from darkest on the left. Rows shorter than the
-## longest ramp end in black pixels that the shader never reads. The colors are linear, in half
-## floats, because the Compatibility renderer of the web build doesn't decode a source_color texture
-## that the shader reads with texelFetch, and its colors came out one sRGB curve too light.
-static func ramp_image() -> Image:
-	var width: int = 0
-	for ramp: PackedColorArray in Ramps.RAMPS.values():
-		width = maxi(width, ramp.size())
-	var image := Image.create_empty(width, Ramps.Terrain.size(), false, Image.FORMAT_RGBH)
-	for kind: Ramps.Terrain in Ramps.Terrain.values():
-		var ramp: PackedColorArray = Ramps.RAMPS[kind]
-		for i: int in ramp.size():
-			image.set_pixel(i, kind, ramp[i].srgb_to_linear())
-	return image
