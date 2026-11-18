@@ -154,12 +154,13 @@ func _process(delta: float) -> void:
 		player.frozen = false
 
 
-## The cells of the peaks the player has surveyed, each of which has one of the player's vardes.
+## The cells of the peaks the player has surveyed, each of which has one of the player's vardes. The
+## peak under survey is left out until its varde stands.
 func varde_cells() -> PackedInt32Array:
 	var cells := PackedInt32Array()
 	if _island != null:
 		for i: int in _surveyed.size():
-			if _surveyed[i] != 0:
+			if _surveyed[i] != 0 and i != _peak:
 				cells.append(_island.peaks[i].cell)
 	return cells
 

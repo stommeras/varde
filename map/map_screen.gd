@@ -55,15 +55,17 @@ func _ready() -> void:
 	add_child(_view)
 
 
-## Draws the map of island from here on, with knowledge as what the player knows.
-func start(island: IslandData, knowledge: Knowledge) -> void:
-	_knowledge = knowledge
+## Draws the map of the island terrain shows from here on. It shares the terrain's grid textures
+## and knowledge rather than building its own copies, which would be another 6 MB.
+func start(terrain: IslandTerrain) -> void:
+	_knowledge = terrain.knowledge
+	var ground: ShaderMaterial = terrain.ground_material()
 	var material := ShaderMaterial.new()
 	material.shader = SHADER
-	material.set_shader_parameter("height_map", _grid(Image.FORMAT_RF, island.height.to_byte_array()))
-	material.set_shader_parameter("material_map", _grid(Image.FORMAT_R8, island.material))
-	material.set_shader_parameter("fresh_water_map", _grid(Image.FORMAT_R8, island.fresh_water))
-	material.set_shader_parameter("knowledge_map", knowledge.texture)
+	for parameter: String in ["height_map", "material_map", "fresh_water_map", "knowledge_map"]:
+		material.set_shader_parameter(parameter, ground.get_shader_parameter(parameter))
+	material.set_shader_parameter("forest", Ramps.Terrain.FOREST)
+	material.set_shader_parameter("snow", Ramps.Terrain.SNOW)
 	var paper: PackedColorArray = Ramps.MAP[Ramps.MapPart.PAPER]
 	var ink: PackedColorArray = Ramps.MAP[Ramps.MapPart.INK]
 	var water: PackedColorArray = Ramps.MAP[Ramps.MapPart.WATER]
@@ -165,8 +167,3 @@ func _draw_map() -> void:
 	var at: Vector2 = _to_screen(player.grid_position)
 	_view.draw_circle(at, MARKER_RADIUS + 1.0, marker[0])
 	_view.draw_circle(at, MARKER_RADIUS, marker[1])
-
-
-# A texture over the island's grid from one of its arrays.
-static func _grid(format: Image.Format, data: PackedByteArray) -> ImageTexture:
-	return ImageTexture.create_from_image(Image.create_from_data(IslandData.SIZE, IslandData.SIZE, false, format, data))

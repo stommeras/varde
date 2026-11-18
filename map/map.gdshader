@@ -28,9 +28,9 @@ uniform float grain = 0.06;
 // Raising it pushes the stained edge outward.
 uniform float stain_start = 0.85;
 
-// The Ramps.Terrain values the shader outlines, kept in step with world/ramps.gd.
-const int FOREST = 3;
-const int SNOW = 6;
+// The Ramps.Terrain values the shader outlines, set from world/ramps.gd.
+uniform int forest;
+uniform int snow;
 const int SIZE = 1024;
 
 // Each cell's value at the far edge of the grid repeats, so the edge draws no coast or contour.
@@ -54,15 +54,19 @@ int level_at(ivec2 cell) {
 	return int(round(texelFetch(knowledge_map, clamped(cell), 0).r * 255.0));
 }
 
-float hash(vec2 p) {
-	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+// A value from 0 to 1 per cell and salt, from an integer hash. The usual fract(sin()) hash lost
+// precision at cell coordinates in the hundreds and drew the grain as diagonal hatching.
+float hash(ivec2 cell, uint salt) {
+	uint h = uint(cell.x) * 374761393u + uint(cell.y) * 668265263u + salt * 2246822519u;
+	h = (h ^ (h >> 13u)) * 1274126177u;
+	return float(h ^ (h >> 16u)) / 4294967295.0;
 }
 
 void fragment() {
 	ivec2 cell = ivec2(UV * float(SIZE));
 	vec2 from_middle = abs(UV - 0.5) * 2.0;
-	bool stained = hash(vec2(cell)) < grain
-		|| hash(vec2(cell) + 17.0) < smoothstep(stain_start, 1.0, max(from_middle.x, from_middle.y));
+	bool stained = hash(cell, 0u) < grain
+		|| hash(cell, 1u) < smoothstep(stain_start, 1.0, max(from_middle.x, from_middle.y));
 	COLOR = stained ? paper_stain : paper;
 	int level = level_at(cell);
 	if (level > 0) {
@@ -85,7 +89,7 @@ void fragment() {
 				float other = height_at(next);
 				coast = coast || other <= 0.0;
 				int next_terrain = material_at(next);
-				outline = outline || ((terrain == FOREST || terrain == SNOW) && next_terrain != terrain && other > 0.0);
+				outline = outline || ((terrain == forest || terrain == snow) && next_terrain != terrain && other > 0.0);
 				int next_band = int(floor(other / contour_interval));
 				// A line lies on the upper side of each step between bands, so it is one cell wide. A
 				// line every fifth band also takes the lower side, two cells wide.

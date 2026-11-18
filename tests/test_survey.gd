@@ -58,6 +58,9 @@ func test_varde_cells_are_the_surveyed_peaks() -> void:
 	survey._island = island
 	survey._surveyed = PackedByteArray([0, 1])
 	expect(survey.varde_cells() == PackedInt32Array([IslandData.index(105, 100)]), "varde cells are %s" % [survey.varde_cells()])
+	# Out of the tree, _ready never adopted these, so freeing the survey would leak them.
+	survey._zone_ring.free()
+	survey._prompt.free()
 	survey.free()
 
 

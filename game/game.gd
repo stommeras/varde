@@ -65,5 +65,5 @@ func _on_loaded(loaded_island: IslandData, loaded_meshes: Array[ArrayMesh], _mse
 	_terrain.show_island(loaded_meshes, loaded_island)
 	_player.place(loaded_island, loaded_island.start)
 	_survey.start(loaded_island)
-	_map.start(loaded_island, _terrain.knowledge)
+	_map.start(_terrain)
 	_loaded = true
