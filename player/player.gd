@@ -1,10 +1,11 @@
 class_name Player
 extends Node3D
 ## The figure the player walks. It moves freely in 8 directions, checks each step from cell to cell
-## with Walkability, stands on the terrain mesh's surface, and keeps the game camera centered on it.
+## with Walkability, stands on the terrain mesh's surface, and keeps the game camera on it, trailing
+## its height by CAMERA_LAG.
 
 ## Cells per second on any ground. Raising it crosses the island faster. At 3.5, walking across the
-## 71 cells of a 960×540 screen at zoom 40 takes about 20 s. At 6 the figure, about 1.5 units tall,
+## 50 cells of a 960×540 screen at zoom 40 takes about 14 s. At 6 the figure, about 1.5 units tall,
 ## crossed four of its own heights a second and looked like it was sprinting.
 const SPEED: float = 3.5
 ## Seconds the player takes to reach full speed from standing, and to stop again. Raising it gives
@@ -75,9 +76,8 @@ func place(island: IslandData, cell: int) -> void:
 	_island = island
 	grid_position = Vector2(cell % IslandData.SIZE + 0.5, cell / IslandData.SIZE + 0.5)
 	_velocity = Vector2.ZERO
-	_camera_height = height_at(island, grid_position)
 	visible = true
-	_update_position()
+	_update_position(1.0)
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
@@ -95,9 +95,10 @@ func _process(delta: float) -> void:
 	terrain.fade_around(_feet, _fade)
 	var step: float = minf(delta, MAX_DELTA)
 	var direction: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	if direction != Vector2.ZERO:
-		_figure.face(Vector2.from_angle(facing(direction) * PI / 4.0))
 	_velocity = _velocity.move_toward(direction * SPEED, SPEED / maxf(EASE_SECONDS, 0.001) * step)
+	if _velocity != Vector2.ZERO:
+		# The way it moves, not the keys, so a turn doesn't slide the figure backward while it eases.
+		_figure.face(Vector2.from_angle(facing(_velocity) * PI / 4.0))
 	var moved: Vector2 = grid_position
 	if _god:
 		# Several cells a frame, which move() can't take, so it skips the step check.
@@ -114,17 +115,18 @@ func _process(delta: float) -> void:
 		_walked += moved.distance_to(grid_position)
 	grid_position = moved
 	# The camera keeps catching up on height after the player stops, so this runs every frame.
-	_camera_height = lerpf(_camera_height, height_at(_island, grid_position), 1.0 - exp(-delta / CAMERA_LAG))
-	_update_position()
+	_update_position(1.0 - exp(-delta / CAMERA_LAG))
 	_figure.walk(_walked, _velocity.length() / SPEED)
 
 
-func _update_position() -> void:
+# follow is the share of the gap between the camera's height and the feet's that it closes now.
+func _update_position(follow: float) -> void:
 	var point := Vector3(grid_position.x, height_at(_island, grid_position), grid_position.y)
+	_camera_height = lerpf(_camera_height, point.y, follow)
 	camera.focus = Vector3(point.x, _camera_height, point.z)
 	camera.place()
-	# The same snap as the camera's, so the figure stays on the same screen pixel while the ground
-	# moves under it in whole pixels.
+	# The same snap as the camera's, so the figure moves on screen only in whole pixels, and only
+	# while the camera catches up on its height.
 	position = camera.snap(point) + camera.basis.z * DEPTH_PUSH
 	_feet = point
 	# The middle and the top of the figure. Terrain that only hides the feet leaves the fade shut, so
