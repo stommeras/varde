@@ -128,6 +128,12 @@ func _build_ui() -> void:
 	button_3d.pressed.connect(_show_3d)
 	row.add_child(button_3d)
 
+	var reveal := Button.new()
+	reveal.text = tr("REVEAL_ALL")
+	reveal.focus_mode = Control.FOCUS_NONE
+	reveal.pressed.connect(func() -> void: _view_3d.reveal_all())
+	row.add_child(reveal)
+
 	row.add_child(_info)
 	_controls_3d = _view_3d.build_controls()
 	_controls_3d.position = Vector2(4, 24)

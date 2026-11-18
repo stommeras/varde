@@ -8,6 +8,7 @@ LAYER_MOISTURE,Fuktighet
 LAYER_MATERIAL,Materiale
 VIEW_3D,3D
 SHOW_PEAKS,Topper
+REVEAL_ALL,Vis alt
 BASE_RESOLUTION,Oppløsning: %d×%d
 ZOOM_CELLS,Zoom: %d ruter
 TILT_DEGREES,Helning: %d°

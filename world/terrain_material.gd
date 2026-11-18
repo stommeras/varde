@@ -11,8 +11,9 @@ static var _ramps: ImageTexture
 static var _noise: ImageTexture
 
 
-## A material for the terrain mesh of island. Its textures share the island's grid.
-static func create(island: IslandData) -> ShaderMaterial:
+## A material for the terrain mesh of island, with knowledge as the player's map of what they know.
+## Its textures share the island's grid.
+static func create(island: IslandData, knowledge: Knowledge) -> ShaderMaterial:
 	var material := ShaderMaterial.new()
 	material.shader = SHADER
 	var height := Image.create_from_data(IslandData.SIZE, IslandData.SIZE, false, Image.FORMAT_RF, island.height.to_byte_array())
@@ -21,6 +22,7 @@ static func create(island: IslandData) -> ShaderMaterial:
 	material.set_shader_parameter("material_map", ImageTexture.create_from_image(terrain))
 	var fresh_water := Image.create_from_data(IslandData.SIZE, IslandData.SIZE, false, Image.FORMAT_R8, island.fresh_water)
 	material.set_shader_parameter("fresh_water_map", ImageTexture.create_from_image(fresh_water))
+	material.set_shader_parameter("knowledge_map", knowledge.texture)
 	if _ramps == null:
 		_ramps = ImageTexture.create_from_image(Ramps.image(Ramps.RAMPS))
 		_noise = _noise_texture()

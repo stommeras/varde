@@ -8,6 +8,8 @@ extends Node3D
 ## value, because the slope the player can climb depends on it and the generator can't read a node.
 const SUMMIT_HEIGHT: float = Walkability.SUMMIT_UNITS
 
+## What the player knows about the island. A new island starts with all of it unknown.
+var knowledge: Knowledge
 var _material: ShaderMaterial
 var _details: ShaderMaterial
 
@@ -22,7 +24,8 @@ func show_island(meshes: Array[ArrayMesh], island: IslandData) -> void:
 		# Removed now, so _apply_lod_bias doesn't also walk the chunks waiting to be freed.
 		remove_child(chunk)
 		chunk.queue_free()
-	_material = TerrainMaterial.create(island)
+	knowledge = Knowledge.new()
+	_material = TerrainMaterial.create(island, knowledge)
 	_details = GroundDetails.create(_material, island.island_seed)
 	for mesh: ArrayMesh in meshes:
 		var chunk := MeshInstance3D.new()
@@ -39,6 +42,11 @@ func show_island(meshes: Array[ArrayMesh], island: IslandData) -> void:
 		details.position = Vector3(i % TerrainMesh.CHUNKS, 0, i / TerrainMesh.CHUNKS) * TerrainMesh.CHUNK
 		add_child(details)
 	_apply_lod_bias()
+
+
+func _process(_delta: float) -> void:
+	if knowledge != null:
+		knowledge.upload()
 
 
 ## Fades the terrain that stands between the camera and feet, the player's feet in world units.

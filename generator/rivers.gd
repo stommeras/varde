@@ -3,7 +3,9 @@ extends RefCounted
 ## Generator step 4: rivers and lakes. Springs on the high ground of the main island each send a
 ## river downhill to the sea. A river that runs into a pit fills it up to the lowest point on its rim
 ## and runs on from the other side, so water always flows out, and the filled pit is a lake. A river
-## that meets an earlier one joins it and ends there.
+## that meets an earlier one joins it and ends there. A pit below sea level that land closes off
+## from the open sea counts as a pit too, so the river fills it as a lake instead of ending in a
+## pool of sea water inland.
 ## Pits are filled only where a river finds one, instead of over the whole grid first. A full fill
 ## needs a priority queue over every land cell, which takes seconds in GDScript, and the rivers only
 ## ever touch a few thousand cells.
@@ -25,6 +27,11 @@ const SPRING_TRIES: int = 20000
 const WIDEN_FLOW: float = 600.0
 ## Widest a river gets, in cells on each side of its middle.
 const MAX_RADIUS: int = 2
+## Most cells a pit below sea level can have and still turn into a lake when a river runs into it.
+## Erosion leaves pits of tens to a few hundred cells on the flat lowland by the coast, where the sea
+## shader drew them as pale pools of surf. Below sea level, a larger area is a basin of its own. Each
+## river that reaches the sea checks this many cells before it ends, so raising it slows the step.
+const SEA_PIT_CELLS: int = 500
 
 ## The eight neighbors as column and row offsets, with the distance to each, so diagonal slopes
 ## aren't overstated.
@@ -37,12 +44,15 @@ var _height: PackedFloat32Array
 var _rng: RandomNumberGenerator
 ## The river each cell belongs to, plus 1, so 0 is no river.
 var _owner := PackedInt32Array()
-## Which pit fill last looked at each cell, so each fill can tell its cells apart without clearing.
-## Fill n marks the rim cells it looked at with 2n and the lake's cells with 2n + 1.
+## Which pit fill or sea pit check last looked at each cell, so each can tell its cells apart
+## without clearing. Fill n marks the rim cells it looked at with 2n and the lake's cells with 2n + 1,
+## and check n marks the sea cells it reached with 2n.
 var _flood_mark := PackedInt32Array()
 var _floods: int = 0
 ## 1 on every cell a lake covers. _paint adds the rivers to it.
 var _fresh_water := PackedByteArray()
+## The cells below sea level that a lake raised above it, which turn from sea to land.
+var _raised := PackedInt32Array()
 
 
 func _init(height: PackedFloat32Array, rng: RandomNumberGenerator) -> void:
@@ -67,6 +77,11 @@ static func generate(data: IslandData, rng: RandomNumberGenerator) -> void:
 				tracer._owner[i] = rivers.size() + 1
 		rivers.append(path)
 	data.height = tracer._height
+	# A lake in a pit below sea level lies on beach, the material of the lowest land, and the land
+	# around it is the main island's, where every river runs.
+	for i: int in tracer._raised:
+		data.material[i] = Ramps.Terrain.BEACH
+		data.main_island[i] = 1
 	data.rivers = rivers
 	# Before _paint adds the rivers, the fresh water is the lakes alone.
 	data.lake = tracer._fresh_water.duplicate()
@@ -95,8 +110,8 @@ static func _springs(data: IslandData, rng: RandomNumberGenerator) -> PackedInt3
 	return springs
 
 
-## The cells of one river from spring down to the first sea cell, or to the first cell of an
-## earlier river. Fills each pit it runs into.
+## The cells of one river from spring down to the first cell of the open sea, or to the first cell
+## of an earlier river. Fills each pit it runs into.
 func _trace(spring: int) -> PackedInt32Array:
 	var size: int = IslandData.SIZE
 	var path := PackedInt32Array([spring])
@@ -106,7 +121,7 @@ func _trace(spring: int) -> PackedInt32Array:
 	# Each step either goes strictly downhill or fills a pit and leaves it lower than its new level,
 	# so the trace always ends. The cap only turns a bug into an error instead of a hang.
 	for step: int in _height.size():
-		if _height[cell] <= 0.0 or _owner[cell] != 0:
+		if _owner[cell] != 0 or (_height[cell] <= 0.0 and not _is_sea_pit(cell)):
 			return path
 		# A random downhill neighbor, weighted by slope. Always taking the steepest one ran the rivers
 		# in straight lines along the grid's 8 directions, tens of cells long on the lowland. Weighting
@@ -181,9 +196,41 @@ func _fill_pit(pit: int) -> int:
 		_flood_mark[cell] = lake
 		region.append(cell)
 	for i: int in region:
+		if _height[i] <= 0.0 and level > 0.0:
+			_raised.append(i)
 		_height[i] = level
 		_fresh_water[i] = 1
 	return cell
+
+
+## True when the sea cell sea lies in a pit below sea level of at most SEA_PIT_CELLS cells, which
+## land closes off from the open sea. Sea cells that touch only at a corner count as joined, so a pit
+## with a gap of one corner to the sea stays sea.
+func _is_sea_pit(sea: int) -> bool:
+	var size: int = IslandData.SIZE
+	_floods += 1
+	var seen: int = _floods * 2
+	_flood_mark[sea] = seen
+	var queue := PackedInt32Array([sea])
+	var head: int = 0
+	while head < queue.size():
+		if queue.size() > SEA_PIT_CELLS:
+			return false
+		var cell: int = queue[head]
+		head += 1
+		var x: int = cell % size
+		var y: int = cell / size
+		for k: int in 8:
+			var nx: int = x + NEIGHBOR_X[k]
+			var ny: int = y + NEIGHBOR_Y[k]
+			# The open sea reaches the grid's edge.
+			if nx < 0 or ny < 0 or nx >= size or ny >= size:
+				return false
+			var n: int = IslandData.index(nx, ny)
+			if _flood_mark[n] != seen and _height[n] <= 0.0:
+				_flood_mark[n] = seen
+				queue.append(n)
+	return true
 
 
 ## The shortest way from entry to outlet through the cells of lake, without entry. Breadth first.
