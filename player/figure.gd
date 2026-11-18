@@ -131,15 +131,21 @@ func _part(mesh: Mesh, part: Ramps.FigurePart, parent: Node3D, at: Vector3) -> M
 	var instance := MeshInstance3D.new()
 	instance.mesh = mesh
 	instance.position = at
+	var material: ShaderMaterial = lit(part)
+	material.next_pass = silhouette()
+	instance.material_override = material
+	parent.add_child(instance)
+	return instance
+
+
+## A material that lights a mesh in the ramp of part, as the figure's parts are lit.
+static func lit(part: Ramps.FigurePart) -> ShaderMaterial:
 	var material := ShaderMaterial.new()
 	material.shader = SHADER
 	material.set_shader_parameter("ramps", ramps())
 	material.set_shader_parameter("steps", Ramps.FIGURE[part].size())
 	material.set_shader_parameter("part", part)
-	material.next_pass = silhouette()
-	instance.material_override = material
-	parent.add_child(instance)
-	return instance
+	return material
 
 
 static func _capsule(radius: float, height: float) -> CapsuleMesh:

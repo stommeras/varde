@@ -44,7 +44,7 @@ func _init() -> void:
 
 
 ## Raises cell to level. A cell already at that level or higher stays as it is. An unknown cell
-## starts rising at time `at`.
+## starts clearing its fog at time `at`.
 func mark(cell: int, level: Level, at: float = now) -> void:
 	if levels[cell] < level:
 		if levels[cell] == Level.UNKNOWN:
@@ -55,8 +55,8 @@ func mark(cell: int, level: Level, at: float = now) -> void:
 
 
 ## Raises each of cells to level, like mark() on each but without a call per cell, which cost
-## 1.4 ms for the 10,000 cells seen from the summit against 0.4 ms here. Unknown cells start rising
-## at time `at`.
+## 1.4 ms for the 10,000 cells seen from the summit against 0.4 ms here. Unknown cells start
+## clearing their fog at time `at`.
 func mark_cells(cells: PackedInt32Array, level: Level, at: float = now) -> void:
 	for cell: int in cells:
 		if levels[cell] < level:
@@ -73,7 +73,7 @@ func revealed_at(cell: int) -> float:
 
 
 ## Raises every cell to level, for the debug view, god mode and the title backdrop. Unknown cells
-## start rising at time `at`.
+## start clearing their fog at time `at`.
 func mark_all(level: Level, at: float = now) -> void:
 	# Not a call to mark() per cell, because a million GDScript calls hitch the frame.
 	for cell: int in levels.size():
