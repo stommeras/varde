@@ -16,6 +16,11 @@ func _init() -> void:
 	# One shadow map over the whole view. The camera is orthographic and its depth range is short, so
 	# the splits of the default mode would only spend the map's resolution on bands of the same size.
 	directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
+	# How far, in shadow map texels, the shadow test moves each point out along its normal before it
+	# reads the map. At the default of 2, the web build's Compatibility renderer drew dark polygons of
+	# shadow acne on sunlit slopes and along crests, and at 3 a few remained. At 8 the figure's shadow
+	# comes loose from its feet. Forward+ draws the frames checked the same at 2 and 5.
+	shadow_normal_bias = 5.0
 	set_angle(START_ANGLE)
 
 
