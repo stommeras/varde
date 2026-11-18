@@ -51,8 +51,8 @@ uniform float shadow_steps = 1.0;
 uniform float fade_amount = 0.0;
 // The player's feet in world units.
 uniform vec3 player_position;
-// World units on screen from the feet to where the fade ends, about 10 screen pixels per unit at
-// zoom 80. Raising it opens a wider hole around the player in a ridge. At 4 and 7 a ridge in front
+// World units on screen from the feet to where the fade ends, about 19 screen pixels per unit at
+// zoom 40. Raising it opens a wider hole around the player in a ridge. At 4 and 7 a ridge in front
 // still hid most of the ground behind the player, and the hole read as a bite out of the rock.
 uniform float fade_radius = 10.0;
 // World units over which the fade dithers out at its rim, at fade_ground above the feet and at the

@@ -25,3 +25,17 @@ func test_faces_the_walking_direction() -> void:
 	figure.face(Vector2.RIGHT)
 	expect((-figure._body.basis.z).is_equal_approx(Vector3.RIGHT), "facing east points the figure along %s" % -figure._body.basis.z)
 	figure.free()
+
+
+## The hips are lowest with the legs furthest apart, and the body leans by the share of full speed.
+func test_bobs_and_leans_with_pace() -> void:
+	var figure := Figure.new()
+	figure.walk(Figure.CELLS_PER_CYCLE / 4.0, 1.0)
+	expect(figure._body.position.y < 0.0, "the body doesn't drop at a footfall")
+	expect(figure._body.basis.y.z < 0.0, "the body doesn't lean toward its front")
+	var full_lean: float = figure._lean
+	figure.walk(Figure.CELLS_PER_CYCLE / 4.0, 0.5)
+	expect(is_equal_approx(figure._lean, full_lean / 2.0), "half pace doesn't lean half as far")
+	figure.walk(0.0)
+	expect(figure._body.position.y == 0.0 and figure._lean == 0.0, "standing still doesn't stand upright")
+	figure.free()
