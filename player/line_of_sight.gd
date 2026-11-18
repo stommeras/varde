@@ -16,6 +16,12 @@ const EYE_HEIGHT: float = Figure.HEIGHT
 ## corner the ray clipped between two of them, 168 of the 4,800 inside the sea-level radius. Halving
 ## it doubles the cost of a cast.
 const STEP: float = 0.5
+## Cells around the player that always count as seen, even where the ground drops away out of the
+## view. From a rounded top the rays pass over the slope just below it, and on the summit of seed 0
+## only 49 of the 121 cells within 5 were seen, so the player stood in fog. At 4 the fog's softened
+## edge still covered the ground underfoot. Raising it reveals more ground close by, around corners
+## and behind ridges too.
+const NEAR_RADIUS: float = 10.0
 
 
 ## The view radius in cells for an eye over ground of height, the generator's 0 to 1.
@@ -26,7 +32,8 @@ static func radius(height: float) -> float:
 ## The cells seen from the center of cell, each once, sea included, so the fog can cover the
 ## unknown sea too. It only reads island, so it can run on a worker thread, and on the summit it
 ## takes about 35 ms natively. Each ray walks out STEP cells at a time and keeps the steepest slope
-## from the eye so far, and a cell shows when its ground rises to that slope.
+## from the eye so far, and a cell shows when its ground rises to that slope, or lies within
+## NEAR_RADIUS of the player.
 static func visible_cells(island: IslandData, cell: int) -> PackedInt32Array:
 	var size: int = IslandData.SIZE
 	var heights: PackedFloat32Array = island.height
@@ -65,9 +72,10 @@ static func visible_cells(island: IslandData, cell: int) -> PackedInt32Array:
 			var index: int = y * size + x
 			# The sea draws flat at 0, so it hides nothing below that.
 			var slope: float = (maxf(heights[index], 0.0) * scale - eye) / (step * STEP)
-			if slope < horizon:
+			if slope >= horizon:
+				horizon = slope
+			elif step * STEP > NEAR_RADIUS:
 				continue
-			horizon = slope
 			var local: int = (y - corner_y) * side + (x - corner_x)
 			if marked[local] == 0:
 				marked[local] = 1

@@ -1,5 +1,6 @@
 // What the terrain shader and the ground detail shader share: the island's grids, the ramps, the
-// rules that pick a pixel's material, the ramp lighting and the fade in front of the player.
+// rules that pick a pixel's material, the ramp lighting, the fog over unknown land and the fade in
+// front of the player.
 // IslandTerrain sets the same values on both materials, so a detail always sits on ground that the
 // terrain draws in its own material and light, and fades with it.
 
@@ -13,11 +14,30 @@ uniform sampler2D fresh_water_map : filter_linear, repeat_disable;
 // One byte per cell, a Knowledge.Level, which the shader reads as that value / 255. Nearest, so a
 // cell is fully one level. Knowledge updates the texture once a frame when the player learns more.
 uniform sampler2D knowledge_map : filter_nearest, repeat_disable;
+// One float per cell, the second on Knowledge's clock at which the player first saw it, and
+// Knowledge.NEVER while the cell is unknown. Read with texelFetch, because linear filtering between
+// a time and NEVER gives a time far in the future, not a cell half clear.
+uniform sampler2D reveal_map : filter_nearest, repeat_disable;
+// The second on Knowledge's clock now. IslandTerrain sets it each frame.
+uniform float reveal_now = 0.0;
+// Seconds the fog takes to clear from a cell after the player sees it. Raising it makes the land
+// show more slowly.
+uniform float clear_seconds = 1.0;
+// How far, in cells, the warp noise moves the fog's edge, so it doesn't trace the line of sight's cells.
+uniform float fog_edge_cells = 1.5;
+// Cells between the samples that smooth the fog's edge, 3 by 3 around each pixel. Raising it rounds
+// the edge more and swallows larger gaps the line of sight left. Without it the edge followed every
+// cell the line of sight left out, in ragged steps.
+uniform float fog_soft_cells = 2.0;
+// The share of the averaged fog over which its edge dithers, around the middle. At 1 the edge
+// dithered over a few cells, and on a steep peak whose top the player had seen, that band showed
+// the unknown slope below as a see-through outline. Lowering it gives a crisper edge.
+uniform float fog_edge_dither = 0.3;
 // Row t holds the steps of ramp t, darkest first, as linear colors. TerrainMaterial builds it from
 // Ramps.RAMPS. Not source_color, because the Compatibility renderer skips that decode in texelFetch.
 uniform sampler2D ramps : filter_nearest, repeat_disable;
 // How many steps each ramp in `ramps` has, indexed by Ramps.Terrain.
-uniform int ramp_sizes[8];
+uniform int ramp_sizes[9];
 // Seamless FastNoiseLite noise from 0 to 1, tiled across the world.
 uniform sampler2D noise : filter_linear, repeat_enable;
 
@@ -75,6 +95,44 @@ uniform float fade_step = 1.0;
 uniform int fade_steps = 96;
 
 #include "res://world/dither.gdshaderinc"
+
+// How far the fog has cleared from the cell at column and row, from 0 while it is unknown to 1 a
+// clear_seconds after the player saw it. It eases in and out.
+float clear_of(ivec2 cell) {
+	ivec2 size = textureSize(reveal_map, 0);
+	float revealed = texelFetch(reveal_map, clamp(cell, ivec2(0), size - 1), 0).r;
+	return smoothstep(0.0, clear_seconds, reveal_now - revealed);
+}
+
+// clear_of() at point, blended between the four nearest cell centers as the height map blends its
+// heights.
+float clear_at(vec2 point) {
+	vec2 p = point - 0.5;
+	ivec2 nw = ivec2(floor(p));
+	vec2 f = p - vec2(nw);
+	return mix(mix(clear_of(nw), clear_of(nw + ivec2(1, 0)), f.x),
+		mix(clear_of(nw + ivec2(0, 1)), clear_of(nw + ivec2(1, 1)), f.x), f.y);
+}
+
+// The share of fog at point, from 0 where the player knows all the land around to 1 where they know
+// none. warp is warp_at(point). It averages 3 by 3 samples fog_soft_cells apart, which rounds the
+// edge's shape and fills single cells the line of sight left out.
+float mist_at(vec2 point, vec2 warp) {
+	vec2 center = point + warp * 2.0 * fog_edge_cells;
+	float clear = 0.0;
+	for (int y = -1; y <= 1; y++) {
+		for (int x = -1; x <= 1; x++) {
+			clear += clear_at(center + vec2(float(x), float(y)) * fog_soft_cells);
+		}
+	}
+	return 1.0 - clear / 9.0;
+}
+
+// True where the terrain draws fog at point, for a pixel with the dither threshold threshold. The
+// edge sits where half the averaged samples are clear, and dithers over fog_edge_dither around it.
+bool is_fogged(vec2 point, vec2 warp, float threshold) {
+	return mist_at(point, warp) > 0.5 + (threshold - 0.5) * fog_edge_dither;
+}
 
 // The offset, from -0.5 to 0.5 on each axis, that warps material boundaries and rivers at cell.
 // Two samples far apart in the same noise tile act as two independent noises for x and z.

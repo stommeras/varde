@@ -4,6 +4,9 @@ shader_type spatial;
 // snaps it to one of the two nearest steps instead of blending them. The sea is part of the same
 // mesh, flat at sea level, and the height map's negative sea floor gives its depth.
 //
+// Fog covers the land and sea the player doesn't know yet, flat and lit evenly, so an unexplored
+// peak shows no shading and casts no shadow. Once seen, the fog clears over clear_seconds.
+//
 // Ambient light would add color on top of the ramp step, so it is off. The sun alone lights the
 // terrain, and light() replaces Godot's lighting with the ramp lookup.
 render_mode ambient_light_disabled;
@@ -47,6 +50,19 @@ uniform float foam_speed = 0.25;
 uniform float foam_width = 0.45;
 // Cells out from the coast that the unbroken line of foam covers. Raising it widens the line.
 uniform float foam_edge = 0.7;
+// World units on screen that one tile of `noise` covers for the light and dark patches in the fog.
+// Lower gives smaller patches. At 40 the tile's repeats showed as a grid at zoom 160.
+uniform float fog_scale = 90.0;
+// Noise tiles per second the fog's patches drift. Keep 3600 * speed * 0.6 and * 0.8 whole numbers,
+// so the hourly wrap of TIME doesn't jump. 1/120 drifts about 0.75 world units a second.
+uniform float fog_speed = 0.008333333;
+// How many ramp steps the patches move the fog's light up or down. 0 gives an even, dithered grey.
+uniform float fog_steps = 1.5;
+
+// The depth buffer's value just short of the far plane, where fog pixels go. Godot stores depth
+// reversed, 1 at the near plane and 0 at the far one, in Compatibility too: 0.99999 there drew the
+// fog in front of everything. Not 0 itself, so the depth test against the cleared buffer passes.
+const float FAR_DEPTH = 0.00001;
 
 varying vec3 world_position;
 // The Ramps.Terrain value whose ramp this pixel uses. Floats, because light() reads it.
@@ -84,7 +100,6 @@ void fragment() {
 	// The normal comes from the height texture instead of the mesh, so the shading keeps its detail on
 	// coarse meshes far from the camera.
 	vec3 world_normal = ground_normal(uv, height, summit);
-	NORMAL = normalize((VIEW_MATRIX * vec4(world_normal, 0.0)).xyz);
 
 	vec2 warp = warp_at(cell);
 	int kind = material_at(cell, warp, height);
@@ -128,10 +143,33 @@ void fragment() {
 		kind = 0;  // Ramps.Terrain.WATER
 		step_offset = ripple(cell);
 	}
+	world_pixel = screen_pixel(world_position, INV_VIEW_MATRIX, PROJECTION_MATRIX, VIEWPORT_SIZE);
+
+	// The fog covers unknown sea too, or the coast's outline would give the island's shape away.
+	// It dithers out as it clears. Unknown land casts no shadow, which would show its shape.
+	if (IN_SHADOW_PASS && clear_at(cell) < 0.5) {
+		discard;
+	}
+	DEPTH = FRAGCOORD.z;
+	if (is_fogged(cell, warp, dither(world_pixel))) {
+		kind = 8;  // Ramps.Terrain.FOG
+		// Behind everything else, so land the player has seen draws in front of a fogged peak, and
+		// the peak shows no outline against it. It also never hides the player. The shadow pass
+		// keeps the real depth.
+		if (!IN_SHADOW_PASS) {
+			DEPTH = FAR_DEPTH;
+		}
+		world_normal = vec3(0.0, 1.0, 0.0);
+		ramp_reach = 1.0;
+		// Laid out along the screen's axes, not the ground's, so the patches lie on a flat layer over the
+		// land under the fog. Sampled by ground position, they ran down its slopes in streaks.
+		vec2 across = vec2(dot(world_position, INV_VIEW_MATRIX[0].xyz), dot(world_position, INV_VIEW_MATRIX[1].xyz));
+		vec2 fog_uv = across / fog_scale + TIME * fog_speed * vec2(0.6, 0.8);
+		step_offset = (texture(noise, fog_uv).r - 0.5) * 2.0 * fog_steps;
+	}
+	NORMAL = normalize((VIEW_MATRIX * vec4(world_normal, 0.0)).xyz);
 	terrain = float(kind);
 	ALBEDO = vec3(1.0);
-
-	world_pixel = screen_pixel(world_position, INV_VIEW_MATRIX, PROJECTION_MATRIX, VIEWPORT_SIZE);
 
 	// The shadow pass skips the fade, so a faded ridge still casts its shadow.
 	if (!IN_SHADOW_PASS && is_faded(world_position, VERTEX, VIEW_MATRIX, INV_VIEW_MATRIX, summit, dither(world_pixel))) {
@@ -142,5 +180,7 @@ void fragment() {
 void light() {
 	// ATTENUATION is the sun's shadow, 0 in full shadow. The albedo is white, so this is the pixel's
 	// final color.
-	DIFFUSE_LIGHT = ramp_color(clamp(dot(NORMAL, LIGHT), 0.0, 1.0), ATTENUATION, int(terrain), ramp_reach, step_offset, dither(world_pixel));
+	// Fog takes no cast shadows, so it reads as one flat layer and doesn't trace the land under it.
+	float attenuation = int(terrain) == 8 ? 1.0 : ATTENUATION;
+	DIFFUSE_LIGHT = ramp_color(clamp(dot(NORMAL, LIGHT), 0.0, 1.0), attenuation, int(terrain), ramp_reach, step_offset, dither(world_pixel));
 }

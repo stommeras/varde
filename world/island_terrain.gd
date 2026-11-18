@@ -16,6 +16,10 @@ var _details: ShaderMaterial
 
 func _init() -> void:
 	scale.y = SUMMIT_HEIGHT
+	# After the default 0, so the upload in _process sees this frame's marks: the player's, and the
+	# start's cast marked when the loader emits from its own _process. Otherwise the first frame of an
+	# island draws all of it as flat fog.
+	process_priority = 1
 
 
 ## Replaces the terrain with a new island's chunk meshes.
@@ -44,9 +48,13 @@ func show_island(meshes: Array[ArrayMesh], island: IslandData) -> void:
 	_apply_lod_bias()
 
 
-func _process(_delta: float) -> void:
-	if knowledge != null:
-		knowledge.upload()
+func _process(delta: float) -> void:
+	if knowledge == null:
+		return
+	knowledge.now += delta
+	knowledge.upload()
+	for material: ShaderMaterial in [_material, _details]:
+		material.set_shader_parameter("reveal_now", knowledge.now)
 
 
 ## Fades the terrain that stands between the camera and feet, the player's feet in world units.

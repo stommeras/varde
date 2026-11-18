@@ -87,6 +87,11 @@ func place(island: IslandData, cell: int) -> void:
 	_velocity = Vector2.ZERO
 	_camera_height = height_at(island, grid_position)
 	visible = true
+	# The first cast runs here instead of on a worker, and its fog counts as already cleared, so the
+	# run doesn't open in fog. At the start beach it takes about 4 ms.
+	if terrain.knowledge != null:
+		terrain.knowledge.mark_cells(LineOfSight.visible_cells(island, cell), Knowledge.Level.SEEN, Knowledge.LONG_AGO)
+		_sight_cell = cell
 	_update_position()
 
 
@@ -142,8 +147,9 @@ func _update_position() -> void:
 	_feet = point
 	# The middle and the top of the figure. Terrain that only hides the feet leaves the fade shut, so
 	# a small bump in front doesn't open a hole in the hills beside the player.
-	_hidden = hidden(_island, point + Vector3.UP * (Figure.HEIGHT / 2.0), camera.basis.z) \
-		or hidden(_island, point + Vector3.UP * Figure.HEIGHT, camera.basis.z)
+	var known: Knowledge = terrain.knowledge if terrain != null else null
+	_hidden = hidden(_island, point + Vector3.UP * (Figure.HEIGHT / 2.0), camera.basis.z, known) \
+		or hidden(_island, point + Vector3.UP * Figure.HEIGHT, camera.basis.z, known)
 
 
 # Marks what the finished cast saw, and casts again once the player stands in a new cell. One cast
@@ -204,11 +210,16 @@ static func _cell(point: Vector2) -> int:
 
 ## True when terrain stands between point, in world units, and a camera that looks along -toward.
 ## It steps from point toward the camera until the line rises above the summit. toward must point up.
-static func hidden(island: IslandData, point: Vector3, toward: Vector3) -> bool:
+## With knowledge, land the player hasn't seen hides nothing, because the terrain shader draws its fog
+## behind everything else.
+static func hidden(island: IslandData, point: Vector3, toward: Vector3, knowledge: Knowledge = null) -> bool:
 	var steps: int = ceili((IslandTerrain.SUMMIT_HEIGHT - point.y) / (toward.y * HIDE_STEP))
 	for i: int in range(1, steps + 1):
 		var sample: Vector3 = point + toward * (i * HIDE_STEP)
-		if height_at(island, Vector2(sample.x, sample.z)) > sample.y:
+		var ground := Vector2(sample.x, sample.z)
+		if knowledge != null and knowledge.levels[_cell(ground.clamp(Vector2.ZERO, Vector2(IslandData.SIZE - 0.001, IslandData.SIZE - 0.001)))] == Knowledge.Level.UNKNOWN:
+			continue
+		if height_at(island, ground) > sample.y:
 			return true
 	return false
 
