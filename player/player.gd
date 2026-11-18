@@ -57,6 +57,13 @@ var _feet: Vector3
 var _hidden: bool = false
 ## How far the fade is open, from 0 to 1.
 var _fade: float = 0.0
+## The cell the last line of sight was cast from, or -1 before the first.
+var _sight_cell: int = -1
+## The WorkerThreadPool task casting the line of sight, or -1 when none runs. A cast from the summit
+## takes about 35 ms natively, which would drop frames on the main thread.
+var _sight_task: int = -1
+## The cells the running task sees, written by the task and read once it completes.
+var _sight_cells := PackedInt32Array()
 
 
 func _ready() -> void:
@@ -72,6 +79,9 @@ func _ready() -> void:
 func place(island: IslandData, cell: int) -> void:
 	if cell < 0:
 		return
+	# The terrain already holds the new island's knowledge, so a cast from the old one is dropped.
+	_finish_sight(false)
+	_sight_cell = -1
 	_island = island
 	grid_position = Vector2(cell % IslandData.SIZE + 0.5, cell / IslandData.SIZE + 0.5)
 	_velocity = Vector2.ZERO
@@ -118,6 +128,7 @@ func _process(delta: float) -> void:
 	# The camera keeps catching up on height after the player stops, so this runs every frame.
 	_camera_height = lerpf(_camera_height, height_at(_island, grid_position), 1.0 - exp(-delta / CAMERA_LAG))
 	_update_position()
+	_update_sight()
 	_figure.walk(_walked, _velocity.length() / SPEED)
 
 
@@ -133,6 +144,34 @@ func _update_position() -> void:
 	# a small bump in front doesn't open a hole in the hills beside the player.
 	_hidden = hidden(_island, point + Vector3.UP * (Figure.HEIGHT / 2.0), camera.basis.z) \
 		or hidden(_island, point + Vector3.UP * Figure.HEIGHT, camera.basis.z)
+
+
+# Marks what the finished cast saw, and casts again once the player stands in a new cell. One cast
+# runs at a time, so in god mode the player can cross cells that never get a cast of their own.
+func _update_sight() -> void:
+	if _sight_task >= 0 and WorkerThreadPool.is_task_completed(_sight_task):
+		_finish_sight(true)
+	var cell: int = _cell(grid_position)
+	if _sight_task >= 0 or cell == _sight_cell or terrain.knowledge == null:
+		return
+	_sight_cell = cell
+	var island: IslandData = _island
+	_sight_task = WorkerThreadPool.add_task(func() -> void: _sight_cells = LineOfSight.visible_cells(island, cell))
+
+
+# Waits for the running cast, if any, and marks what it saw if keep is true.
+func _finish_sight(keep: bool) -> void:
+	if _sight_task < 0:
+		return
+	WorkerThreadPool.wait_for_task_completion(_sight_task)
+	_sight_task = -1
+	if keep:
+		terrain.knowledge.mark_cells(_sight_cells, Knowledge.Level.SEEN)
+
+
+func _exit_tree() -> void:
+	# The task writes to this node, so it must end before the node is freed.
+	_finish_sight(false)
 
 
 ## The nearest of the 8 facings to a walking direction, x east and y south, counted clockwise from
