@@ -40,4 +40,12 @@ GOD_PEAKS,Topper kartlagt: %d av %d
 GOD_NEAREST,"Nærmeste topp: #%d, %s %s, %d moh, primærfaktor %d m"
 GOD_HEIGHT,Høyde: %d moh
 GOD_SLOPE,Bratthet: %d° (grense %d°)
+GOD_FPS,Bilder/s: %d
+MATERIAL_WATER,vann
+MATERIAL_BEACH,strand
+MATERIAL_GRASS,gress
+MATERIAL_FOREST,skog
+MATERIAL_MARSH,myr
+MATERIAL_ROCK,stein
+MATERIAL_SNOW,snø
 GOD_HELP,[1–5] fart  [hjul] zoom  [T] til toppen  [G] av

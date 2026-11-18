@@ -65,9 +65,9 @@ var _marker_peak: int = -1
 var _zone_ring := ZoneRing.new()
 ## A ring per peak for show_all, made the first time show_all is on for this island.
 var _all_rings: Array[ZoneRing] = []
-## The camera zoom _all_rings were placed at. They're placed again when it changes, so a ring keeps
-## its size on screen and still shows on a peak when the camera zooms far out.
-var _rings_zoom: float = 0.0
+## The camera zoom when the survey started, which the camera pulls out from and comes back to, so a
+## survey in god mode keeps the zoom the player chose.
+var _base_zoom: float = GameCamera.ZOOM
 ## Bands marked so far. Each is marked when the ring reaches it, because marking all of them in one
 ## frame took 6 to 11 ms for the 60,000 to 126,000 cells of a survey.
 var _marked: int = 0
@@ -105,7 +105,6 @@ func start(island: IslandData) -> void:
 	for ring: ZoneRing in _all_rings:
 		ring.queue_free()
 	_all_rings.clear()
-	_rings_zoom = 0.0
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -119,6 +118,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	surveyed[peak] = 1
 	_time = 0.0
 	_marked = 0
+	_base_zoom = camera.zoom
 	player.frozen = true
 	var cell: int = _island.peaks[peak].cell
 	var island: IslandData = _island
@@ -151,12 +151,12 @@ func _process(delta: float) -> void:
 		terrain.knowledge.mark_cells(_rings[_marked], Knowledge.Level.SURVEYED)
 		_marked += 1
 	if _time < LOOK_SECONDS:
-		camera.zoom = lerpf(GameCamera.ZOOM, SURVEY_ZOOM, smoothstep(0.0, ZOOM_SECONDS, _time))
+		camera.zoom = lerpf(_base_zoom, SURVEY_ZOOM, smoothstep(0.0, ZOOM_SECONDS, _time))
 		# One full turn, clockwise from south, the way the figure faced when it walked up.
 		player.face(Vector2.DOWN.rotated(TAU * _time / LOOK_SECONDS))
 		return
 	var build: float = (_time - LOOK_SECONDS) / BUILD_SECONDS
-	camera.zoom = lerpf(SURVEY_ZOOM, GameCamera.ZOOM, smoothstep(0.0, 1.0, build))
+	camera.zoom = lerpf(SURVEY_ZOOM, _base_zoom, smoothstep(0.0, 1.0, build))
 	var top := Vector2(_varde.position.x, _varde.position.z)
 	if top != player.grid_position:
 		player.face(top - player.grid_position)
@@ -183,13 +183,13 @@ func _update_all_rings() -> void:
 		for peak: Peak in _island.peaks:
 			var ring := ZoneRing.new()
 			add_child(ring)
+			ring.place(_island, peak.cell, ZONE_RADIUS)
 			_all_rings.append(ring)
-	if show_all and camera.zoom != _rings_zoom:
-		_rings_zoom = camera.zoom
-		var scale: float = maxf(_rings_zoom / GameCamera.ZOOM, 1.0)
-		for i: int in _all_rings.size():
-			_all_rings[i].place(_island, _island.peaks[i].cell, ZONE_RADIUS * scale, scale)
+	# Scaled with the zoom, so a ring keeps its size on screen and still shows on a peak when the
+	# camera zooms far out.
+	var size := Vector3.ONE * maxf(camera.zoom / GameCamera.ZOOM, 1.0)
 	for i: int in _all_rings.size():
+		_all_rings[i].scale = size
 		_all_rings[i].fade(1.0 if show_all and surveyed[i] == 0 else 0.0)
 
 

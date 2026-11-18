@@ -8,7 +8,7 @@ extends CanvasLayer
 ## Speed multipliers for keys 1 to 5. ×1 walks at Player.SPEED, which shows how a walk feels. At
 ## ×16 the player crosses the 1024-cell grid in about 18 s.
 const SPEEDS: Array[float] = [1.0, 2.0, 4.0, 8.0, 16.0]
-## The multiplier god mode starts at.
+## The index in SPEEDS god mode starts at, ×8.
 const START_SPEED: int = 3
 ## Zoom factor per notch of the mouse wheel.
 const ZOOM_STEP: float = 1.25
@@ -101,13 +101,13 @@ func info() -> String:
 	var lines: PackedStringArray = [
 		# Cells per second times meters per cell, times 3.6 for km/h.
 		tr("GOD_MODE") % [SPEEDS[_speed], Player.SPEED * SPEEDS[_speed] * IslandData.METERS_PER_CELL * 3.6],
-		"FPS: %d" % Engine.get_frames_per_second(),
+		tr("GOD_FPS") % Engine.get_frames_per_second(),
 		"%s: %d" % [tr("SEED"), _island.island_seed],
 		tr("GOD_CELL") % [int(at.x), int(at.y)],
 		tr("GOD_HEIGHT") % IslandData.meters(_island.height[cell]),
 		tr("GOD_SLOPE") % [slope(_island, cell), rad_to_deg(atan(Walkability.MAX_SLOPE * Walkability.SUMMIT_UNITS))],
 		"%s: %.2f" % [tr("LAYER_MOISTURE"), _island.moisture[cell]],
-		"%s: %s" % [tr("LAYER_MATERIAL"), Ramps.Terrain.keys()[_island.material[cell]].to_lower()],
+		"%s: %s" % [tr("LAYER_MATERIAL"), tr("MATERIAL_" + Ramps.Terrain.keys()[_island.material[cell]])],
 		tr("GOD_GROUND") % [
 			tr("GOD_MAIN_ISLAND") if _island.main_island[cell] == 1 else tr("GOD_ISLET"),
 			tr("GOD_BLOCKED") if Walkability.blocked(_island, cell) else tr("GOD_OPEN"),
