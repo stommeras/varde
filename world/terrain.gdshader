@@ -36,18 +36,17 @@ uniform float ripple_speed = 0.016666667;
 uniform float ripple_width = 0.04;
 // Ramp steps a crest lifts the water. Raising it makes crests brighter, 0 hides them.
 uniform float ripple_steps = 1.0;
-// Depth, in height-map units, out to which foam reaches. 0.08 is about 6 cells from the coast.
-// Raising it carries the bands farther out to sea.
-uniform float foam_depth = 0.08;
-// Depth between two bands of foam rolling in. Lower gives more, closer bands.
-uniform float foam_spacing = 0.03;
+// Cells from the coast out to which foam reaches. Raising it carries the bands farther out to sea.
+uniform float foam_reach = 6.0;
+// Cells between two bands of foam rolling in. Lower gives more, closer bands.
+uniform float foam_spacing = 2.5;
 // Bands per second that roll in toward the shore. Raising it makes the surf faster. Keep
 // 3600 * speed a whole number, so the hourly wrap of TIME doesn't jump.
 uniform float foam_speed = 0.25;
-// Share of the spacing a band covers at the shoreline. Bands thin out to nothing at foam_depth.
+// Share of the spacing a band covers at the shoreline. Bands thin out to nothing at foam_reach.
 uniform float foam_width = 0.45;
-// Depth of the unbroken line of foam along the coast. 0.008 is about one cell. Raising it widens the line.
-uniform float foam_edge = 0.008;
+// Cells out from the coast that the unbroken line of foam covers. Raising it widens the line.
+uniform float foam_edge = 0.7;
 
 varying vec3 world_position;
 // The Ramps.Terrain value whose ramp this pixel uses. Floats, because light() reads it.
@@ -101,12 +100,22 @@ void fragment() {
 	ramp_reach = 1.0;
 	if (kind == 0) {
 		float depth = -height;
-		// Bands of foam lie along lines of equal depth, which follow the coast. Adding time to the phase
-		// moves each band toward shallower water, so they roll in and thin out as they near foam_depth
-		// from the shore. The warp noise bends them, so they don't trace the depth contours exactly.
-		float shore = 1.0 - depth / foam_depth;
-		float phase = depth / foam_spacing + TIME * foam_speed + warp.x;
-		if (depth < foam_edge * (1.0 + warp.y * 2.0) || fract(phase) < foam_width * shore) {
+		// Foam follows the distance from the coast, which is the depth over the sea floor's slope where
+		// the floor slopes evenly. Measured in depth alone, a wide shallow whose floor stays near sea
+		// level turned to foam all over, in blocks that showed the cells. A flat floor gives a long
+		// distance, so foam only lines its coast. The slope is a central difference across two cells,
+		// which, unlike the slope of the bilinear height, doesn't jump at cell borders.
+		vec2 texel = 1.0 / vec2(textureSize(height_map, 0));
+		vec2 slope = vec2(
+			texture(height_map, uv + vec2(texel.x, 0.0)).r - texture(height_map, uv - vec2(texel.x, 0.0)).r,
+			texture(height_map, uv + vec2(0.0, texel.y)).r - texture(height_map, uv - vec2(0.0, texel.y)).r) * 0.5;
+		float coast = depth / max(length(slope), 1e-6);
+		// Bands of foam lie along lines of equal distance, which follow the coast. Adding time to the
+		// phase moves each band toward the shore, so they roll in and thin out as they near foam_reach.
+		// The warp noise bends them, so they don't trace the coast exactly.
+		float shore = 1.0 - coast / foam_reach;
+		float phase = coast / foam_spacing + TIME * foam_speed + warp.x;
+		if (coast < foam_edge * (1.0 + warp.y * 2.0) || fract(phase) < foam_width * shore) {
 			kind = 7;  // Ramps.Terrain.FOAM, which keeps the grain and the full ramp.
 		} else {
 			ramp_reach = 1.0 - smoothstep(0.0, deep_water, depth);
