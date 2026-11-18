@@ -3,9 +3,20 @@ extends Node3D
 ## The figure the player walks. It moves freely in 8 directions, checks each step from cell to cell
 ## with Walkability, stands on the terrain mesh's surface, and keeps the game camera centered on it.
 
-## Cells per second on any ground. Raising it crosses the island faster. At 6, walking across the
-## 71 cells of a 960×540 screen at zoom 40 takes about 12 s.
-const SPEED: float = 6.0
+## Cells per second on any ground. Raising it crosses the island faster. At 3.5, walking across the
+## 71 cells of a 960×540 screen at zoom 40 takes about 20 s. At 6 the figure, about 1.5 units tall,
+## crossed four of its own heights a second and looked like it was sprinting.
+const SPEED: float = 3.5
+## Seconds the player takes to reach full speed from standing, and to stop again. Raising it gives
+## the figure more weight and makes it slide further after the key comes up. At 0 it starts and
+## stops dead, which made it float.
+const EASE_SECONDS: float = 0.15
+## Seconds the camera takes to follow about two thirds of a change in the ground's height. While the
+## player climbs, the camera lags below, so the figure rises on screen, and going down it sinks.
+## Raising it shows climbing more and lets the figure drift further from the middle of the screen.
+## With the camera locked on the feet, walking up a slope only slid the ground diagonally past a
+## figure that never moved on screen.
+const CAMERA_LAG: float = 0.8
 ## Longest frame the movement takes in one go. A longer one, such as a hitch while loading, moves
 ## the player by less than it lasted. It keeps a step under one cell, which _can_move() relies on.
 const MAX_DELTA: float = 0.1
@@ -20,8 +31,8 @@ const HIDE_STEP: float = 0.5
 ## sink into a slope that rises to the side. Raising it lets the figure show over more of a bump or
 ## ridge that stands in front of it.
 const DEPTH_PUSH: float = 0.3
-## Speed multiplier in god mode. At 8 the player crosses the 1024-cell grid in about 21 s.
-const GOD_SPEED: float = 8.0
+## Speed multiplier in god mode. At 14 the player crosses the 1024-cell grid in about 21 s.
+const GOD_SPEED: float = 14.0
 ## The camera that follows the player. Set it before adding the player.
 var camera: GameCamera
 ## The terrain that fades in front of the player. Set it before placing the player.
@@ -33,6 +44,10 @@ var _island: IslandData
 var _figure := Figure.new()
 ## Cells walked, which drives the walk cycle.
 var _walked: float = 0.0
+## Cells per second, x east and y south. It eases toward SPEED in the direction held.
+var _velocity: Vector2 = Vector2.ZERO
+## World height the camera centers on, which trails the feet by CAMERA_LAG.
+var _camera_height: float = 0.0
 ## For checking terrain while tuning: G toggles it in debug builds. The player walks GOD_SPEED times
 ## faster and through anything the step check refuses, such as cliffs and the sea.
 var _god: bool = false
@@ -59,6 +74,8 @@ func place(island: IslandData, cell: int) -> void:
 		return
 	_island = island
 	grid_position = Vector2(cell % IslandData.SIZE + 0.5, cell / IslandData.SIZE + 0.5)
+	_velocity = Vector2.ZERO
+	_camera_height = height_at(island, grid_position)
 	visible = true
 	_update_position()
 
@@ -76,30 +93,35 @@ func _process(delta: float) -> void:
 		return
 	_fade = move_toward(_fade, 1.0 if _hidden else 0.0, delta / maxf(FADE_SECONDS, 0.001))
 	terrain.fade_around(_feet, _fade)
+	var step: float = minf(delta, MAX_DELTA)
 	var direction: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	if direction == Vector2.ZERO:
-		_walked = 0.0
-		_figure.walk(_walked)
-		return
-	_figure.face(Vector2.from_angle(facing(direction) * PI / 4.0))
-	var motion: Vector2 = direction * SPEED * minf(delta, MAX_DELTA)
-	var moved: Vector2
+	if direction != Vector2.ZERO:
+		_figure.face(Vector2.from_angle(facing(direction) * PI / 4.0))
+	_velocity = _velocity.move_toward(direction * SPEED, SPEED / maxf(EASE_SECONDS, 0.001) * step)
+	var moved: Vector2 = grid_position
 	if _god:
 		# Several cells a frame, which move() can't take, so it skips the step check.
 		var edge: float = IslandData.SIZE - 0.001
-		moved = (grid_position + motion * GOD_SPEED).clamp(Vector2.ZERO, Vector2(edge, edge))
+		moved = (grid_position + _velocity * GOD_SPEED * step).clamp(Vector2.ZERO, Vector2(edge, edge))
+	elif _velocity != Vector2.ZERO:
+		moved = move(_island, grid_position, _velocity * step)
+	if moved == grid_position:
+		# Pushing into a wall moves nothing, so the legs stand instead of freezing mid-step, and the
+		# player starts from standing when it turns away from the wall.
+		_velocity = Vector2.ZERO
+		_walked = 0.0
 	else:
-		moved = move(_island, grid_position, motion)
-	# Pushing into a wall moves nothing, so the legs stand instead of freezing mid-step.
-	_walked = 0.0 if moved == grid_position else _walked + moved.distance_to(grid_position)
+		_walked += moved.distance_to(grid_position)
 	grid_position = moved
+	# The camera keeps catching up on height after the player stops, so this runs every frame.
+	_camera_height = lerpf(_camera_height, height_at(_island, grid_position), 1.0 - exp(-delta / CAMERA_LAG))
 	_update_position()
-	_figure.walk(_walked)
+	_figure.walk(_walked, _velocity.length() / SPEED)
 
 
 func _update_position() -> void:
 	var point := Vector3(grid_position.x, height_at(_island, grid_position), grid_position.y)
-	camera.focus = point
+	camera.focus = Vector3(point.x, _camera_height, point.z)
 	camera.place()
 	# The same snap as the camera's, so the figure stays on the same screen pixel while the ground
 	# moves under it in whole pixels.
