@@ -9,8 +9,9 @@ stencil_mode write, compare_always, 1;
 
 #include "res://world/dither.gdshaderinc"
 
-// Row p holds the steps of the ramp for Ramps.FigurePart p, darkest first. Figure builds it.
-uniform sampler2D ramps : source_color, filter_nearest, repeat_disable;
+// Row p holds the steps of the ramp for Ramps.FigurePart p, darkest first, as linear colors. Figure
+// builds it. Not source_color, because the Compatibility renderer skips that decode in texelFetch.
+uniform sampler2D ramps : filter_nearest, repeat_disable;
 // Steps in each ramp. Every figure ramp has the same count.
 uniform int steps = 3;
 // The Ramps.FigurePart this part uses.

@@ -10,8 +10,9 @@ uniform sampler2D material_map : filter_nearest, repeat_disable;
 // One byte per cell, 1 where a river or lake covers it, which the shader reads as 1 / 255. Linear,
 // so a river's edge runs between cells instead of along their sides.
 uniform sampler2D fresh_water_map : filter_linear, repeat_disable;
-// Row t holds the steps of ramp t, darkest first. TerrainMaterial builds it from Ramps.RAMPS.
-uniform sampler2D ramps : source_color, filter_nearest, repeat_disable;
+// Row t holds the steps of ramp t, darkest first, as linear colors. TerrainMaterial builds it from
+// Ramps.RAMPS. Not source_color, because the Compatibility renderer skips that decode in texelFetch.
+uniform sampler2D ramps : filter_nearest, repeat_disable;
 // How many steps each ramp in `ramps` has, indexed by Ramps.Terrain.
 uniform int ramp_sizes[8];
 // Seamless FastNoiseLite noise from 0 to 1, tiled across the world.
