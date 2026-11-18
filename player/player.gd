@@ -4,7 +4,7 @@ extends Node3D
 ## with Walkability, stands on the terrain mesh's surface, and keeps the game camera centered on it.
 
 ## Cells per second on any ground. Raising it crosses the island faster. At 6, walking across the
-## 142 cells of a 960×540 screen at zoom 80 takes about 24 s.
+## 71 cells of a 960×540 screen at zoom 40 takes about 12 s.
 const SPEED: float = 6.0
 ## Longest frame the movement takes in one go. A longer one, such as a hitch while loading, moves
 ## the player by less than it lasted. It keeps a step under one cell, which _can_move() relies on.
