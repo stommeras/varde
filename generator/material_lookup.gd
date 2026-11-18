@@ -17,12 +17,18 @@ const TABLE: Array = [
 	# Dry peaks stay bare rock, so only some high peaks get snow.
 	[Ramps.Terrain.ROCK, Ramps.Terrain.SNOW, Ramps.Terrain.SNOW],
 ]
+## Fewest cells a patch of snow needs, counting cells that touch at a corner. A smaller patch is a
+## bump or a wet spot just over the snow line, and it takes the ground of the band below. On seed 0,
+## patches of 16 to 28 cells lay as specks on bare rock, and the smallest real snowfield had 92.
+## Raising it clears bigger patches off the lower peaks.
+const SNOW_PATCH_CELLS: int = 32
 
 
 ## Returns a Ramps.Terrain value per cell from the height and moisture of the same cell.
 static func generate(height: PackedFloat32Array, moisture: PackedFloat32Array) -> PackedByteArray:
 	var material := PackedByteArray()
 	material.resize(height.size())
+	var snow := PackedInt32Array()
 	for i: int in height.size():
 		var h: float = height[i]
 		if h <= 0.0:
@@ -31,7 +37,35 @@ static func generate(height: PackedFloat32Array, moisture: PackedFloat32Array) -
 		var row: int = _band(HEIGHT_BANDS, h)
 		var column: int = _band(MOISTURE_BANDS, moisture[i])
 		material[i] = TABLE[row][column]
+		if material[i] == Ramps.Terrain.SNOW:
+			snow.append(i)
+	_clear_snow_specks(material, moisture, snow)
 	return material
+
+
+## Turns each patch of snow smaller than SNOW_PATCH_CELLS into the ground the band below the top one
+## has at the same moisture. snow holds every snow cell of material.
+static func _clear_snow_specks(material: PackedByteArray, moisture: PackedFloat32Array, snow: PackedInt32Array) -> void:
+	var size: int = IslandData.SIZE
+	var seen := PackedByteArray()
+	seen.resize(material.size())
+	for start: int in snow:
+		if seen[start] == 1:
+			continue
+		seen[start] = 1
+		var patch := PackedInt32Array([start])
+		var head: int = 0
+		while head < patch.size():
+			var i: int = patch[head]
+			head += 1
+			# Land never reaches the grid's edge, so a snow cell's neighbors are always on the grid.
+			for n: int in [i - size - 1, i - size, i - size + 1, i - 1, i + 1, i + size - 1, i + size, i + size + 1]:
+				if seen[n] == 0 and material[n] == Ramps.Terrain.SNOW:
+					seen[n] = 1
+					patch.append(n)
+		if patch.size() < SNOW_PATCH_CELLS:
+			for i: int in patch:
+				material[i] = TABLE[HEIGHT_BANDS.size() - 1][_band(MOISTURE_BANDS, moisture[i])]
 
 
 ## The index of the first band whose upper value is above value, or the top band past the last one.
