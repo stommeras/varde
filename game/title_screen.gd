@@ -10,15 +10,14 @@ const FADE_SECONDS: float = 1.0
 const LOADING_DIM: float = 0.6
 ## Pixels of dark outline around the title's letters, so it reads over bright ground.
 const TITLE_OUTLINE: int = 8
-## Pixels of dark outline around the button.
-const BUTTON_OUTLINE: int = 2
-## Pixels of lip under the button's face. Raising it makes the button stand taller.
-const BUTTON_LIP: int = 6
+## Pixels the button sits below its hover height when the mouse is elsewhere, so hovering lifts it.
+const KEY_REST_SINK: int = 2
 
 var _backdrop := Backdrop.new()
 ## The sea color over the backdrop. Opaque until the backdrop shows.
 var _veil := ColorRect.new()
 var _menu := CenterContainer.new()
+var _new_island := Button.new()
 var _seed_field := LineEdit.new()
 var _loader := IslandLoader.new()
 var _fade: Tween
@@ -49,12 +48,14 @@ func _ready() -> void:
 	title.add_theme_constant_override("outline_size", TITLE_OUTLINE)
 	column.add_child(title)
 
-	var new_island := Button.new()
+	var new_island := _new_island
 	new_island.text = tr("NEW_ISLAND")
 	new_island.custom_minimum_size.x = 200
 	new_island.add_theme_font_size_override("font_size", 24)
+	new_island.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_style_key(new_island)
 	new_island.pressed.connect(_start)
-	column.add_child(_raised(new_island))
+	column.add_child(new_island)
 
 	# Small and below the button, since most runs start on a random seed.
 	_seed_field.placeholder_text = tr("SEED_OPTIONAL")
@@ -72,49 +73,30 @@ func _ready() -> void:
 	add_child(_loader)
 
 
-# A raised key, a light face over a darker lip, so it reads as the one thing to press. Pressing moves
-# the face down onto the lip. The dark outline around it keeps it clear over any ground.
-static func _raised(button: Button) -> PanelContainer:
-	var snow: PackedColorArray = Ramps.RAMPS[Ramps.Terrain.SNOW]
+# A raised key, so it reads as the one thing to press. Hover lifts it, pressing sinks it.
+static func _style_key(button: Button) -> void:
 	var sea: Color = Ramps.RAMPS[Ramps.Terrain.WATER][0]
-	# Face color, lip color, and the lip's pixels above and below the face.
-	var states: Dictionary[String, Array] = {
-		"normal": [snow[3], snow[0], 0, BUTTON_LIP],
-		"hover": [snow[3], snow[0], 0, BUTTON_LIP],
-		"pressed": [snow[2], sea, BUTTON_LIP - 1, 1],
-	}
-	for state: String in states:
-		var look: Array = states[state]
-		var box := StyleBoxFlat.new()
-		box.bg_color = look[0]
-		box.border_color = look[1]
-		box.border_width_top = look[2]
-		box.border_width_bottom = look[3]
-		box.set_corner_radius_all(2)
-		box.content_margin_left = 16
-		box.content_margin_right = 16
-		box.content_margin_top = 6 + look[2]
-		box.content_margin_bottom = 6 + look[3]
-		button.add_theme_stylebox_override(state, box)
+	button.add_theme_stylebox_override("normal", KeyStyle.new(KEY_REST_SINK, 3))
+	button.add_theme_stylebox_override("hover", KeyStyle.new(0, 3))
+	button.add_theme_stylebox_override("pressed", KeyStyle.new(KeyStyle.LIP - 1, 2))
+	button.add_theme_stylebox_override("hover_pressed", button.get_theme_stylebox("pressed"))
 	# A ring outside the outline, so keyboard focus still shows.
 	var focus := StyleBoxFlat.new()
 	focus.draw_center = false
-	focus.border_color = snow[3]
+	focus.border_color = Ramps.RAMPS[Ramps.Terrain.SNOW][3]
 	focus.set_border_width_all(1)
 	focus.set_corner_radius_all(5)
-	focus.set_expand_margin_all(BUTTON_OUTLINE + 2)
+	focus.set_expand_margin_all(2)
 	button.add_theme_stylebox_override("focus", focus)
 	for color: String in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
 		button.add_theme_color_override(color, sea)
-	var outline := PanelContainer.new()
-	var dark := StyleBoxFlat.new()
-	dark.bg_color = sea
-	dark.set_corner_radius_all(2 + BUTTON_OUTLINE)
-	dark.set_content_margin_all(BUTTON_OUTLINE)
-	outline.add_theme_stylebox_override("panel", dark)
-	outline.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	outline.add_child(button)
-	return outline
+
+
+# A click outside the seed field ends editing, and Enter starts the run again.
+func _gui_input(event: InputEvent) -> void:
+	var click := event as InputEventMouseButton
+	if click != null and click.pressed and _seed_field.has_focus():
+		_new_island.grab_focus()
 
 
 func _start() -> void:
@@ -142,3 +124,44 @@ func _on_loaded(island: IslandData, meshes: Array[ArrayMesh], _msec: int) -> voi
 	game.island = island
 	game.meshes = meshes
 	get_tree().change_scene_to_node(game)
+
+
+## A key drawn as a dark outline around a light face standing on a darker lip. sink moves the whole
+## key down and shortens the lip by as much, so the key keeps its height and seems to go down.
+class KeyStyle:
+	extends StyleBox
+
+	## Pixels of lip under the face at hover height. Raising it makes the key stand taller.
+	const LIP: int = 6
+	## Pixels of dark outline, so the key stays clear over any ground.
+	const OUTLINE: int = 2
+	## Pixels between the face's edge and the text.
+	const PADDING := Vector2(16, 6)
+
+	var _sink: int
+	var _outline := StyleBoxFlat.new()
+	var _lip := StyleBoxFlat.new()
+	var _face := StyleBoxFlat.new()
+
+	## sink is pixels below hover height, from 0 to LIP - 1. face is a step on the snow ramp.
+	func _init(sink: int, face: int) -> void:
+		_sink = sink
+		var snow: PackedColorArray = Ramps.RAMPS[Ramps.Terrain.SNOW]
+		_outline.bg_color = Ramps.RAMPS[Ramps.Terrain.WATER][0]
+		_outline.set_corner_radius_all(2 + OUTLINE)
+		_lip.bg_color = snow[0]
+		_face.bg_color = snow[face]
+		for box: StyleBoxFlat in [_lip, _face]:
+			box.set_corner_radius_all(2)
+		content_margin_left = OUTLINE + PADDING.x
+		content_margin_right = OUTLINE + PADDING.x
+		content_margin_top = OUTLINE + PADDING.y + sink
+		content_margin_bottom = OUTLINE + PADDING.y + LIP - sink
+
+	func _draw(to_canvas_item: RID, rect: Rect2) -> void:
+		var key := Rect2(rect.position + Vector2(0, _sink), rect.size - Vector2(0, _sink))
+		_outline.draw(to_canvas_item, key)
+		var inside: Rect2 = key.grow(-OUTLINE)
+		_lip.draw(to_canvas_item, inside)
+		inside.size.y -= LIP - _sink
+		_face.draw(to_canvas_item, inside)
