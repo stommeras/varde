@@ -86,6 +86,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if OS.is_debug_build() and key.pressed and not key.echo and key.physical_keycode == KEY_G:
 		_god = not _god
 		print("God mode ", "on" if _god else "off")
+		if _god and terrain.knowledge != null:
+			terrain.knowledge.mark_all(Knowledge.Level.SURVEYED)
 
 
 func _process(delta: float) -> void:

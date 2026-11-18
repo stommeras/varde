@@ -67,6 +67,12 @@ func show_island(meshes: Array[ArrayMesh], island: IslandData) -> void:
 	_terrain.show_island(meshes, island)
 
 
+## Marks the whole island surveyed.
+func reveal_all() -> void:
+	if _terrain.knowledge != null:
+		_terrain.knowledge.mark_all(Knowledge.Level.SURVEYED)
+
+
 ## The sliders, for the debug view to place in its UI.
 func build_controls() -> Control:
 	var box := VBoxContainer.new()
