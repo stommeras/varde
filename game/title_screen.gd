@@ -65,7 +65,8 @@ func _ready() -> void:
 	_seed_field.add_theme_font_size_override("font_size", 12)
 	_seed_field.text_submitted.connect(_start.unbind(1))
 	column.add_child(_seed_field)
-	new_island.grab_focus()
+	# Hidden until the player tabs or uses the arrow keys, like focus-visible on the web.
+	new_island.grab_focus(true)
 
 	# Clear, so the veil does the dimming and can fade.
 	_loader.cover_alpha = 0.0
@@ -80,7 +81,7 @@ static func _style_key(button: Button) -> void:
 	button.add_theme_stylebox_override("hover", KeyStyle.new(0, 3))
 	button.add_theme_stylebox_override("pressed", KeyStyle.new(KeyStyle.LIP - 1, 2))
 	button.add_theme_stylebox_override("hover_pressed", button.get_theme_stylebox("pressed"))
-	# A ring outside the outline, so keyboard focus still shows.
+	# A ring outside the outline, shown only after keyboard navigation.
 	var focus := StyleBoxFlat.new()
 	focus.draw_center = false
 	focus.border_color = Ramps.RAMPS[Ramps.Terrain.SNOW][3]
@@ -96,7 +97,7 @@ static func _style_key(button: Button) -> void:
 func _gui_input(event: InputEvent) -> void:
 	var click := event as InputEventMouseButton
 	if click != null and click.pressed and _seed_field.has_focus():
-		_new_island.grab_focus()
+		_new_island.grab_focus(true)
 
 
 func _start() -> void:
