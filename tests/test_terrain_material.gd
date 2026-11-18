@@ -6,7 +6,7 @@ func test_ramp_image_holds_each_ramp_in_its_row() -> void:
 	for kind: Ramps.Terrain in Ramps.Terrain.values():
 		var ramp: PackedColorArray = Ramps.RAMPS[kind]
 		for i: int in ramp.size():
-			var pixel: Color = image.get_pixel(i, kind)
+			var pixel: Color = image.get_pixel(i, kind).linear_to_srgb()
 			expect(pixel.to_rgba32() == ramp[i].to_rgba32(), "ramp %d step %d is %s, expected %s" % [kind, i, pixel.to_html(false), ramp[i].to_html(false)])
 
 

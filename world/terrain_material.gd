@@ -44,14 +44,16 @@ static func _noise_texture() -> ImageTexture:
 
 
 ## One row per Ramps.Terrain value, each ramp's steps from darkest on the left. Rows shorter than the
-## longest ramp end in black pixels that the shader never reads.
+## longest ramp end in black pixels that the shader never reads. The colors are linear, in half
+## floats, because the Compatibility renderer of the web build doesn't decode a source_color texture
+## that the shader reads with texelFetch, and its colors came out one sRGB curve too light.
 static func ramp_image() -> Image:
 	var width: int = 0
 	for ramp: PackedColorArray in Ramps.RAMPS.values():
 		width = maxi(width, ramp.size())
-	var image := Image.create_empty(width, Ramps.Terrain.size(), false, Image.FORMAT_RGB8)
+	var image := Image.create_empty(width, Ramps.Terrain.size(), false, Image.FORMAT_RGBH)
 	for kind: Ramps.Terrain in Ramps.Terrain.values():
 		var ramp: PackedColorArray = Ramps.RAMPS[kind]
 		for i: int in ramp.size():
-			image.set_pixel(i, kind, ramp[i])
+			image.set_pixel(i, kind, ramp[i].srgb_to_linear())
 	return image
