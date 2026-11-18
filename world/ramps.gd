@@ -40,6 +40,24 @@ static var FIGURE: Dictionary[FigurePart, PackedColorArray] = {
 }
 
 
+## The parts of the map screen that each have a ramp in MAP, all ink on aged paper.
+enum MapPart { PAPER, INK, WATER, MARKER }
+
+## The map screen, darkest step first. The 2D map shader takes these as sRGB uniforms, not through
+## image(), because a canvas shader in the 2D renderer works in sRGB.
+static var MAP: Dictionary[MapPart, PackedColorArray] = {
+	# Aged paper: a stained step for the grain and the yellowed edges, the sheet itself, and a light
+	# step for known land.
+	MapPart.PAPER: PackedColorArray([Color("b89c70"), Color("d2bb8e"), Color("e6d6b0")]),
+	# Brown-black ink for the coast and the thick contours, and a faded step for the thin contours
+	# and the outlines of forest and snow.
+	MapPart.INK: PackedColorArray([Color("3a2a1c"), Color("8a6c4c")]),
+	# Blue ink for rivers and lakes, and a pale wash for the sea the player has seen.
+	MapPart.WATER: PackedColorArray([Color("2f5a7a"), Color("a9b9b0")]),
+	# Red ink for the player's marker, the coat's red, so the marker reads as the figure.
+	MapPart.MARKER: PackedColorArray([Color("6a1e22"), Color("a8342e")]),
+}
+
 ## ramps as an image, row r holding ramps[r] with its steps from darkest on the left. Rows shorter than
 ## the longest ramp end in black pixels that the shaders never read. The colors are linear, in half
 ## floats, because the Compatibility renderer of the web build doesn't decode a source_color texture

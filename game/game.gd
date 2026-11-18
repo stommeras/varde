@@ -2,7 +2,7 @@ class_name Game
 extends Node3D
 ## One run on one island. The title screen generates the island and hands it over. Run on its own, the
 ## scene generates it on a background thread behind "Kartlegger øya". The island then shows through the game camera at the view values in SPEC.md. Once the island shows, Escape
-## pauses the run behind the pause menu, and E surveys a peak the player stands on.
+## pauses the run behind the pause menu, E surveys a peak the player stands on, and M opens the map.
 
 const TITLE_SCREEN: String = "res://game/title_screen.tscn"
 
@@ -15,6 +15,7 @@ var _camera := GameCamera.new()
 var _menu := PauseMenu.new()
 var _player := Player.new()
 var _survey := Survey.new()
+var _map := MapScreen.new()
 ## False while the island generates. Leaving then would join the generator thread on the main thread
 ## and freeze the window for the rest of the load, about 3 s, so the menu waits for the island.
 var _loaded: bool = false
@@ -35,6 +36,9 @@ func _ready() -> void:
 	_survey.camera = _camera
 	_survey.terrain = _terrain
 	add_child(_survey)
+	_map.player = _player
+	_map.survey = _survey
+	add_child(_map)
 	add_child(_menu)
 	if island != null:
 		_on_loaded(island, meshes, 0)
@@ -47,13 +51,19 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _loaded and event.is_action_pressed("ui_cancel"):
+	if not _loaded:
+		return
+	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
 		_menu.open()
+	elif event.is_action_pressed("map"):
+		get_viewport().set_input_as_handled()
+		_map.open()
 
 
 func _on_loaded(loaded_island: IslandData, loaded_meshes: Array[ArrayMesh], _msec: int) -> void:
 	_terrain.show_island(loaded_meshes, loaded_island)
 	_player.place(loaded_island, loaded_island.start)
 	_survey.start(loaded_island)
+	_map.start(loaded_island, _terrain.knowledge)
 	_loaded = true

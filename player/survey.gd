@@ -154,6 +154,16 @@ func _process(delta: float) -> void:
 		player.frozen = false
 
 
+## The cells of the peaks the player has surveyed, each of which has one of the player's vardes.
+func varde_cells() -> PackedInt32Array:
+	var cells := PackedInt32Array()
+	if _island != null:
+		for i: int in _surveyed.size():
+			if _surveyed[i] != 0:
+				cells.append(_island.peaks[i].cell)
+	return cells
+
+
 # Dithers in the zone ring of the nearest unsurveyed peak within MARKER_REACH, and out once the player
 # leaves or surveys it. Another peak's ring shows only after the old one has gone.
 func _update_marker(delta: float) -> void:
