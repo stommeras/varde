@@ -24,6 +24,9 @@ const ZOOM_SECONDS: float = 1.0
 ## walking view, about a third of the survey's radius from the summit. At 160 the figure and the
 ## varde shrank to a few pixels.
 const SURVEY_ZOOM: float = 80.0
+## Cells between the player and the varde at the least. The varde's base is about 0.6 units wide,
+## so at 1 the stones stand clear of the figure.
+const VARDE_GAP: float = 1.0
 ## Seconds the prompt takes to fade in or out.
 const PROMPT_SECONDS: float = 0.2
 ## Distance bands the survey's cells are split into, each revealed at its own time. Raising it gives
@@ -76,6 +79,7 @@ func start(island: IslandData) -> void:
 	_surveyed.resize(island.peaks.size())
 	_surveyed.fill(0)
 	_peak = -1
+	player.frozen = false
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -95,6 +99,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	_task = WorkerThreadPool.add_task(func() -> void: _rings = rings(island, cell))
 	_varde = Varde.new(cell)
 	var top := Vector2(cell % IslandData.SIZE + 0.5, cell / IslandData.SIZE + 0.5)
+	# A player standing on the top would have the stones built around their feet, so the varde
+	# goes up VARDE_GAP in front of them instead, to the north if they stand right on the center.
+	var away: Vector2 = top - player.grid_position
+	if away.length() < VARDE_GAP:
+		top = player.grid_position + (away.normalized() if away != Vector2.ZERO else Vector2.UP) * VARDE_GAP
 	_varde.position = Vector3(top.x, Player.height_at(_island, top), top.y)
 	terrain.get_parent().add_child(_varde)
 

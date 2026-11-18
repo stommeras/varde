@@ -29,6 +29,8 @@ var _stones: Array[MeshInstance3D] = []
 func _init(stack_seed: int = 0) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = stack_seed
+	# One material for every stone, since they all draw the same ramp.
+	var material: ShaderMaterial = Figure.lit(Ramps.FigurePart.STONE)
 	var y: float = 0.0
 	for layer: int in LAYERS.size():
 		var count: int = LAYERS[layer]
@@ -42,7 +44,7 @@ func _init(stack_seed: int = 0) -> void:
 			var size: float = radius * (1.0 + rng.randf_range(-WOBBLE, WOBBLE))
 			var stone := MeshInstance3D.new()
 			stone.mesh = _stone_mesh(size)
-			stone.material_override = Figure.lit(Ramps.FigurePart.STONE)
+			stone.material_override = material
 			stone.scale = Vector3(1.0, FLATNESS, rng.randf_range(0.75, 1.0))
 			var offset := Vector2.from_angle(angle) * spread + Vector2(rng.randf_range(-WOBBLE, WOBBLE), rng.randf_range(-WOBBLE, WOBBLE)) * radius * 0.5
 			stone.position = Vector3(offset.x, y + height / 2.0, offset.y)
