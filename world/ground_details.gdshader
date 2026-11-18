@@ -23,6 +23,8 @@ uniform sampler2D atlas : filter_nearest, repeat_disable;
 uniform int sprite_pixels = 16;
 // The island's seed, so each island scatters its own details.
 uniform int island_seed = 0;
+// The atlas row of the scree, GroundDetails.SCREE_ROW.
+uniform int scree_row = 9;
 
 // The share of cells of each Ramps.Terrain value that hold a detail where the clumps are at their
 // average. Raising one fills that ground more densely. At 0.3 on grass, most of a screen at zoom 40
@@ -33,6 +35,12 @@ const float DENSITY[8] = float[](0.0, 0.08, 0.45, 0.45, 0.45, 0.12, 0.03, 0.0);
 // bare ground where it is low, so walking passes thick patches and open stretches. Lowering it
 // gives smaller, more frequent clumps.
 const float CLUMP_SCALE = 14.0;
+// Cells from a detail within which a wall above makes it scree. Only massifs have walls, so the scree marks
+// the peaks. Raising it spreads the scree further from the wall's foot.
+const float SCREE_REACH = 4.0;
+// The share of cells under a wall that hold scree, without the clumps, so the band under a wall is
+// unbroken. Lowering it thins the rubble out toward single stones.
+const float SCREE_DENSITY = 0.8;
 // How far a detail can stand from its cell's center, as a share of the cell. Lowering it lines the
 // details up in rows along the grid.
 const float JITTER = 0.45;
@@ -88,6 +96,24 @@ float mesh_height(vec2 point) {
 	return h_nw + (h_sw - h_nw) * f.y + (h_se - h_sw) * f.x;
 }
 
+// True where a wall rises within SCREE_REACH cells of point, so fallen rock lies there. It looks
+// in 8 directions at two distances, because the ledge under a wall is flat and its own slope gives
+// no direction to the wall. A wall below the point doesn't count.
+bool under_wall(vec2 point, float height, float summit) {
+	vec2 size = vec2(textureSize(height_map, 0));
+	for (int d = 0; d < 8; d++) {
+		vec2 direction = vec2(cos(float(d) * 0.785398), sin(float(d) * 0.785398));
+		for (float k = SCREE_REACH * 0.5; k <= SCREE_REACH; k += SCREE_REACH * 0.5) {
+			vec2 uv = (point + direction * k) / size;
+			float there = texture(height_map, uv).r;
+			if (there > height && ground_normal(uv, there, summit).y < cliff_normal_y) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 void vertex() {
 	// VERTEX is the center of this quad's cell, and UV the quad's corner, with v = 1 at the bottom.
 	vec3 center = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -104,7 +130,8 @@ void vertex() {
 	vec2 warp = warp_at(point);
 	int kind = material_at(point, warp, height);
 	float clump = 2.0 * smoothstep(0.3, 0.7, texture(noise, point / CLUMP_SCALE + vec2(0.61, 0.23)).r);
-	bool stands = height > 0.0 && draw(h, 3u) < DENSITY[kind] * clump
+	bool scree = height > 0.0 && under_wall(point, height, summit);
+	bool stands = height > 0.0 && draw(h, 3u) < (scree ? SCREE_DENSITY : DENSITY[kind] * clump)
 		&& !is_cliff(normal - vec3(0.0, CLIFF_MARGIN, 0.0), warp) && !is_fresh_water(point, warp);
 
 	vec3 base = vec3(point.x, mesh_height(point) * summit, point.y);
@@ -137,7 +164,7 @@ void vertex() {
 		VERTEX = base_view + vec3(corner.x, 0.0, 0.0) + up * (corner.y / up.y);
 	}
 	int variants = textureSize(atlas, 0).x / sprite_pixels;
-	sprite = vec2(float(min(int(draw(h, 4u) * float(variants)), variants - 1)), float(kind));
+	sprite = vec2(float(min(int(draw(h, 4u) * float(variants)), variants - 1)), float(scree ? scree_row : kind));
 	flip = draw(h, 5u) < 0.5 ? 1.0 : 0.0;
 }
 
