@@ -44,8 +44,8 @@ var player: Player
 var camera: GameCamera
 var terrain: IslandTerrain
 var _island: IslandData
-## One byte per peak in _island.peaks, 1 once surveyed.
-var _surveyed := PackedByteArray()
+## One byte per peak in the island's peaks, 1 once surveyed.
+var surveyed := PackedByteArray()
 ## The index of the peak being surveyed, or -1.
 var _peak: int = -1
 ## Seconds since the survey started.
@@ -61,6 +61,9 @@ var _marker: float = 0.0
 ## The index of the peak whose zone ring shows, or -1.
 var _marker_peak: int = -1
 var _zone_ring := ZoneRing.new()
+## The camera zoom when the survey started, which the camera pulls out from and comes back to, so a
+## survey in god mode keeps the zoom the player chose.
+var _base_zoom: float = GameCamera.ZOOM
 ## Bands marked so far. Each is marked when the ring reaches it, because marking all of them in one
 ## frame took 6 to 11 ms for the 60,000 to 126,000 cells of a survey.
 var _marked: int = 0
@@ -88,8 +91,8 @@ func _ready() -> void:
 func start(island: IslandData) -> void:
 	_finish_task()
 	_island = island
-	_surveyed.resize(island.peaks.size())
-	_surveyed.fill(0)
+	surveyed.resize(island.peaks.size())
+	surveyed.fill(0)
 	_peak = -1
 	player.frozen = false
 	_marker = 0.0
@@ -100,14 +103,15 @@ func start(island: IslandData) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if _island == null or _peak >= 0 or not event.is_action_pressed("survey"):
 		return
-	var peak: int = peak_in_reach(_island, player.grid_position, _surveyed)
+	var peak: int = peak_in_reach(_island, player.grid_position, surveyed)
 	if peak < 0:
 		return
 	get_viewport().set_input_as_handled()
 	_peak = peak
-	_surveyed[peak] = 1
+	surveyed[peak] = 1
 	_time = 0.0
 	_marked = 0
+	_base_zoom = camera.zoom
 	player.frozen = true
 	var cell: int = _island.peaks[peak].cell
 	var island: IslandData = _island
@@ -126,7 +130,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	if _island == null:
 		return
-	var wanted: bool = _peak < 0 and peak_in_reach(_island, player.grid_position, _surveyed) >= 0
+	var wanted: bool = _peak < 0 and peak_in_reach(_island, player.grid_position, surveyed) >= 0
 	_prompt.modulate.a = move_toward(_prompt.modulate.a, 1.0 if wanted else 0.0, delta / PROMPT_SECONDS)
 	_update_marker(delta)
 	if _peak < 0:
@@ -139,12 +143,12 @@ func _process(delta: float) -> void:
 		terrain.knowledge.mark_cells(_rings[_marked], Knowledge.Level.SURVEYED)
 		_marked += 1
 	if _time < LOOK_SECONDS:
-		camera.zoom = lerpf(GameCamera.ZOOM, SURVEY_ZOOM, smoothstep(0.0, ZOOM_SECONDS, _time))
+		camera.zoom = lerpf(_base_zoom, SURVEY_ZOOM, smoothstep(0.0, ZOOM_SECONDS, _time))
 		# One full turn, clockwise from south, the way the figure faced when it walked up.
 		player.face(Vector2.DOWN.rotated(TAU * _time / LOOK_SECONDS))
 		return
 	var build: float = (_time - LOOK_SECONDS) / BUILD_SECONDS
-	camera.zoom = lerpf(SURVEY_ZOOM, GameCamera.ZOOM, smoothstep(0.0, 1.0, build))
+	camera.zoom = lerpf(SURVEY_ZOOM, _base_zoom, smoothstep(0.0, 1.0, build))
 	var top := Vector2(_varde.position.x, _varde.position.z)
 	if top != player.grid_position:
 		player.face(top - player.grid_position)
@@ -159,8 +163,8 @@ func _process(delta: float) -> void:
 func varde_cells() -> PackedInt32Array:
 	var cells := PackedInt32Array()
 	if _island != null:
-		for i: int in _surveyed.size():
-			if _surveyed[i] != 0 and i != _peak:
+		for i: int in surveyed.size():
+			if surveyed[i] != 0 and i != _peak:
 				cells.append(_island.peaks[i].cell)
 	return cells
 
@@ -168,7 +172,7 @@ func varde_cells() -> PackedInt32Array:
 # Dithers in the zone ring of the nearest unsurveyed peak within MARKER_REACH, and out once the player
 # leaves or surveys it. Another peak's ring shows only after the old one has gone.
 func _update_marker(delta: float) -> void:
-	var near: int = -1 if _peak >= 0 else peak_in_reach(_island, player.grid_position, _surveyed, MARKER_REACH)
+	var near: int = -1 if _peak >= 0 else peak_in_reach(_island, player.grid_position, surveyed, MARKER_REACH)
 	if _marker <= 0.0 and near != _marker_peak:
 		_marker_peak = near
 		if near >= 0:

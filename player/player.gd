@@ -31,8 +31,6 @@ const HIDE_STEP: float = 0.5
 ## sink into a slope that rises to the side. Raising it lets the figure show over more of a bump or
 ## ridge that stands in front of it.
 const DEPTH_PUSH: float = 0.3
-## Speed multiplier in god mode. At 14 the player crosses the 1024-cell grid in about 21 s.
-const GOD_SPEED: float = 14.0
 ## True while something else, such as a survey, holds the player still. The figure stands and takes
 ## no input, and the camera keeps following.
 var frozen: bool = false
@@ -51,9 +49,11 @@ var _walked: float = 0.0
 var _velocity: Vector2 = Vector2.ZERO
 ## World height the camera centers on, which trails the feet by CAMERA_LAG.
 var _camera_height: float = 0.0
-## For checking terrain while tuning: G toggles it in debug builds. The player walks GOD_SPEED times
-## faster and through anything the step check refuses, such as cliffs and the sea.
-var _god: bool = false
+## True in god mode, which GodMode toggles. The player walks god_speed times faster and through
+## anything the step check refuses, such as cliffs and the sea.
+var god: bool = false
+## Speed multiplier in god mode.
+var god_speed: float = 1.0
 ## The feet in world units, unsnapped, where the fade centers.
 var _feet: Vector3
 ## True while terrain hides the figure, which opens the fade.
@@ -98,16 +98,6 @@ func place(island: IslandData, cell: int) -> void:
 	_update_position()
 
 
-func _unhandled_key_input(event: InputEvent) -> void:
-	# A raw key, not an input action, because the editor rewrites project.godot while it's open.
-	var key := event as InputEventKey
-	if OS.is_debug_build() and key.pressed and not key.echo and key.physical_keycode == KEY_G:
-		_god = not _god
-		print("God mode ", "on" if _god else "off")
-		if _god and terrain.knowledge != null:
-			terrain.knowledge.mark_all(Knowledge.Level.SURVEYED)
-
-
 func _process(delta: float) -> void:
 	if _island == null:
 		return
@@ -119,10 +109,10 @@ func _process(delta: float) -> void:
 		_figure.face(Vector2.from_angle(facing(direction) * PI / 4.0))
 	_velocity = _velocity.move_toward(direction * SPEED, SPEED / maxf(EASE_SECONDS, 0.001) * step)
 	var moved: Vector2 = grid_position
-	if _god:
+	if god:
 		# Several cells a frame, which move() can't take, so it skips the step check.
 		var edge: float = IslandData.SIZE - 0.001
-		moved = (grid_position + _velocity * GOD_SPEED * step).clamp(Vector2.ZERO, Vector2(edge, edge))
+		moved = (grid_position + _velocity * god_speed * step).clamp(Vector2.ZERO, Vector2(edge, edge))
 	elif _velocity != Vector2.ZERO:
 		moved = move(_island, grid_position, _velocity * step)
 	if moved == grid_position:

@@ -3,6 +3,11 @@ extends RefCounted
 ## Everything the generator knows about one island. Each array has SIZE * SIZE cells, row by row.
 
 const SIZE: int = 1024
+## Meters per cell, and per world unit up and down, since the world uses one unit in every direction.
+## A map scale, not the figure's: at 10 the island is about 10 km across and the summit stands
+## Walkability.SUMMIT_UNITS × 10 = 1000 m high, while the figure, drawn 1.5 units tall, would be 15 m.
+## The figure-true scale of about 1.2 m made a 120 m summit with snow on it.
+const METERS_PER_CELL: float = 10.0
 
 var island_seed: int
 ## Sea level is 0.0, the highest cell is exactly 1.0, and the sea floor is negative.
@@ -32,6 +37,11 @@ var start: int
 ## Milliseconds each generator step took, in the order the steps ran. Timing differs between runs,
 ## so this is the one field that the same seed doesn't reproduce.
 var step_msec: Dictionary[String, int] = {}
+
+
+## Meters above sea level of a height in the units of the height array, negative under the sea.
+static func meters(cell_height: float) -> float:
+	return cell_height * Walkability.SUMMIT_UNITS * METERS_PER_CELL
 
 
 ## The array index of the cell at column x, row y.
