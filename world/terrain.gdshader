@@ -59,6 +59,11 @@ uniform float fog_speed = 0.008333333;
 // How many ramp steps the patches move the fog's light up or down. 0 gives an even, dithered grey.
 uniform float fog_steps = 1.5;
 
+// The depth buffer's value just short of the far plane, where fog pixels go. Godot stores depth
+// reversed, 1 at the near plane and 0 at the far one, in Compatibility too: 0.99999 there drew the
+// fog in front of everything. Not 0 itself, so the depth test against the cleared buffer passes.
+const float FAR_DEPTH = 0.00001;
+
 varying vec3 world_position;
 // The Ramps.Terrain value whose ramp this pixel uses. Floats, because light() reads it.
 varying float terrain;
@@ -145,8 +150,15 @@ void fragment() {
 	if (IN_SHADOW_PASS && clear_at(cell) < 0.5) {
 		discard;
 	}
-	if (mist_at(cell, warp) > dither(world_pixel)) {
+	DEPTH = FRAGCOORD.z;
+	if (is_fogged(cell, warp, dither(world_pixel))) {
 		kind = 8;  // Ramps.Terrain.FOG
+		// Behind everything else, so land the player has seen draws in front of a fogged peak, and
+		// the peak shows no outline against it. It also never hides the player. The shadow pass
+		// keeps the real depth.
+		if (!IN_SHADOW_PASS) {
+			DEPTH = FAR_DEPTH;
+		}
 		world_normal = vec3(0.0, 1.0, 0.0);
 		ramp_reach = 1.0;
 		// Laid out along the screen's axes, not the ground's, so the patches lie on a flat layer over the

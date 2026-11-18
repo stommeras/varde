@@ -25,10 +25,14 @@ uniform float reveal_now = 0.0;
 uniform float clear_seconds = 1.0;
 // How far, in cells, the warp noise moves the fog's edge, so it doesn't trace the line of sight's cells.
 uniform float fog_edge_cells = 1.5;
-// Cells between the samples that soften the fog's edge, 3 by 3 around each pixel. The fog thins out
-// over about twice this, so raising it gives a wider, smoother edge. Without it the edge followed
-// every cell the line of sight left out, in ragged steps.
+// Cells between the samples that smooth the fog's edge, 3 by 3 around each pixel. Raising it rounds
+// the edge more and swallows larger gaps the line of sight left. Without it the edge followed every
+// cell the line of sight left out, in ragged steps.
 uniform float fog_soft_cells = 2.0;
+// The share of the averaged fog over which its edge dithers, around the middle. At 1 the edge
+// dithered over a few cells, and on a steep peak whose top the player had seen, that band showed
+// the unknown slope below as a see-through outline. Lowering it gives a crisper edge.
+uniform float fog_edge_dither = 0.3;
 // Row t holds the steps of ramp t, darkest first, as linear colors. TerrainMaterial builds it from
 // Ramps.RAMPS. Not source_color, because the Compatibility renderer skips that decode in texelFetch.
 uniform sampler2D ramps : filter_nearest, repeat_disable;
@@ -111,8 +115,8 @@ float clear_at(vec2 point) {
 }
 
 // The share of fog at point, from 0 where the player knows all the land around to 1 where they know
-// none. warp is warp_at(point). It averages 3 by 3 samples fog_soft_cells apart, so the edge fades
-// out over a few cells. Above the pixel's dither threshold, the terrain draws fog.
+// none. warp is warp_at(point). It averages 3 by 3 samples fog_soft_cells apart, which rounds the
+// edge's shape and fills single cells the line of sight left out.
 float mist_at(vec2 point, vec2 warp) {
 	vec2 center = point + warp * 2.0 * fog_edge_cells;
 	float clear = 0.0;
@@ -122,6 +126,12 @@ float mist_at(vec2 point, vec2 warp) {
 		}
 	}
 	return 1.0 - clear / 9.0;
+}
+
+// True where the terrain draws fog at point, for a pixel with the dither threshold threshold. The
+// edge sits where half the averaged samples are clear, and dithers over fog_edge_dither around it.
+bool is_fogged(vec2 point, vec2 warp, float threshold) {
+	return mist_at(point, warp) > 0.5 + (threshold - 0.5) * fog_edge_dither;
 }
 
 // The offset, from -0.5 to 0.5 on each axis, that warps material boundaries and rivers at cell.

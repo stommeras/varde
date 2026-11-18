@@ -79,5 +79,9 @@ func test_hidden_finds_terrain_toward_the_camera() -> void:
 	# than 4 units above the feet to hide it.
 	data.height[IslandData.index(x, y + 3)] = h + 8.0 / IslandTerrain.SUMMIT_HEIGHT
 	expect(Player.hidden(data, head, toward), "a wall south of the figure doesn't hide it")
+	var knowledge := Knowledge.new()
+	expect(not Player.hidden(data, head, toward, knowledge), "an unknown wall hides the figure, though the fog draws behind it")
+	knowledge.mark(IslandData.index(x, y + 3), Knowledge.Level.SEEN)
+	expect(Player.hidden(data, head, toward, knowledge), "a seen wall south of the figure doesn't hide it")
 	for i: int in saved:
 		data.height[i] = saved[i]

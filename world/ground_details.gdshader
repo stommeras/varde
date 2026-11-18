@@ -121,7 +121,7 @@ void vertex() {
 	stands = stands && ground.z > 0.0;
 	// Hidden until the fog has cleared all the way from the ground under it. Showing them by the
 	// terrain's dithered test put sharp, full-color sprites on top of the thinning fog.
-	stands = stands && mist_at(point, warp) <= 0.0;
+	stands = stands && !is_fogged(point, warp, 0.0);
 	if (!stands || is_faded(base, base_view, VIEW_MATRIX, INV_VIEW_MATRIX, summit, dither(base_pixel))) {
 		// All four corners on one point draw nothing.
 		VERTEX = vec3(0.0);
