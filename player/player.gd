@@ -31,7 +31,8 @@ const HIDE_STEP: float = 0.5
 ## sink into a slope that rises to the side. Raising it lets the figure show over more of a bump or
 ## ridge that stands in front of it.
 const DEPTH_PUSH: float = 0.3
-## Cells around the player that the stand-in for line of sight marks seen.
+## Cells around the player that the stand-in for line of sight marks seen. Raising it reveals land
+## farther ahead and marks more cells each time the player enters a new cell.
 # ponytail: a disk that sees through ridges, until line of sight (#69) replaces _look().
 const SIGHT_RADIUS: int = 40
 ## Speed multiplier in god mode. At 14 the player crosses the 1024-cell grid in about 21 s.
@@ -123,7 +124,8 @@ func _process(delta: float) -> void:
 	else:
 		_walked += moved.distance_to(grid_position)
 	grid_position = moved
-	_look(terrain.knowledge.now)
+	if terrain.knowledge != null:
+		_look(terrain.knowledge.now)
 	# The camera keeps catching up on height after the player stops, so this runs every frame.
 	_camera_height = lerpf(_camera_height, height_at(_island, grid_position), 1.0 - exp(-delta / CAMERA_LAG))
 	_update_position()
@@ -147,7 +149,7 @@ func _update_position() -> void:
 ## Marks the cells within SIGHT_RADIUS of the player seen, rising from time at, once per cell entered.
 func _look(at: float) -> void:
 	var cell: int = _cell(grid_position)
-	if cell == _sight_cell or terrain.knowledge == null:
+	if cell == _sight_cell:
 		return
 	_sight_cell = cell
 	var center := Vector2i(grid_position)

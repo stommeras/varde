@@ -26,6 +26,9 @@ var now: float = 0.0
 var _image: Image
 var _reveal_image: Image
 var _dirty: bool = false
+## True when a reveal time changed since the last upload. Kept apart from _dirty, because surveying
+## changes only levels, and the reveal grid is 4 of the 5 MB.
+var _reveal_dirty: bool = false
 
 
 func _init() -> void:
@@ -46,6 +49,7 @@ func mark(cell: int, level: Level, at: float = now) -> void:
 	if levels[cell] < level:
 		if levels[cell] == Level.UNKNOWN:
 			reveal_bytes.encode_float(cell * 4, at)
+			_reveal_dirty = true
 		levels[cell] = level
 		_dirty = true
 
@@ -63,18 +67,22 @@ func mark_all(level: Level, at: float = now) -> void:
 		if levels[cell] < level:
 			if levels[cell] == Level.UNKNOWN:
 				reveal_bytes.encode_float(cell * 4, at)
+				_reveal_dirty = true
 			levels[cell] = level
 			_dirty = true
 
 
 ## Sends the levels and reveal times to the textures if any changed since the last call. Call it
-## once a frame at most, after all the marking, because every call that finds a change uploads both
-## whole grids, 5 MB.
+## once a frame at most, after all the marking, because every call that finds a change uploads a
+## whole grid, 1 MB of levels and 4 MB of reveal times.
 func upload() -> void:
 	if not _dirty:
 		return
 	_dirty = false
 	_image.set_data(IslandData.SIZE, IslandData.SIZE, false, Image.FORMAT_R8, levels)
 	texture.update(_image)
+	if not _reveal_dirty:
+		return
+	_reveal_dirty = false
 	_reveal_image.set_data(IslandData.SIZE, IslandData.SIZE, false, Image.FORMAT_RF, reveal_bytes)
 	reveal_texture.update(_reveal_image)
