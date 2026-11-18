@@ -57,6 +57,11 @@ func _process(delta: float) -> void:
 		material.set_shader_parameter("reveal_now", knowledge.now)
 
 
+## The terrain shader's material, whose grid textures the map screen draws from too.
+func ground_material() -> ShaderMaterial:
+	return _material
+
+
 ## Fades the terrain that stands between the camera and feet, the player's feet in world units.
 ## amount runs from 0, shut, to 1, the full radius. Call it after show_island(), which makes a new
 ## material with the fade shut.

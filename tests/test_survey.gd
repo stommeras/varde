@@ -49,3 +49,21 @@ func test_a_varde_builds_bottom_first() -> void:
 	expect(shown.size() > Varde.LAYERS.size(), "a varde has one stone per layer")
 	expect(shown.count(true) == half and not shown.slice(0, half).has(false), "half a varde shows %s" % [shown])
 	varde.free()
+
+
+func test_varde_cells_are_the_surveyed_peaks() -> void:
+	var survey := Survey.new()
+	var island := IslandData.new()
+	island.peaks = [Peak.new(IslandData.index(100, 100), 1.0, 1.0), Peak.new(IslandData.index(105, 100), 0.8, 0.5)]
+	survey._island = island
+	survey._surveyed = PackedByteArray([0, 1])
+	expect(survey.varde_cells() == PackedInt32Array([IslandData.index(105, 100)]), "varde cells are %s" % [survey.varde_cells()])
+	# Out of the tree, _ready never adopted these, so freeing the survey would leak them.
+	survey._zone_ring.free()
+	survey._prompt.free()
+	survey.free()
+
+
+func test_the_map_has_its_keys() -> void:
+	for action: String in ["map", "map_zoom_in", "map_zoom_out"]:
+		expect(InputMap.has_action(action) and not InputMap.action_get_events(action).is_empty(), "%s lacks its key" % action)
