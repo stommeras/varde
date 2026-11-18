@@ -27,6 +27,9 @@ var terrain: IslandTerrain
 var _island: IslandData
 var _speed: int = START_SPEED
 var _panel := Label.new()
+## A zone ring per peak, so every unsurveyed peak shows however far away it is. Made the first time
+## god mode is on for an island.
+var _rings: Array[ZoneRing] = []
 
 
 func _ready() -> void:
@@ -43,6 +46,9 @@ func _ready() -> void:
 ## Starts a new island.
 func start(island: IslandData) -> void:
 	_island = island
+	for ring: ZoneRing in _rings:
+		ring.queue_free()
+	_rings.clear()
 	if player.god:
 		terrain.knowledge.mark_all(Knowledge.Level.SURVEYED)
 
@@ -81,7 +87,6 @@ func _unhandled_input(event: InputEvent) -> void:
 func _toggle() -> void:
 	player.god = not player.god
 	player.god_speed = SPEEDS[_speed]
-	survey.show_all = player.god
 	_panel.visible = player.god
 	if player.god:
 		terrain.knowledge.mark_all(Knowledge.Level.SURVEYED)
@@ -90,8 +95,25 @@ func _toggle() -> void:
 
 
 func _process(_delta: float) -> void:
+	if _island != null:
+		_update_rings()
 	if _panel.visible:
 		_panel.text = info()
+
+
+func _update_rings() -> void:
+	if player.god and _rings.is_empty():
+		for peak: Peak in _island.peaks:
+			var ring := ZoneRing.new()
+			add_child(ring)
+			ring.place(_island, peak.cell, Survey.ZONE_RADIUS)
+			_rings.append(ring)
+	# Scaled with the zoom, so a ring keeps its size on screen and still shows on a peak when the
+	# camera zooms far out.
+	var size := Vector3.ONE * maxf(camera.zoom / GameCamera.ZOOM, 1.0)
+	for i: int in _rings.size():
+		_rings[i].scale = size
+		_rings[i].fade(1.0 if player.god and survey.surveyed[i] == 0 else 0.0)
 
 
 ## The panel's text for the player's cell.

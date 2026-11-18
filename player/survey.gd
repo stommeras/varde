@@ -44,8 +44,6 @@ var player: Player
 var camera: GameCamera
 var terrain: IslandTerrain
 var _island: IslandData
-## In god mode, every peak not yet surveyed shows its zone ring, however far away it is.
-var show_all: bool = false
 ## One byte per peak in the island's peaks, 1 once surveyed.
 var surveyed := PackedByteArray()
 ## The index of the peak being surveyed, or -1.
@@ -63,8 +61,6 @@ var _marker: float = 0.0
 ## The index of the peak whose zone ring shows, or -1.
 var _marker_peak: int = -1
 var _zone_ring := ZoneRing.new()
-## A ring per peak for show_all, made the first time show_all is on for this island.
-var _all_rings: Array[ZoneRing] = []
 ## The camera zoom when the survey started, which the camera pulls out from and comes back to, so a
 ## survey in god mode keeps the zoom the player chose.
 var _base_zoom: float = GameCamera.ZOOM
@@ -102,9 +98,6 @@ func start(island: IslandData) -> void:
 	_marker = 0.0
 	_marker_peak = -1
 	_zone_ring.fade(0.0)
-	for ring: ZoneRing in _all_rings:
-		ring.queue_free()
-	_all_rings.clear()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -140,7 +133,6 @@ func _process(delta: float) -> void:
 	var wanted: bool = _peak < 0 and peak_in_reach(_island, player.grid_position, surveyed) >= 0
 	_prompt.modulate.a = move_toward(_prompt.modulate.a, 1.0 if wanted else 0.0, delta / PROMPT_SECONDS)
 	_update_marker(delta)
-	_update_all_rings()
 	if _peak < 0:
 		return
 	_time += delta
@@ -187,21 +179,6 @@ func _update_marker(delta: float) -> void:
 			_zone_ring.place(_island, _island.peaks[near].cell, ZONE_RADIUS)
 	_marker = move_toward(_marker, 1.0 if near >= 0 and near == _marker_peak else 0.0, delta / MARKER_FADE_SECONDS)
 	_zone_ring.fade(_marker)
-
-
-func _update_all_rings() -> void:
-	if show_all and _all_rings.is_empty():
-		for peak: Peak in _island.peaks:
-			var ring := ZoneRing.new()
-			add_child(ring)
-			ring.place(_island, peak.cell, ZONE_RADIUS)
-			_all_rings.append(ring)
-	# Scaled with the zoom, so a ring keeps its size on screen and still shows on a peak when the
-	# camera zooms far out.
-	var size := Vector3.ONE * maxf(camera.zoom / GameCamera.ZOOM, 1.0)
-	for i: int in _all_rings.size():
-		_all_rings[i].scale = size
-		_all_rings[i].fade(1.0 if show_all and surveyed[i] == 0 else 0.0)
 
 
 func _finish_task() -> void:
