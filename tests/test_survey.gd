@@ -30,7 +30,7 @@ func test_only_unsurveyed_peaks_in_their_zone_are_in_reach() -> void:
 	expect(Survey.peak_in_reach(island, Vector2(100.5, 100.5), surveyed) == 0, "the peak underfoot is out of reach")
 	expect(Survey.peak_in_reach(island, Vector2(103.5, 100.5), surveyed) == 1, "the nearer of two zones isn't chosen")
 	expect(Survey.peak_in_reach(island, Vector2(100.5, 105.5), surveyed) == -1, "a peak 5 cells away is in reach")
-	expect(Survey.peak_in_reach(island, Vector2(100.5, 105.5), surveyed, Survey.CIRCLE_REACH) == 0, "a peak 5 cells away shows no circle")
+	expect(Survey.peak_in_reach(island, Vector2(100.5, 105.5), surveyed, Survey.MARKER_REACH) == 0, "a peak 5 cells away shows no ring")
 	surveyed[0] = 1
 	expect(Survey.peak_in_reach(island, Vector2(100.5, 100.5), surveyed) == -1, "a surveyed peak is in reach again")
 

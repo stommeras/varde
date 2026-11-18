@@ -66,14 +66,6 @@ func fade_around(feet: Vector3, amount: float) -> void:
 		material.set_shader_parameter("player_position", feet)
 
 
-## Paints the circle around a peak's survey zone, radius cells around center, a point on the grid.
-## amount runs from 0, hidden, to 1. Call it after show_island().
-func show_zone(center: Vector2, radius: float, amount: float) -> void:
-	_material.set_shader_parameter("zone_center", center)
-	_material.set_shader_parameter("zone_radius", radius)
-	_material.set_shader_parameter("zone_amount", amount)
-
-
 ## Stretches the terrain so the highest cell stands height world units above sea level.
 func set_summit_height(height: float) -> void:
 	scale.y = height

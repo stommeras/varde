@@ -9,11 +9,11 @@ extends Node
 ## from further down the slope. At 6 the prompt came up well below the top of a steep peak, so the
 ## survey didn't feel like it happened on the top.
 const ZONE_RADIUS: float = 3.0
-## Cells from a peak's top within which a circle painted on the ground shows the edge of its zone, so
-## the player can find the top. Raising it shows the circle from further down.
-const CIRCLE_REACH: float = 6.0
-## Seconds the circle takes to dither in or out.
-const CIRCLE_FADE_SECONDS: float = 0.5
+## Cells from a peak's top within which a ring floats over the edge of its zone, so the player can
+## find the top. Raising it shows the ring from further down.
+const MARKER_REACH: float = 6.0
+## Seconds the zone ring takes to dither in or out.
+const MARKER_FADE_SECONDS: float = 0.5
 ## How many times the walking view radius a survey reaches.
 const REACH_SCALE: float = 2.0
 ## Seconds the figure takes to turn once around, looking out. Raising it slows the whole reveal. At
@@ -56,10 +56,11 @@ var _varde: Varde
 var _task: int = -1
 ## The survey's cells in RINGS bands from the peak outward, written by the task.
 var _rings: Array[PackedInt32Array] = []
-## How far the zone circle shows, from 0 to 1.
-var _circle: float = 0.0
-## The index of the peak whose circle shows, or -1.
-var _circle_peak: int = -1
+## How far the zone ring shows, from 0 to 1.
+var _marker: float = 0.0
+## The index of the peak whose zone ring shows, or -1.
+var _marker_peak: int = -1
+var _zone_ring := ZoneRing.new()
 ## Bands marked so far. Each is marked when the ring reaches it, because marking all of them in one
 ## frame took 6 to 11 ms for the 60,000 to 126,000 cells of a survey.
 var _marked: int = 0
@@ -67,6 +68,7 @@ var _prompt := Label.new()
 
 
 func _ready() -> void:
+	add_child(_zone_ring)
 	var layer := CanvasLayer.new()
 	add_child(layer)
 	_prompt.text = tr("SURVEY_PEAK")
@@ -90,9 +92,9 @@ func start(island: IslandData) -> void:
 	_surveyed.fill(0)
 	_peak = -1
 	player.frozen = false
-	_circle = 0.0
-	_circle_peak = -1
-	terrain.show_zone(Vector2.ZERO, ZONE_RADIUS, 0.0)
+	_marker = 0.0
+	_marker_peak = -1
+	_zone_ring.fade(0.0)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -126,7 +128,7 @@ func _process(delta: float) -> void:
 		return
 	var wanted: bool = _peak < 0 and peak_in_reach(_island, player.grid_position, _surveyed) >= 0
 	_prompt.modulate.a = move_toward(_prompt.modulate.a, 1.0 if wanted else 0.0, delta / PROMPT_SECONDS)
-	_update_circle(delta)
+	_update_marker(delta)
 	if _peak < 0:
 		return
 	_time += delta
@@ -152,16 +154,16 @@ func _process(delta: float) -> void:
 		player.frozen = false
 
 
-# Dithers in the circle of the nearest unsurveyed peak within CIRCLE_REACH, and out once the player
-# leaves or surveys it. Another peak's circle shows only after the old one has gone.
-func _update_circle(delta: float) -> void:
-	var near: int = -1 if _peak >= 0 else peak_in_reach(_island, player.grid_position, _surveyed, CIRCLE_REACH)
-	if _circle <= 0.0:
-		_circle_peak = near
-	_circle = move_toward(_circle, 1.0 if near >= 0 and near == _circle_peak else 0.0, delta / CIRCLE_FADE_SECONDS)
-	if _circle_peak >= 0:
-		var cell: int = _island.peaks[_circle_peak].cell
-		terrain.show_zone(Vector2(cell % IslandData.SIZE + 0.5, cell / IslandData.SIZE + 0.5), ZONE_RADIUS, _circle)
+# Dithers in the zone ring of the nearest unsurveyed peak within MARKER_REACH, and out once the player
+# leaves or surveys it. Another peak's ring shows only after the old one has gone.
+func _update_marker(delta: float) -> void:
+	var near: int = -1 if _peak >= 0 else peak_in_reach(_island, player.grid_position, _surveyed, MARKER_REACH)
+	if _marker <= 0.0 and near != _marker_peak:
+		_marker_peak = near
+		if near >= 0:
+			_zone_ring.place(_island, _island.peaks[near].cell, ZONE_RADIUS)
+	_marker = move_toward(_marker, 1.0 if near >= 0 and near == _marker_peak else 0.0, delta / MARKER_FADE_SECONDS)
+	_zone_ring.fade(_marker)
 
 
 func _finish_task() -> void:
