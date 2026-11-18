@@ -62,3 +62,22 @@ func test_the_same_position_sees_the_same_cells() -> void:
 func test_sea_cells_are_seen() -> void:
 	var seen: PackedInt32Array = LineOfSight.visible_cells(_flat(-0.1), IslandData.index(CENTER, CENTER))
 	expect(seen.has(IslandData.index(CENTER + 20, CENTER)), "a sea cell in reach is unseen")
+
+
+func test_the_ground_close_by_is_seen_from_a_rounded_top() -> void:
+	var island := _flat(0.0)
+	# A dome whose sides steepen away from the top, so they drop out of the view from it.
+	for y: int in range(-20, 21):
+		for x: int in range(-20, 21):
+			island.height[IslandData.index(CENTER + x, CENTER + y)] = maxf(0.5 - 0.004 * (x * x + y * y), 0.0)
+	var seen := {}
+	for index: int in LineOfSight.visible_cells(island, IslandData.index(CENTER, CENTER)):
+		seen[index] = true
+	var reach: int = int(LineOfSight.NEAR_RADIUS) - 1
+	var missing: int = 0
+	for y: int in range(-reach, reach + 1):
+		for x: int in range(-reach, reach + 1):
+			if x * x + y * y <= reach * reach and not seen.has(IslandData.index(CENTER + x, CENTER + y)):
+				missing += 1
+	expect(missing == 0, "%d cells close to the player are unseen on a dome" % missing)
+	expect(not seen.has(IslandData.index(CENTER + 8, CENTER)), "the dome's side is seen past the near radius, so the test shows nothing")
