@@ -7,8 +7,9 @@ extends RefCounted
 ## prominence, and it needs one sort and one pass over the main island.
 
 ## The least prominence a peak needs, as a share of the summit's height. Lowering it adds small
-## knolls, raising it keeps only the big mountains. SPEC.md aims for 8 to 14 peaks per island.
-const MIN_PROMINENCE: float = 0.15
+## knolls, raising it keeps only the big mountains. SPEC.md aims for 5 to 10 peaks
+## per island. At 0.35 seeds 0 to 9 give 4 to 11, and 8 of the 10 land in range.
+const MIN_PROMINENCE: float = 0.35
 ## Heights are packed into the sort key as whole numbers of this many steps per height unit. Two
 ## cells less than 2^-30 apart tie in the key and sort by cell index, which shifts a saddle by far
 ## less than MIN_PROMINENCE.
