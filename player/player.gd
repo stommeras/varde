@@ -87,9 +87,8 @@ func place(island: IslandData, cell: int) -> void:
 	_velocity = Vector2.ZERO
 	_camera_height = height_at(island, grid_position)
 	visible = true
-	# The first cast runs here instead of on a worker, and its land counts as already risen, so the
-	# player doesn't stand above flat fog while the land around it comes up. At the start beach it
-	# takes about 4 ms.
+	# The first cast runs here instead of on a worker, and its fog counts as already cleared, so the
+	# run doesn't open in fog. At the start beach it takes about 4 ms.
 	if terrain.knowledge != null:
 		terrain.knowledge.mark_cells(LineOfSight.visible_cells(island, cell), Knowledge.Level.SEEN, Knowledge.LONG_AGO)
 		_sight_cell = cell

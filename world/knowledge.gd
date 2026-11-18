@@ -4,16 +4,16 @@ class_name Knowledge
 
 enum Level { UNKNOWN, SEEN, SURVEYED }
 
-## The reveal time of a cell that is still unknown. Far enough ahead that the shader's rise stays at 0.
+## The reveal time of a cell that is still unknown. Far enough ahead that the shader's fog never clears.
 const NEVER: float = 1e9
-## A reveal time far enough back that the cell has already finished rising, for land that should show
-## at once, such as the title backdrop.
+## A reveal time far enough back that the fog has already cleared, for land that should show at once,
+## such as the title backdrop.
 const LONG_AGO: float = -1e9
 
 ## One byte per cell, a Level, in the same order as IslandData's arrays.
 var levels := PackedByteArray()
 ## Seconds on the clock `now` at which each cell first left UNKNOWN, or NEVER, as one 32-bit float per
-## cell. The terrain shader raises a cell out of the fog over the second after it. Bytes rather than a
+## cell. The terrain shader clears the fog from a cell over the second after it. Bytes rather than a
 ## PackedFloat32Array, because converting the array for each upload took 0.8 ms. Read it with revealed_at().
 var reveal_bytes := PackedByteArray()
 ## The levels as an R8 texture on the island's grid. It shows the levels as of the last upload().
@@ -21,7 +21,7 @@ var texture: ImageTexture
 ## reveal_bytes as an RF texture on the island's grid, as of the last upload().
 var reveal_texture: ImageTexture
 ## Seconds the island has been shown, which IslandTerrain advances each frame. A clock of its own
-## instead of the engine's ticks, so the rise pauses with the game and follows a movie's fixed frame rate.
+## instead of the engine's ticks, so the fog's clearing pauses with the game and follows a movie's fixed frame rate.
 var now: float = 0.0
 var _image: Image
 var _reveal_image: Image

@@ -18,9 +18,10 @@ const EYE_HEIGHT: float = Figure.HEIGHT
 const STEP: float = 0.5
 ## Cells around the player that always count as seen, even where the ground drops away out of the
 ## view. From a rounded top the rays pass over the slope just below it, and on the summit of seed 0
-## only 49 of the 121 cells within 5 were seen. The fog covered the scattered rest, so the player
-## stood in fog. Raising it reveals more of the ground underfoot, around corners too.
-const NEAR_RADIUS: float = 4.0
+## only 49 of the 121 cells within 5 were seen, so the player stood in fog. At 4 the fog's softened
+## edge still covered the ground underfoot. Raising it reveals more ground close by, around corners
+## and behind ridges too.
+const NEAR_RADIUS: float = 10.0
 
 
 ## The view radius in cells for an eye over ground of height, the generator's 0 to 1.

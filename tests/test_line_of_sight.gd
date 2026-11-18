@@ -36,15 +36,15 @@ func test_a_radius_with_a_fraction_stays_in_bounds() -> void:
 
 func test_a_wall_hides_what_lies_behind_it() -> void:
 	var island := _flat(0.0)
-	# A wall 0.3 high, 30 world units, running north to south 5 cells east of the player.
+	# A wall 0.3 high, 30 world units, running north to south 12 cells east of the player, past NEAR_RADIUS.
 	for y: int in IslandData.SIZE:
-		island.height[IslandData.index(CENTER + 5, y)] = 0.3
+		island.height[IslandData.index(CENTER + 12, y)] = 0.3
 	var seen := {}
 	for index: int in LineOfSight.visible_cells(island, IslandData.index(CENTER, CENTER)):
 		seen[index] = true
-	expect(seen.has(IslandData.index(CENTER + 5, CENTER)), "the wall itself is unseen")
-	expect(not seen.has(IslandData.index(CENTER + 10, CENTER)), "a cell behind the wall is seen")
-	expect(seen.has(IslandData.index(CENTER - 10, CENTER)), "a cell on the open side is unseen")
+	expect(seen.has(IslandData.index(CENTER + 12, CENTER)), "the wall itself is unseen")
+	expect(not seen.has(IslandData.index(CENTER + 17, CENTER)), "a cell behind the wall is seen")
+	expect(seen.has(IslandData.index(CENTER - 17, CENTER)), "a cell on the open side is unseen")
 
 
 func test_the_radius_grows_with_height() -> void:
@@ -67,9 +67,9 @@ func test_sea_cells_are_seen() -> void:
 func test_the_ground_close_by_is_seen_from_a_rounded_top() -> void:
 	var island := _flat(0.0)
 	# A dome whose sides steepen away from the top, so they drop out of the view from it.
-	for y: int in range(-20, 21):
-		for x: int in range(-20, 21):
-			island.height[IslandData.index(CENTER + x, CENTER + y)] = maxf(0.5 - 0.004 * (x * x + y * y), 0.0)
+	for y: int in range(-40, 41):
+		for x: int in range(-40, 41):
+			island.height[IslandData.index(CENTER + x, CENTER + y)] = maxf(0.8 - 0.0005 * (x * x + y * y), 0.0)
 	var seen := {}
 	for index: int in LineOfSight.visible_cells(island, IslandData.index(CENTER, CENTER)):
 		seen[index] = true
@@ -80,4 +80,4 @@ func test_the_ground_close_by_is_seen_from_a_rounded_top() -> void:
 			if x * x + y * y <= reach * reach and not seen.has(IslandData.index(CENTER + x, CENTER + y)):
 				missing += 1
 	expect(missing == 0, "%d cells close to the player are unseen on a dome" % missing)
-	expect(not seen.has(IslandData.index(CENTER + 8, CENTER)), "the dome's side is seen past the near radius, so the test shows nothing")
+	expect(not seen.has(IslandData.index(CENTER + 16, CENTER)), "the dome's side is seen past the near radius, so the test shows nothing")

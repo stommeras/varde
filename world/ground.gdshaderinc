@@ -1,5 +1,5 @@
 // What the terrain shader and the ground detail shader share: the island's grids, the ramps, the
-// rules that pick a pixel's material, the ramp lighting, the rise out of the fog and the fade in
+// rules that pick a pixel's material, the ramp lighting, the fog over unknown land and the fade in
 // front of the player.
 // IslandTerrain sets the same values on both materials, so a detail always sits on ground that the
 // terrain draws in its own material and light, and fades with it.
@@ -16,24 +16,19 @@ uniform sampler2D fresh_water_map : filter_linear, repeat_disable;
 uniform sampler2D knowledge_map : filter_nearest, repeat_disable;
 // One float per cell, the second on Knowledge's clock at which the player first saw it, and
 // Knowledge.NEVER while the cell is unknown. Read with texelFetch, because linear filtering between
-// a time and NEVER gives a time far in the future, not a cell half risen.
+// a time and NEVER gives a time far in the future, not a cell half clear.
 uniform sampler2D reveal_map : filter_nearest, repeat_disable;
 // The second on Knowledge's clock now. IslandTerrain sets it each frame.
 uniform float reveal_now = 0.0;
-// Seconds a cell takes to rise from sea level to its real height after the player sees it.
-// Raising it makes the land grow out of the fog more slowly.
-uniform float rise_seconds = 1.0;
-// How much thicker the fog is than the share of the land still to rise. Raising it holds the land
-// under the fog for more of its rise, so it shows later and more at once.
-uniform float fog_thickness = 1.5;
-// How far, in cells, the warp noise moves the fog's edge, so it doesn't trace the cells' staircase.
-// At 0 the edge over the sea steps along the cells.
+// Seconds the fog takes to clear from a cell after the player sees it. Raising it makes the land
+// show more slowly.
+uniform float clear_seconds = 1.0;
+// How far, in cells, the warp noise moves the fog's edge, so it doesn't trace the line of sight's cells.
 uniform float fog_edge_cells = 1.5;
-// World units of land above which a square of the mesh that touches a cell still rising draws as
-// fog all over. The mesh drops from seen land to the fog in a wall one cell wide, and with only the
-// warped edge, the top of a tall wall drew in the land's colors, stretched into streaks. Lower land
-// keeps the warped edge, so the coast isn't a staircase of cells. Raising it lets taller walls show.
-uniform float fog_wall_height = 1.0;
+// Cells between the samples that soften the fog's edge, 3 by 3 around each pixel. The fog thins out
+// over about twice this, so raising it gives a wider, smoother edge. Without it the edge followed
+// every cell the line of sight left out, in ragged steps.
+uniform float fog_soft_cells = 2.0;
 // Row t holds the steps of ramp t, darkest first, as linear colors. TerrainMaterial builds it from
 // Ramps.RAMPS. Not source_color, because the Compatibility renderer skips that decode in texelFetch.
 uniform sampler2D ramps : filter_nearest, repeat_disable;
@@ -97,36 +92,36 @@ uniform int fade_steps = 96;
 
 #include "res://world/dither.gdshaderinc"
 
-// How far the cell at column and row has risen out of the fog, from 0, unknown and flat at sea
-// level, to 1, at its real height. It eases in and out, so the land starts and stops gently.
-float rise_of(ivec2 cell) {
+// How far the fog has cleared from the cell at column and row, from 0 while it is unknown to 1 a
+// clear_seconds after the player saw it. It eases in and out.
+float clear_of(ivec2 cell) {
 	ivec2 size = textureSize(reveal_map, 0);
 	float revealed = texelFetch(reveal_map, clamp(cell, ivec2(0), size - 1), 0).r;
-	return smoothstep(0.0, rise_seconds, reveal_now - revealed);
+	return smoothstep(0.0, clear_seconds, reveal_now - revealed);
 }
 
-// The rise at point, blended between the four nearest cell centers as the height map blends its
-// heights, so the fog's edge runs between cells instead of along their sides.
-float rise_at(vec2 point) {
+// clear_of() at point, blended between the four nearest cell centers as the height map blends its
+// heights.
+float clear_at(vec2 point) {
 	vec2 p = point - 0.5;
 	ivec2 nw = ivec2(floor(p));
 	vec2 f = p - vec2(nw);
-	return mix(mix(rise_of(nw), rise_of(nw + ivec2(1, 0)), f.x),
-		mix(rise_of(nw + ivec2(0, 1)), rise_of(nw + ivec2(1, 1)), f.x), f.y);
+	return mix(mix(clear_of(nw), clear_of(nw + ivec2(1, 0)), f.x),
+		mix(clear_of(nw + ivec2(0, 1)), clear_of(nw + ivec2(1, 1)), f.x), f.y);
 }
 
-// The share of fog at point, from 0 on fully risen land up. warp is warp_at(point), and land is the
-// height of the land there in world units. Above the pixel's dither threshold, the terrain draws fog
-// there and a ground detail hides.
-float mist_at(vec2 point, vec2 warp, float land) {
-	float mist = 1.0 - rise_at(point + warp * 2.0 * fog_edge_cells);
-	if (land > fog_wall_height) {
-		vec2 p = point - 0.5;
-		ivec2 nw = ivec2(floor(p));
-		float lowest = min(min(rise_of(nw), rise_of(nw + ivec2(1, 0))), min(rise_of(nw + ivec2(0, 1)), rise_of(nw + ivec2(1, 1))));
-		mist = max(mist, 1.0 - lowest);
+// The share of fog at point, from 0 where the player knows all the land around to 1 where they know
+// none. warp is warp_at(point). It averages 3 by 3 samples fog_soft_cells apart, so the edge fades
+// out over a few cells. Above the pixel's dither threshold, the terrain draws fog.
+float mist_at(vec2 point, vec2 warp) {
+	vec2 center = point + warp * 2.0 * fog_edge_cells;
+	float clear = 0.0;
+	for (int y = -1; y <= 1; y++) {
+		for (int x = -1; x <= 1; x++) {
+			clear += clear_at(center + vec2(float(x), float(y)) * fog_soft_cells);
+		}
 	}
-	return mist * fog_thickness;
+	return 1.0 - clear / 9.0;
 }
 
 // The offset, from -0.5 to 0.5 on each axis, that warps material boundaries and rivers at cell.
@@ -224,8 +219,7 @@ bool is_faded(vec3 world_position, vec3 view_position, mat4 view_matrix, mat4 in
 		if (point.y < fade_ground) {
 			return false;
 		}
-		// Lowered as the terrain's vertices are, so land still under the fog doesn't block the ray.
-		float ground = max(texture(height_map, point.xz * texel).r, 0.0) * summit * rise_at(point.xz);
+		float ground = max(texture(height_map, point.xz * texel).r, 0.0) * summit;
 		if (ground < point.y - fade_ground) {
 			return true;
 		}
