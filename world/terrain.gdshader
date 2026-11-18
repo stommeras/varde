@@ -63,12 +63,12 @@ uniform float fog_steps = 1.5;
 uniform vec2 zone_center;
 uniform float zone_radius = 3.0;
 uniform float zone_amount = 0.0;
-// Cells across the circle's white line. At zoom 40 a cell is about 13 pixels wide on flat ground, so
-// 0.3 draws a line about 4 pixels wide. Raising it widens the line.
-uniform float zone_width = 0.3;
-// Cells across the dark edge on each side of the line. The line is the lightest snow, which on a
-// snowy peak shows only by its edges. Raising it thickens the edges, 0 removes them.
-uniform float zone_edge = 0.12;
+// Screen pixels across the circle's white line. Measured on screen, because a width in cells grew
+// to 8 pixels or more where a steep slope faces the camera. Raising it widens the line.
+uniform float zone_width = 1.0;
+// Screen pixels across the dark edge on each side of the line. The line is the lightest snow, which
+// on a snowy peak shows only by its edges. 0 removes them.
+uniform float zone_edge = 1.0;
 
 // The depth buffer's value just short of the far plane, where fog pixels go. Godot stores depth
 // reversed, 1 at the near plane and 0 at the far one, in Compatibility too: 0.99999 there drew the
@@ -159,7 +159,9 @@ void fragment() {
 	// The circle lies on the ground before the fog, so fog covers it like the land under it. The step
 	// offsets push past either end of the ramp, so the line stays the lightest step and its edges
 	// the darkest whatever the light.
-	float off_circle = abs(distance(cell, zone_center) - zone_radius);
+	// fwidth() gives the cells one screen pixel covers here, which turns the distance into pixels.
+	float off_cells = distance(cell, zone_center) - zone_radius;
+	float off_circle = abs(off_cells) / max(fwidth(off_cells), 1e-6);
 	if (off_circle < zone_width * 0.5 + zone_edge && dither(world_pixel) < zone_amount) {
 		if (off_circle < zone_width * 0.5) {
 			kind = 6;  // Ramps.Terrain.SNOW
