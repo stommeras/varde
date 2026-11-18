@@ -36,6 +36,7 @@ func _draw() -> void:
 		draw_circle(at, (DOT_RADIUS + 1.0) * unit, outline)
 		draw_circle(at, DOT_RADIUS * unit, fill)
 		draw_set_transform(at + Vector2(DOT_RADIUS + 3.0, 4.0) * unit, 0.0, Vector2.ONE * unit)
-		draw_string_outline(font, Vector2.ZERO, "%.2f" % peak.prominence, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, 3, outline)
-		draw_string(font, Vector2.ZERO, "%.2f" % peak.prominence, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, fill)
+		var text: String = "%.2f" % peak.prominence
+		draw_string_outline(font, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, 3, outline)
+		draw_string(font, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, fill)
 		draw_set_transform(Vector2.ZERO)

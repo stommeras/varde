@@ -4,7 +4,7 @@ extends "res://tests/test_case.gd"
 func test_same_seed_gives_same_peaks() -> void:
 	var data: IslandData = island(0)
 	var again: IslandData = IslandGenerator.generate(0)
-	expect(_text(again.peaks) == _text(data.peaks), "seed 0 gave different peaks the second time")
+	expect(peaks_text(again.peaks) == peaks_text(data.peaks), "seed 0 gave different peaks the second time")
 
 
 func test_summit_is_a_peak_and_every_peak_is_valid() -> void:
@@ -44,10 +44,3 @@ func test_prominence_on_a_ridge() -> void:
 		expect(is_equal_approx(peaks[0].prominence, 1.0), "summit prominence is %f" % peaks[0].prominence)
 		expect(peaks[1].cell % size == 700, "second peak is at column %d" % (peaks[1].cell % size))
 		expect(absf(peaks[1].prominence - 0.3) < 0.001, "second peak prominence is %f, not 0.3" % peaks[1].prominence)
-
-
-func _text(peaks: Array[Peak]) -> String:
-	var text: String = ""
-	for peak: Peak in peaks:
-		text += "%d %f %f;" % [peak.cell, peak.height, peak.prominence]
-	return text

@@ -9,8 +9,9 @@ extends RefCounted
 ## The least prominence a peak needs, as a share of the summit's height. Lowering it adds small
 ## knolls, raising it keeps only the big mountains. SPEC.md aims for 8 to 14 peaks per island.
 const MIN_PROMINENCE: float = 0.15
-## Heights are packed into the sort key as whole numbers of this many steps per height unit. 2^30
-## steps are finer than a float32 height, so only exact ties in the key fall back to the cell index.
+## Heights are packed into the sort key as whole numbers of this many steps per height unit. Two
+## cells less than 2^-30 apart tie in the key and sort by cell index, which shifts a saddle by far
+## less than MIN_PROMINENCE.
 const HEIGHT_STEPS: float = 1073741824.0
 ## Bits the cell index takes in the sort key, enough for IslandData.SIZE squared cells. The height
 ## goes above them, so the sort puts the highest cell last.
