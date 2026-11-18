@@ -27,6 +27,13 @@ func test_flat_ground_shows_the_full_radius() -> void:
 	expect(not seen.has(IslandData.index(CENTER + int(LineOfSight.SEA_RADIUS) + 2, CENTER)), "a cell past the radius is seen")
 
 
+func test_a_radius_with_a_fraction_stays_in_bounds() -> void:
+	# A radius of 40.7, whose rays end in a cell 41 away, past floor(40.7).
+	var island := _flat(0.00875)
+	var seen: PackedInt32Array = LineOfSight.visible_cells(island, IslandData.index(CENTER, CENTER))
+	expect(seen.has(IslandData.index(CENTER + 41, CENTER)), "the cell at the end of an eastward ray is unseen")
+
+
 func test_a_wall_hides_what_lies_behind_it() -> void:
 	var island := _flat(0.0)
 	# A wall 0.3 high, 30 world units, running north to south 5 cells east of the player.
@@ -46,14 +53,12 @@ func test_the_radius_grows_with_height() -> void:
 
 
 func test_the_same_position_sees_the_same_cells() -> void:
-	var island := island(0)
-	var first: PackedInt32Array = LineOfSight.visible_cells(island, island.start)
-	var second: PackedInt32Array = LineOfSight.visible_cells(island, island.start)
+	var generated := island(0)
+	var first: PackedInt32Array = LineOfSight.visible_cells(generated, generated.start)
+	var second: PackedInt32Array = LineOfSight.visible_cells(generated, generated.start)
 	expect(first == second, "two casts from the start saw different cells")
 
 
-func test_mark_marks_sea_cells_seen() -> void:
-	var island := _flat(-0.1)
-	var knowledge := Knowledge.new()
-	LineOfSight.mark(island, knowledge, IslandData.index(CENTER, CENTER))
-	expect(knowledge.levels[IslandData.index(CENTER + 20, CENTER)] == Knowledge.Level.SEEN, "a sea cell in reach is not seen")
+func test_sea_cells_are_seen() -> void:
+	var seen: PackedInt32Array = LineOfSight.visible_cells(_flat(-0.1), IslandData.index(CENTER, CENTER))
+	expect(seen.has(IslandData.index(CENTER + 20, CENTER)), "a sea cell in reach is unseen")
