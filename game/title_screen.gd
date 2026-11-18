@@ -79,7 +79,7 @@ static func _raised(button: Button) -> PanelContainer:
 	var sea: Color = Ramps.RAMPS[Ramps.Terrain.WATER][0]
 	# Face color, lip color, and the lip's pixels above and below the face.
 	var states: Dictionary[String, Array] = {
-		"normal": [snow[2], snow[0], 0, BUTTON_LIP],
+		"normal": [snow[3], snow[0], 0, BUTTON_LIP],
 		"hover": [snow[3], snow[0], 0, BUTTON_LIP],
 		"pressed": [snow[2], sea, BUTTON_LIP - 1, 1],
 	}
