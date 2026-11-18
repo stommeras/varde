@@ -28,6 +28,9 @@ var _seed_field := LineEdit.new()
 var _info := Label.new()
 ## The material layer as a texture, built once per island.
 var _material_texture: ImageTexture
+var _peak_markers := PeakMarkers.new()
+## Turns the peak marks on the 2D layers on and off.
+var _peaks_toggle := CheckButton.new()
 var _view_3d := DebugView3D.new()
 ## The 3D view's sliders, shown only with it.
 var _controls_3d: Control
@@ -40,6 +43,7 @@ func _ready() -> void:
 	_sprite.scale = Vector2.ONE * PIXELS_PER_CELL
 	add_child(_sprite)
 	add_child(_camera)
+	add_child(_peak_markers)
 	_view_3d.hide()
 	add_child(_view_3d)
 	_loader.loaded.connect(_on_loaded)
@@ -74,6 +78,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _set_zoom(zoom: float) -> void:
 	_camera.zoom = Vector2.ONE * clampf(zoom, ZOOM_MIN, ZOOM_MAX)
+	_peak_markers.set_zoom(_camera.zoom.x)
 
 
 func _build_ui() -> void:
@@ -109,6 +114,12 @@ func _build_ui() -> void:
 		button.pressed.connect(_show.bind(shown))
 		row.add_child(button)
 
+	_peaks_toggle.text = tr("SHOW_PEAKS")
+	_peaks_toggle.button_pressed = true
+	_peaks_toggle.focus_mode = Control.FOCUS_NONE
+	_peaks_toggle.toggled.connect(func(on: bool) -> void: _peak_markers.visible = on and not _view_3d.visible)
+	row.add_child(_peaks_toggle)
+
 	var button_3d := Button.new()
 	button_3d.text = tr("VIEW_3D")
 	button_3d.toggle_mode = true
@@ -138,6 +149,7 @@ func _on_loaded(island: IslandData, meshes: Array[ArrayMesh], msec: int) -> void
 	_info.text = "%d ms" % msec
 	_material_texture = ImageTexture.create_from_image(_material_image(_island.material, _island.main_island, _island.fresh_water))
 	_view_3d.show_island(meshes, _island)
+	_peak_markers.show_peaks(_island.peaks, PIXELS_PER_CELL)
 	if not _view_3d.visible:
 		_show(_layer)
 	# Fit the whole island on screen.
@@ -151,6 +163,7 @@ func _show(layer: Layer) -> void:
 	_view_3d.hide()
 	_controls_3d.hide()
 	_sprite.show()
+	_peak_markers.visible = _peaks_toggle.button_pressed
 	match layer:
 		Layer.HEIGHT:
 			_sprite.texture = ImageTexture.create_from_image(_height_image(_island.height))
@@ -162,6 +175,7 @@ func _show(layer: Layer) -> void:
 
 func _show_3d() -> void:
 	_sprite.hide()
+	_peak_markers.hide()
 	_view_3d.show()
 	_controls_3d.show()
 

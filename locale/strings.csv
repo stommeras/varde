@@ -7,6 +7,7 @@ LAYER_HEIGHT,Høyde
 LAYER_MOISTURE,Fuktighet
 LAYER_MATERIAL,Materiale
 VIEW_3D,3D
+SHOW_PEAKS,Topper
 BASE_RESOLUTION,Oppløsning: %d×%d
 ZOOM_CELLS,Zoom: %d ruter
 TILT_DEGREES,Helning: %d°
@@ -23,5 +24,6 @@ STEP_MOISTURE,Lar regnet falle
 STEP_MATERIAL,Legger ut lyng og stein
 STEP_MAIN_ISLAND,Måler kystlinja
 STEP_RIVERS,Finner elvene
+STEP_PEAKS,Måler fjelltoppene
 STEP_START,Finner en strand å gå i land på
 STEP_MESH,Tegner kartet
