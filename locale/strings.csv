@@ -1,7 +1,7 @@
 keys,nb
 NEW_ISLAND,Ny øy
 SEED,Frø
-CHARTING_ISLAND,Kartlegger øya …
+CHARTING_ISLAND,Kartlegger øya
 RANDOM_SEED,Tilfeldig
 LAYER_HEIGHT,Høyde
 LAYER_MOISTURE,Fuktighet
@@ -16,3 +16,12 @@ GAME_TITLE,Varde
 SEED_OPTIONAL,Frø (valgfritt)
 RESUME,Fortsett
 QUIT_RUN,Avslutt
+STEP_HEIGHT,Løfter landet opp av havet
+STEP_EROSION,Lar elvene grave ut dalene
+STEP_CRAGS,Hogger ut fjellknausene
+STEP_MOISTURE,Lar regnet falle
+STEP_MATERIAL,Legger ut lyng og stein
+STEP_MAIN_ISLAND,Måler kystlinja
+STEP_RIVERS,Finner elvene
+STEP_START,Finner en strand å gå i land på
+STEP_MESH,Tegner kartet

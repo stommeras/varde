@@ -1,16 +1,17 @@
 class_name Game
 extends Node3D
-## One run on one island. The island generates on a background thread behind "Kartlegger øya" and
-## then shows through the game camera at the view values in SPEC.md. Once the island shows, Escape
+## One run on one island. The title screen generates the island and hands it over. Run on its own, the
+## scene generates it on a background thread behind "Kartlegger øya". The island then shows through the game camera at the view values in SPEC.md. Once the island shows, Escape
 ## pauses the run behind the pause menu.
 
 const TITLE_SCREEN: String = "res://game/title_screen.tscn"
 
-## The title screen sets it before it adds the scene. Running the scene on its own gives seed 0.
-var island_seed: int = 0
+## The island and its terrain chunk meshes. The title screen sets them before it adds the scene.
+## Running the scene on its own leaves them empty and generates seed 0.
+var island: IslandData
+var meshes: Array[ArrayMesh]
 var _terrain := IslandTerrain.new()
 var _camera := GameCamera.new()
-var _loader := IslandLoader.new()
 var _menu := PauseMenu.new()
 var _player := Player.new()
 ## False while the island generates. Leaving then would join the generator thread on the main thread
@@ -29,10 +30,15 @@ func _ready() -> void:
 	_player.camera = _camera
 	_player.terrain = _terrain
 	add_child(_player)
-	_loader.loaded.connect(_on_loaded)
-	add_child(_loader)
 	add_child(_menu)
-	_loader.start(island_seed)
+	if island != null:
+		_on_loaded(island, meshes, 0)
+		return
+	# Made only here, since a node that never joins the tree is never freed.
+	var loader := IslandLoader.new()
+	loader.loaded.connect(_on_loaded)
+	add_child(loader)
+	loader.start(0)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -41,7 +47,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_menu.open()
 
 
-func _on_loaded(island: IslandData, meshes: Array[ArrayMesh], _msec: int) -> void:
-	_terrain.show_island(meshes, island)
-	_player.place(island, island.start)
+func _on_loaded(loaded_island: IslandData, loaded_meshes: Array[ArrayMesh], _msec: int) -> void:
+	_terrain.show_island(loaded_meshes, loaded_island)
+	_player.place(loaded_island, loaded_island.start)
 	_loaded = true
