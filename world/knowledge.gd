@@ -23,6 +23,8 @@ var reveal_texture: ImageTexture
 ## Seconds the island has been shown, which IslandTerrain advances each frame. A clock of its own
 ## instead of the engine's ticks, so the fog's clearing pauses with the game and follows a movie's fixed frame rate.
 var now: float = 0.0
+## Counts the uploads that changed the textures, so the map screen can redraw only when it rises.
+var version: int = 0
 var _image: Image
 var _reveal_image: Image
 var _dirty: bool = false
@@ -92,6 +94,7 @@ func upload() -> void:
 	if not _dirty:
 		return
 	_dirty = false
+	version += 1
 	_image.set_data(IslandData.SIZE, IslandData.SIZE, false, Image.FORMAT_R8, levels)
 	texture.update(_image)
 	if not _reveal_dirty:

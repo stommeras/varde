@@ -18,6 +18,11 @@ uniform vec4 ink;
 uniform vec4 ink_faded;
 uniform vec4 water_ink;
 uniform vec4 sea_wash;
+// The middle step of each Ramps.Terrain ramp, in the enum's order.
+uniform vec4 ground[9];
+// How far known land takes its ground's color over the paper. 0 leaves plain paper, 1 paints the
+// ground's own color, and between gives a watercolor wash.
+uniform float land_tint = 0.0;
 
 // Height-map units between two contour lines, where the summit is 1.0. Lowering it draws more lines.
 // At 0.02 a line runs every 2 world units and every fifth, the thick one, every 10.
@@ -77,9 +82,9 @@ void fragment() {
 			// checkered wash blended back into the paper at zoom 1 and below.
 			COLOR = sea_wash;
 		} else {
-			COLOR = paper_land;
-			int band = int(floor(h / contour_interval));
 			int terrain = material_at(cell);
+			COLOR = mix(paper_land, ground[terrain], land_tint);
+			int band = int(floor(h / contour_interval));
 			bool coast = false;
 			bool outline = false;
 			bool thin = false;
