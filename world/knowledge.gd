@@ -27,8 +27,11 @@ func mark(cell: int, level: Level) -> void:
 
 ## Raises every cell to level, for the debug view and god mode.
 func mark_all(level: Level) -> void:
+	# Not a call to mark() per cell, because a million GDScript calls hitch the frame.
 	for cell: int in levels.size():
-		mark(cell, level)
+		if levels[cell] < level:
+			levels[cell] = level
+			_dirty = true
 
 
 ## Sends the levels to the texture if any changed since the last call. Call it once a frame at most,

@@ -11,7 +11,7 @@ uniform sampler2D material_map : filter_nearest, repeat_disable;
 // so a river's edge runs between cells instead of along their sides.
 uniform sampler2D fresh_water_map : filter_linear, repeat_disable;
 // One byte per cell, a Knowledge.Level, which the shader reads as that value / 255. Nearest, so a
-// cell is fully one level. Knowledge uploads a new texture whenever the player learns more.
+// cell is fully one level. Knowledge updates the texture once a frame when the player learns more.
 uniform sampler2D knowledge_map : filter_nearest, repeat_disable;
 // Row t holds the steps of ramp t, darkest first, as linear colors. TerrainMaterial builds it from
 // Ramps.RAMPS. Not source_color, because the Compatibility renderer skips that decode in texelFetch.

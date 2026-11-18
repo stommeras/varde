@@ -21,4 +21,3 @@ func test_mark_all_raises_every_cell_and_keeps_higher_ones() -> void:
 	expect(knowledge.levels[0] == Knowledge.Level.SEEN and knowledge.levels[knowledge.levels.size() - 1] == Knowledge.Level.SEEN, "mark_all missed an end cell")
 	knowledge.mark_all(Knowledge.Level.SURVEYED)
 	expect(knowledge.levels.count(Knowledge.Level.SURVEYED) == knowledge.levels.size(), "some cell is not surveyed after mark_all")
-
