@@ -32,6 +32,8 @@ static func generate(island_seed: int, on_step: Callable = Callable()) -> Island
 	river_rng.seed = rng.randi()
 	Rivers.generate(data, river_rng)
 	started = _record(data, "rivers", started, on_step)
+	data.peaks = Peaks.generate(data.height, data.main_island)
+	started = _record(data, "peaks", started, on_step)
 	var start_rng := RandomNumberGenerator.new()
 	start_rng.seed = rng.randi()
 	data.start = Walkability.start_cell(data, start_rng)

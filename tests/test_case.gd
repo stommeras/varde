@@ -20,3 +20,11 @@ static func island(island_seed: int) -> IslandData:
 	if not _islands.has(island_seed):
 		_islands[island_seed] = IslandGenerator.generate(island_seed)
 	return _islands[island_seed]
+
+
+## Every peak's cell, height and prominence as one string, to compare two lists of peaks.
+static func peaks_text(peaks: Array[Peak]) -> String:
+	var text: String = ""
+	for peak: Peak in peaks:
+		text += "%d %f %f;" % [peak.cell, peak.height, peak.prominence]
+	return text

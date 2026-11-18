@@ -24,6 +24,9 @@ var rivers: Array[PackedInt32Array] = []
 var fresh_water: PackedByteArray
 ## 1 on every cell a lake covers and 0 elsewhere, so the fresh water cells it leaves out are rivers.
 var lake: PackedByteArray
+## Every peak of the main island that rises at least Peaks.MIN_PROMINENCE times the summit's height
+## above its key saddle, highest first, so peaks[0] is the summit.
+var peaks: Array[Peak] = []
 ## The cell the player starts on, a beach cell of the main island, or -1 if the generator found none.
 var start: int
 ## Milliseconds each generator step took, in the order the steps ran. Timing differs between runs,

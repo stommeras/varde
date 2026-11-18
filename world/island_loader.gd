@@ -13,7 +13,7 @@ signal loaded(island: IslandData, meshes: Array[ArrayMesh], msec: int)
 ## machine fills the bar at the same places, just later.
 const STEP_MSEC: Dictionary[String, int] = {
 	"height": 480, "erosion": 1060, "crags": 220, "moisture": 280, "material": 160,
-	"main_island": 240, "rivers": 270, "start": 220, "mesh": 460,
+	"main_island": 240, "rivers": 270, "peaks": 560, "start": 220, "mesh": 460,
 }
 
 ## True keeps the cover hidden, for an island the player isn't waiting for.
