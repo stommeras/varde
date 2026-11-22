@@ -11,13 +11,14 @@ static func generate(island_seed: int, on_step: Callable = Callable()) -> Island
 	var rng := RandomNumberGenerator.new()
 	rng.seed = island_seed
 	var started: int = Time.get_ticks_msec()
-	var smooth: PackedFloat32Array = Height.smooth(rng)
+	var softness := PackedFloat32Array()
+	var smooth: PackedFloat32Array = Height.smooth(rng, softness)
 	started = _record(data, "height", started, on_step)
 	# Erosion draws hundreds of thousands of numbers, as many as its tuning asks for, so it gets a
 	# generator of its own. Retuning it then leaves the noise of the later steps as it was.
 	var erosion_rng := RandomNumberGenerator.new()
 	erosion_rng.seed = rng.randi()
-	Erosion.apply(smooth, erosion_rng)
+	Erosion.apply(smooth, erosion_rng, softness)
 	started = _record(data, "erosion", started, on_step)
 	data.height = Height.crags(smooth, rng)
 	started = _record(data, "crags", started, on_step)
@@ -37,7 +38,9 @@ static func generate(island_seed: int, on_step: Callable = Callable()) -> Island
 	var start_rng := RandomNumberGenerator.new()
 	start_rng.seed = rng.randi()
 	data.start = Walkability.start_cell(data, start_rng)
-	_record(data, "start", started, on_step)
+	started = _record(data, "start", started, on_step)
+	WaysUp.open(data)
+	_record(data, "ways_up", started, on_step)
 	return data
 
 

@@ -12,8 +12,8 @@ signal loaded(island: IslandData, meshes: Array[ArrayMesh], msec: int)
 ## its share, so it moves on through the long erosion step. Only the shares matter, so a slower
 ## machine fills the bar at the same places, just later.
 const STEP_MSEC: Dictionary[String, int] = {
-	"height": 480, "erosion": 1060, "crags": 220, "moisture": 280, "material": 160,
-	"main_island": 240, "rivers": 270, "peaks": 560, "start": 220, "mesh": 460,
+	"height": 1130, "erosion": 1560, "crags": 310, "moisture": 330, "material": 180,
+	"main_island": 260, "rivers": 430, "peaks": 600, "start": 260, "ways_up": 200, "mesh": 460,
 }
 
 ## True keeps the cover hidden, for an island the player isn't waiting for.

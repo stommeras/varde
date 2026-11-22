@@ -8,12 +8,17 @@ extends RefCounted
 ## it, so the terrain and the debug view's height slider start here. Raising it makes every slope
 ## steeper in world units, so more of them block.
 const SUMMIT_UNITS: float = 100.0
+## Steepest slope the player walks up or down, in degrees. At 72° the player climbed spires and
+## walked up walls. At 45° the eroded massifs of #94 were too steep to walk up on almost every
+## side, with a summit of SUMMIT_UNITS on this grid. Raising it opens more of the mountainsides.
+const WALK_DEGREES: float = 60.0
 ## The terrain shader's cliff_normal_y. Faces whose normal's y is below it are drawn as cliff rock.
-const CLIFF_NORMAL_Y: float = 0.3
-## Steepest walkable slope, in height units per cell. A normal with y = n belongs to a slope of
-## sqrt(1 / n² - 1), so 0.3 gives about 3.18 world units per cell, 0.0318 against a summit of 1.0.
-## Keep it at the shader's threshold, so every slope that blocks is drawn as rock.
-const MAX_SLOPE: float = sqrt(1.0 / (CLIFF_NORMAL_Y * CLIFF_NORMAL_Y) - 1.0) / SUMMIT_UNITS
+## It sits at the walk limit, so every face drawn as rock blocks and every face drawn as ground is
+## walkable. With rock from 72° and walking to 45°, the slopes between blocked while drawn as grass.
+const CLIFF_NORMAL_Y: float = cos(deg_to_rad(WALK_DEGREES))
+## Steepest walkable slope, in height units per cell: about 1.73 world units per cell at 60°,
+## 0.0173 against a summit of 1.0.
+const MAX_SLOPE: float = tan(deg_to_rad(WALK_DEGREES)) / SUMMIT_UNITS
 ## Random cells start_cell() tries before it gives up. Most tries land off the beach and cost little.
 ## Raising it only matters on an island with very little beach, and lowering it risks no start.
 const START_TRIES: int = 100000

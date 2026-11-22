@@ -5,10 +5,9 @@ extends Node
 ## fog clears from the surveyed land in a ring that spreads from the peak, then the figure stacks a
 ## varde on the peak as the camera comes back. Each peak can be surveyed once.
 
-## Cells from a peak's top within which the player can survey it. Raising it lets the player survey
-## from further down the slope. At 6 the prompt came up well below the top of a steep peak, so the
-## survey didn't feel like it happened on the top.
-const ZONE_RADIUS: float = 3.0
+## Cells from a peak's top within which the player can survey it. The generator keeps a way open
+## into this zone, so the value lives on Peak.
+const ZONE_RADIUS: float = Peak.ZONE_RADIUS
 ## Cells from a peak's top within which a ring floats over the edge of its zone, so the player can
 ## find the top. Raising it shows the ring from further down.
 const MARKER_REACH: float = 6.0

@@ -3,9 +3,10 @@ class_name MaterialLookup
 ## Cells at or below sea level are water. Values are Ramps.Terrain.
 
 ## Upper height of each band in TABLE, up from sea level. Land above the last value is the top band.
-## Heights pass through Height.PEAK_SHARPNESS, so half the land lies below 0.07 and only the top few percent above 0.6.
-## Raising a value widens that band and pushes the ones above it up the slopes.
-const HEIGHT_BANDS: Array[float] = [0.003, 0.08, 0.35, 0.6]
+## Height._curve keeps the lowland low, and only the massifs rise above about 0.4. With rock from
+## 0.35 and snow from 0.6, the massifs turned to bare rock from their feet up. Raising a value widens
+## that band and pushes the ones above it up the slopes.
+const HEIGHT_BANDS: Array[float] = [0.003, 0.08, 0.5, 0.75]
 ## Upper moisture of the dry and medium columns. Raising a value moves cells toward the drier column.
 const MOISTURE_BANDS: Array[float] = [0.4, 0.62]
 ## One row per height band, one column per moisture band: dry, medium, wet.

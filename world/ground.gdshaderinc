@@ -47,11 +47,10 @@ uniform float warp_scale = 24.0;
 // How far, in cells, a boundary can move from the grid. Below about 0.5 the grid's straight edges
 // show, and above about 3 thin bands of a material break up into islands.
 uniform float warp_cells = 1.5;
-// The normal's y below which a face counts as a cliff and turns to rock. cos(73°) is about 0.3.
-// TerrainMaterial sets it from Walkability.CLIFF_NORMAL_Y, because the player can't climb these faces.
-// Raising it turns gentler slopes to rock too. At 0.5 (60°) the eroded valley sides of #33 turned
-// whole mountains to rock, and their strata drew contour rings around them.
-uniform float cliff_normal_y = 0.3;
+// The normal's y below which a face counts as a cliff and turns to rock. TerrainMaterial sets it from
+// Walkability.CLIFF_NORMAL_Y, cos(45°), because the player can't climb these faces. Raising it turns
+// gentler slopes to rock too.
+uniform float cliff_normal_y = 0.707;
 // How much noise moves the cliff threshold, so rock edges on a slope are ragged instead of following
 // one contour of steepness.
 uniform float cliff_wobble = 0.15;
