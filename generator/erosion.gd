@@ -8,27 +8,32 @@ class_name Erosion
 
 ## Width of the grid the erosion runs on. Each of its cells covers SIZE / GRID cells of the island,
 ## so the narrowest valley is about 2 * SIZE / GRID cells wide. At 128 the valleys showed the grid
-## as blocks. 512 would take about 4 times as long.
-const GRID: int = 256
+## as blocks. At 256 the massifs of #94 came out as smooth, rounded slopes. On seeds 0 to 4, 512
+## takes 1.5 to 1.7 s against 1.2 s at 256, since the routing skips the ground erosion leaves alone.
+const GRID: int = 512
 ## Passes over the grid. Each pass routes water over the terrain the last one left, so big valleys
 ## capture the water of the small ones beside them. 4 passes leave more short parallel valleys,
 ## and 15 look the same as 8 and take twice as long.
 const PASSES: int = 8
 ## Slope of a valley side that drains only itself, per grid cell and per unit of height before
 ## erosion. Raising it gives steeper valley sides and raises the ridges, lowering it carves deeper.
-const SLOPE: float = 0.6
+## It and CHANNEL_AREA are 0.6 and 8 tuned on a grid of 256, carried over to cells half as wide.
+const SLOPE: float = 1.2
 ## A cell that drains n cells keeps a slope of SLOPE / n ** AREA_POWER. Raising it flattens the big
 ## valleys against the small ones, so fewer, wider main valleys cut into the mountain. At 0.5 and
 ## 0.8 the mountains were ribbed with narrow valleys side by side.
 const AREA_POWER: float = 1.0
 ## Cells that drain fewer cells than this keep the same slope as one that drains this many. Raising
-## it widens the space between valleys, and at 30 the slopes between them turned into flat facets.
-const CHANNEL_AREA: float = 8.0
+## it widens the space between valleys, and at 120 the slopes between them turned into flat facets.
+const CHANNEL_AREA: float = 32.0
 ## Erosion fades in as the height before erosion rises from ERODE_FROM to ERODE_TO, in the units of
 ## Height.smooth, where the tallest mountain reaches about 1. Lowering them erodes smaller hills too.
 const ERODE_FROM: float = 0.3
 ## Height where erosion reaches full strength. See ERODE_FROM.
 const ERODE_TO: float = 0.55
+## Share of SLOPE that fully soft rock keeps. Massifs makes one ridge of each massif soft, so it
+## wears down to slopes the player can walk. Of 0.2, 0.3 and 0.5, 0.3 cut off the fewest peaks.
+const SOFT_SLOPE: float = 0.3
 
 ## The eight neighbors, with the distance to each, so diagonal slopes aren't overstated.
 const NEIGHBOR_OFFSET: Array[int] = [-GRID - 1, -GRID, -GRID + 1, -1, 1, GRID - 1, GRID, GRID + 1]
@@ -38,7 +43,8 @@ const NEIGHBOR_BLUR: Array[float] = [1.0, 2.0, 1.0, 2.0, 2.0, 1.0, 2.0, 1.0]
 
 
 ## Erodes a height from Height.smooth in place. Routing the water takes random choices from rng.
-static func apply(height: PackedFloat32Array, rng: RandomNumberGenerator) -> void:
+## softness, if given, holds 0 for hard rock and 1 for soft rock per cell, see SOFT_SLOPE.
+static func apply(height: PackedFloat32Array, rng: RandomNumberGenerator, softness: PackedFloat32Array = PackedFloat32Array()) -> void:
 	var size: int = IslandData.SIZE
 	var factor: int = size / GRID
 	var grid := PackedFloat32Array()
@@ -48,7 +54,13 @@ static func apply(height: PackedFloat32Array, rng: RandomNumberGenerator) -> voi
 			grid[(y / factor) * GRID + x / factor] += height[IslandData.index(x, y)]
 	for i: int in grid.size():
 		grid[i] /= factor * factor
-	var change: PackedFloat32Array = _erode(grid, rng)
+	var soft := PackedFloat32Array()
+	soft.resize(GRID * GRID)
+	if not softness.is_empty():
+		for y: int in size:
+			for x: int in size:
+				soft[(y / factor) * GRID + x / factor] += softness[IslandData.index(x, y)] / (factor * factor)
+	var change: PackedFloat32Array = _erode(grid, rng, soft)
 
 	for y: int in size:
 		# Grid cell centers sit at (g + 0.5) * factor, so the bilinear lookup shifts by half a cell.
@@ -76,7 +88,7 @@ static func apply(height: PackedFloat32Array, rng: RandomNumberGenerator) -> voi
 ## height of the cell it drains to plus the slope its water allows. That is the shape rivers cut a
 ## mountain into once they have worked on it long enough. It lowers the valleys and raises some
 ## ridges, and keeps the mountain's height in proportion to the height before erosion.
-static func _erode(grid: PackedFloat32Array, rng: RandomNumberGenerator) -> PackedFloat32Array:
+static func _erode(grid: PackedFloat32Array, rng: RandomNumberGenerator, soft: PackedFloat32Array) -> PackedFloat32Array:
 	var cells: int = grid.size()
 	var before: PackedFloat32Array = grid.duplicate()
 	var weight := PackedFloat32Array()
@@ -90,7 +102,7 @@ static func _erode(grid: PackedFloat32Array, rng: RandomNumberGenerator) -> Pack
 	distance.resize(cells)
 	var water := PackedFloat32Array()
 	water.resize(cells)
-	# Cells sorted by height, as the height in the high bits and the index in the low 16.
+	# Cells sorted by height, as the height in the high bits and the index in the low 18.
 	var order := PackedInt64Array()
 	order.resize(cells)
 	var drops := PackedFloat32Array()
@@ -105,8 +117,10 @@ static func _erode(grid: PackedFloat32Array, rng: RandomNumberGenerator) -> Pack
 				# The sea floor reaches about -4.3 in the corners, so the offset of 8 keeps the key positive.
 				# The scale of 1e9 gives any two float32 heights above 0.01 different keys, so a cell
 				# always sorts above the lower cell it drains to.
-				order[i] = (int((grid[i] + 8.0) * 1e9) << 16) | i
-				if x == 0 or y == 0 or x == GRID - 1 or y == GRID - 1:
+				order[i] = (int((grid[i] + 8.0) * 1e9) << 18) | i
+				# Ground erosion leaves alone keeps its height whatever drains through it, so its water
+				# isn't routed. That skips most of the grid and cut the step's time to about a third.
+				if weight[i] == 0.0 or x == 0 or y == 0 or x == GRID - 1 or y == GRID - 1:
 					continue
 				# A random downhill neighbor, weighted by slope. Always taking the steepest one lined
 				# the valleys up along the grid's 8 directions in parallel stripes.
@@ -128,18 +142,18 @@ static func _erode(grid: PackedFloat32Array, rng: RandomNumberGenerator) -> Pack
 		water.fill(1.0)
 		# From the top down, each cell passes all its water to its receiver.
 		for k: int in range(cells - 1, -1, -1):
-			var i: int = order[k] & 0xFFFF
+			var i: int = order[k] & 0x3FFFF
 			if receiver[i] != i:
 				water[receiver[i]] += water[i]
 		# From the bottom up, so each receiver already has its new height. The lowland, pits and the
 		# grid's edge keep their height and are where the rebuilt mountain starts from.
 		for k: int in cells:
-			var i: int = order[k] & 0xFFFF
+			var i: int = order[k] & 0x3FFFF
 			var r: int = receiver[i]
 			if r == i or weight[i] == 0.0:
 				grid[i] = before[i]
 				continue
-			var slope: float = SLOPE * before[i] / pow(maxf(water[i], CHANNEL_AREA), AREA_POWER)
+			var slope: float = SLOPE * lerpf(1.0, SOFT_SLOPE, soft[i]) * before[i] / pow(maxf(water[i], CHANNEL_AREA), AREA_POWER)
 			grid[i] = lerpf(before[i], grid[r] + distance[i] * slope, weight[i])
 
 	# One blur of the change. Without it the random routing left a row of small tops along each

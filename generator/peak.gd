@@ -2,6 +2,11 @@ class_name Peak
 extends RefCounted
 ## One peak on the main island, as Peaks finds it.
 
+## Cells from a peak's top within which the player can survey it. Raising it lets the player survey
+## from further down the slope. At 6 the prompt came up well below the top of a steep peak, so the
+## survey didn't feel like it happened on the top. WaysUp keeps a way open into this zone.
+const ZONE_RADIUS: float = 3.0
+
 ## The array index of the peak's highest cell.
 var cell: int
 ## The cell's height, where the summit is 1.0.

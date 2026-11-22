@@ -26,6 +26,7 @@ STEP_MATERIAL,Legger ut lyng og stein
 STEP_MAIN_ISLAND,Måler kystlinja
 STEP_RIVERS,Finner elvene
 STEP_PEAKS,Måler fjelltoppene
+STEP_WAYS_UP,Leter etter veien opp
 STEP_START,Finner en strand å gå i land på
 STEP_MESH,Tegner kartet
 SURVEY_PEAK,[E] Kartlegg toppen
