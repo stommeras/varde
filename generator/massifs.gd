@@ -8,13 +8,15 @@ class_name Massifs
 ## land around it. Peaks.MIN_PROMINENCE decides how many of their tops count as peaks.
 const MIN_COUNT: int = 6
 const MAX_COUNT: int = 9
-## Random spots tried before placement gives up on more massifs.
+## Random spots tried before placement gives up on more massifs. Raising it fits more massifs on a
+## crowded island at the cost of time, and lowering it leaves fewer than MIN_COUNT more often.
 const TRIES: int = 8000
 ## Radius of a massif's core, in cells. Its ridges reach out up to RIDGE_LENGTH times as far.
 ## Raising it makes fewer and bigger massifs, lowering it more and steeper ones.
 const MIN_RADIUS: float = 40.0
 const MAX_RADIUS: float = 70.0
-## Cells the middle of a massif keeps from the grid's edge.
+## Cells the middle of a massif keeps from the grid's edge. Raising it pulls massifs in toward the
+## middle of the map, and lowering it lets their ridges run out to the coast.
 const EDGE: float = 80.0
 ## Share of the radius around a massif's middle that must be land. Lower values let massifs stand
 ## on the coast and on narrow necks of land, where all their sides came out too steep to walk.
@@ -23,16 +25,20 @@ const SEA_MARGIN: float = 0.8
 ## ranges with high saddles, so fewer of their tops count as peaks.
 const SPACING: float = 0.9
 ## Uplift of the first massif's middle over the land under it, before erosion. The others get a
-## random share of it from MIN_SHARE to MAX_SHARE, so the first is the summit.
+## random share of it from MIN_SHARE to MAX_SHARE, so the first is the summit. Raising LIFT makes
+## every massif taller and steeper. Raising the shares brings the other tops closer to the summit's
+## height, and lowering them makes the summit stand out more.
 const LIFT: float = 1.0
 const MIN_SHARE: float = 0.7
 const MAX_SHARE: float = 0.95
 ## Uplift every massif adds on top of its share of LIFT, so even the smallest stands above the hills.
 const FOOT: float = 0.35
-## Ridges per massif.
+## Ridges per massif. More ridges give a massif more spurs and more sides to walk up, fewer give a
+## long single range.
 const MIN_RIDGES: int = 2
 const MAX_RIDGES: int = 4
-## Length of a ridge, as a share of the massif's radius.
+## Length of a ridge, as a share of the massif's radius. Longer ridges reach out and join the
+## neighboring massifs, and shorter ones keep each massif a compact knot.
 const MIN_RIDGE_LENGTH: float = 0.675
 const MAX_RIDGE_LENGTH: float = 1.275
 ## Half the width of a ridge's uplift, as a share of the radius. At 0.55 the uplift rose so fast at
@@ -49,6 +55,7 @@ const SOFT_RIDGES: int = 1
 ## band took in much of the massif, more peaks were cut off, and seed 3 kept only 4 peaks.
 const SOFT_ACROSS: float = 0.5
 ## How much noise moves a massif's width up and down by direction, as a share of the radius.
+## Raising it gives ragged, lopsided massifs, and at 0 every ridge is the same width all round.
 const OUTLINE_WARP: float = 0.45
 
 

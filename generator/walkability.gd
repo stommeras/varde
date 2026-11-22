@@ -13,8 +13,10 @@ const SUMMIT_UNITS: float = 100.0
 ## side, with a summit of SUMMIT_UNITS on this grid. Raising it opens more of the mountainsides.
 const WALK_DEGREES: float = 60.0
 ## The terrain shader's cliff_normal_y. Faces whose normal's y is below it are drawn as cliff rock.
-## It sits at the walk limit, so every face drawn as rock blocks and every face drawn as ground is
-## walkable. With rock from 72° and walking to 45°, the slopes between blocked while drawn as grass.
+## It sits at the walk limit, so rock starts near the angle that blocks. The shader's cliff_wobble
+## moves the edge by noise so it doesn't follow one contour, so rock can show from about 45° and
+## grass up to about 72°, at ragged edges. With rock from 72° and walking to 45° everywhere, whole
+## slopes between blocked while drawn as grass.
 const CLIFF_NORMAL_Y: float = cos(deg_to_rad(WALK_DEGREES))
 ## Steepest walkable slope, in height units per cell: about 1.73 world units per cell at 60°,
 ## 0.0173 against a summit of 1.0.

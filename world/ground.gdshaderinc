@@ -48,9 +48,9 @@ uniform float warp_scale = 24.0;
 // show, and above about 3 thin bands of a material break up into islands.
 uniform float warp_cells = 1.5;
 // The normal's y below which a face counts as a cliff and turns to rock. TerrainMaterial sets it from
-// Walkability.CLIFF_NORMAL_Y, cos(45°), because the player can't climb these faces. Raising it turns
+// Walkability.CLIFF_NORMAL_Y, cos(60°), because the player can't climb these faces. Raising it turns
 // gentler slopes to rock too.
-uniform float cliff_normal_y = 0.707;
+uniform float cliff_normal_y = 0.5;
 // How much noise moves the cliff threshold, so rock edges on a slope are ragged instead of following
 // one contour of steepness.
 uniform float cliff_wobble = 0.15;

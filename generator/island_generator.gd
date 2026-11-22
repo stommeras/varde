@@ -39,7 +39,12 @@ static func generate(island_seed: int, on_step: Callable = Callable()) -> Island
 	start_rng.seed = rng.randi()
 	data.start = Walkability.start_cell(data, start_rng)
 	started = _record(data, "start", started, on_step)
-	WaysUp.open(data)
+	# WaysUp needs the start, which needs the rivers and the material, so it runs after them and
+	# then redoes what depends on the heights it raised. Raising cells only lowers prominence, so
+	# the peaks can drop out but no new one appears that WaysUp didn't mend.
+	if WaysUp.open(data) > 0:
+		data.material = MaterialLookup.generate(data.height, data.moisture)
+		data.peaks = Peaks.generate(data.height, data.main_island)
 	_record(data, "ways_up", started, on_step)
 	return data
 

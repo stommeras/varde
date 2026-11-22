@@ -95,6 +95,17 @@ static func _erode(grid: PackedFloat32Array, rng: RandomNumberGenerator, soft: P
 	weight.resize(cells)
 	for i: int in cells:
 		weight[i] = smoothstep(ERODE_FROM, ERODE_TO, before[i])
+	# Cells whose water is routed: those erosion reshapes and the ones beside them, since a valley
+	# can cut below the untouched ground at its edge and should still get that ground's water.
+	var routed := PackedByteArray()
+	routed.resize(cells)
+	for y: int in range(1, GRID - 1):
+		for x: int in range(1, GRID - 1):
+			var i: int = y * GRID + x
+			if weight[i] > 0.0:
+				routed[i] = 1
+				for k: int in 8:
+					routed[i + NEIGHBOR_OFFSET[k]] = 1
 	# The cell each cell drains to, or itself in a pit or on the grid's edge.
 	var receiver := PackedInt32Array()
 	receiver.resize(cells)
@@ -119,8 +130,9 @@ static func _erode(grid: PackedFloat32Array, rng: RandomNumberGenerator, soft: P
 				# always sorts above the lower cell it drains to.
 				order[i] = (int((grid[i] + 8.0) * 1e9) << 18) | i
 				# Ground erosion leaves alone keeps its height whatever drains through it, so its water
-				# isn't routed. That skips most of the grid and cut the step's time to about a third.
-				if weight[i] == 0.0 or x == 0 or y == 0 or x == GRID - 1 or y == GRID - 1:
+				# isn't routed unless it borders eroding ground. That skips most of the grid and cut the
+				# step's time to about a third.
+				if routed[i] == 0 or x == 0 or y == 0 or x == GRID - 1 or y == GRID - 1:
 					continue
 				# A random downhill neighbor, weighted by slope. Always taking the steepest one lined
 				# the valleys up along the grid's 8 directions in parallel stripes.

@@ -1,7 +1,7 @@
 class_name WaysUp
 ## Part of generator step 5, after the start: makes sure the player can walk from the start up to
 ## every peak. Erosion leaves a walkable side on most massifs by itself, down the soft ridge Massifs
-## gives each one. On seeds 0 to 9, a single step too steep to walk still cut off 2 of 69 peaks.
+## gives each one. On seeds 0 to 9, a single step too steep to walk still cut off 1 of 70 peaks.
 ## This finds the path from a peak's survey zone to the land the start reaches that crosses the
 ## fewest such steps, and raises the lower cell of each until the step can be walked. It only
 ## raises cells, and never to the height of the cell above, so no top moves and none appears.
@@ -11,13 +11,16 @@ class_name WaysUp
 ## Share of the steepest walkable slope a mended step gets, so rounding never leaves it too steep.
 const FILL: float = 0.95
 ## Times a peak's path is searched and mended. Each mend can make the next step too steep, so a
-## peak may take several. On seeds 0 to 9 the most any peak needed was 45 rounds, which raised 56
-## cells by a few world units each. They don't show in the game at zoom 40 or 120.
+## peak may take several. On seeds 0 to 9 the one mended peak needed 20 raised cells, and an
+## earlier tuning needed 45 rounds for 56 cells, a few world units each. They don't show in the
+## game at zoom 40 or 120.
 const ROUNDS: int = 100
+## What _steep_steps returns, as its only element, when no path reaches the start's land.
+const NO_PATH: int = -1
 
 
 ## Mends the ways from data.start up to every peak of data, in place. Returns how many cells it
-## raised.
+## raised. Warns when a peak has no way at all, or still has a steep step after ROUNDS.
 static func open(data: IslandData) -> int:
 	if data.start < 0:
 		return 0
@@ -29,9 +32,13 @@ static func open(data: IslandData) -> int:
 	came.resize(data.height.size())
 	var raised: int = 0
 	for peak: Peak in data.peaks:
+		var mended: bool = false
 		for attempt: int in ROUNDS:
 			var steep: PackedInt32Array = _steep_steps(data, peak.cell, reached, cost, came)
 			if steep.is_empty():
+				mended = true
+				break
+			if steep[0] == NO_PATH:
 				break
 			for k: int in range(0, steep.size(), 2):
 				var low: int = steep[k]
@@ -41,6 +48,8 @@ static func open(data: IslandData) -> int:
 				# past it to land the start still reaches.
 				reached[low] = 0
 				raised += 1
+		if not mended:
+			push_warning("WaysUp: no way up to the peak at cell %d on island %d" % [peak.cell, data.island_seed])
 	return raised
 
 
@@ -66,7 +75,9 @@ static func _flood(data: IslandData, start: int) -> PackedByteArray:
 
 
 ## The steps too steep to walk on the path from peak's survey zone to a reached cell that has the
-## fewest of them, as pairs of the lower and the higher cell. Empty when the path is open. It
+## fewest of them, as pairs of the lower and the higher cell. Empty when the path is open, and
+## [NO_PATH] when no path reaches the start's land. A steep step whose lower cell is a river or lake
+## is never taken, since raising it would make the water run uphill. It
 ## searches by the number of steep steps, spreading through open steps first, so it stops at the
 ## first reached cell it finds with the least of them. cost and came are scratch arrays the size of
 ## the grid, and cost is left all -1 again.
@@ -105,12 +116,18 @@ static func _steep_steps(data: IslandData, peak: int, reached: PackedByteArray, 
 					cost[next] = level
 					came[next] = cell
 					front.append(next)
+				elif data.fresh_water[next if data.height[next] < data.height[cell] else cell] == 1:
+					continue
 				elif cost[next] < 0 or cost[next] > level + 1:
 					cost[next] = level + 1
 					came[next] = cell
 					later.append(next)
 		front = later
 		level += 1
+	if found < 0:
+		for t: int in touched:
+			cost[t] = -1
+		return PackedInt32Array([NO_PATH])
 	var steep := PackedInt32Array()
 	var cell: int = found
 	while cell >= 0 and came[cell] != cell:
