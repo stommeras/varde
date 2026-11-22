@@ -23,7 +23,7 @@ uniform float grain_steps = 0.6;
 uniform float strata_spacing = 5.0;
 // How many spacings noise can bend a stratum up or down along the cliff, so the bands aren't perfectly level.
 uniform float strata_wobble = 0.6;
-// The normal's y below which rock shows strata, cos(73°). Rock starts at the walk limit of 45°, and
+// The normal's y below which rock shows strata, cos(73°). Rock starts at the walk limit of 60°, and
 // with strata on all of it, whole mountainsides turned to grey stripes. Raising it adds strata to
 // gentler rock.
 uniform float strata_normal_y = 0.3;
