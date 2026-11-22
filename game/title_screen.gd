@@ -1,10 +1,10 @@
 extends Control
-## The title screen, and the game's main scene. The backdrop island circles behind the menu. "Ny øy"
+## The title screen, and the game's main scene. The backdrop island pans behind the menu. "Ny øy"
 ## generates an island from the seed in the seed field, or from a random seed when the field is empty,
 ## with the backdrop dimmed behind the loading bar, and then starts the run.
 
 const GAME: PackedScene = preload("res://game/game.tscn")
-## Seconds the backdrop takes to fade in, and to dim when a run starts.
+## Seconds the backdrop takes to dim when a run starts.
 const FADE_SECONDS: float = 1.0
 ## How much the sea color hides the backdrop while the run's island generates. Raising it dims more.
 const LOADING_DIM: float = 0.6
@@ -14,7 +14,7 @@ const TITLE_OUTLINE: int = 8
 const KEY_REST_SINK: int = 2
 
 var _backdrop := Backdrop.new()
-## The sea color over the backdrop. Opaque until the backdrop shows.
+## The sea color over the backdrop, clear until a run starts.
 var _veil := ColorRect.new()
 var _menu := CenterContainer.new()
 var _new_island := Button.new()
@@ -26,9 +26,9 @@ var _fade: Tween
 func _ready() -> void:
 	RenderingServer.set_default_clear_color(Ramps.RAMPS[Ramps.Terrain.WATER][0])
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	_backdrop.shown.connect(_on_backdrop_shown)
 	add_child(_backdrop)
 	_veil.color = Ramps.RAMPS[Ramps.Terrain.WATER][0]
+	_veil.color.a = 0.0
 	_veil.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_veil)
@@ -105,12 +105,6 @@ func _start() -> void:
 	_menu.hide()
 	_fade_veil(LOADING_DIM)
 	_loader.start(IslandLoader.seed_from(_seed_field.text))
-
-
-# On first launch the player may start a run before the backdrop shows, and then it stays dimmed.
-func _on_backdrop_shown() -> void:
-	if _menu.visible:
-		_fade_veil(0.0)
 
 
 func _fade_veil(alpha: float) -> void:

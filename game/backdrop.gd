@@ -1,70 +1,57 @@
 class_name Backdrop
-extends Node3D
-## The island behind the title screen, seen through the game camera as it circles the summit. The
-## island generates on a background thread the first time, and later title screens reuse it.
+extends Sprite2D
+## The island behind the title screen, a still image that game/render_backdrop.gd rendered ahead of
+## time, so the title screen shows it from the first frame. The view starts at a random edge of the
+## island, pans in toward the middle, and turns back in a slow arc whenever it drifts out past the
+## land, so it never settles on open sea.
 
-## Sent once the island shows, on the main thread.
-signal shown
+const IMAGE: Texture2D = preload("res://game/backdrop.png")
+## Screen pixels the view moves per second. 10 is about 4 cells a second at the image's zoom of 256.
+## Raising it makes the drift livelier, lowering it calmer.
+const SPEED: float = 10.0
+## How fast the view turns back once it's past the land, as a share of the remaining turn per second.
+## Raising it makes tighter turns, lowering it wider arcs that show more sea.
+const TURN: float = 0.3
+## Screen pixels inside the image's edge where the turn begins, so the arc ends before the view runs
+## off the image. Lowering it reaches further out but risks showing the edge.
+const TURN_MARGIN: float = 200.0
+## Radians the first heading may miss the middle by, so each launch takes a different line.
+const AIM_SPREAD: float = 0.4
 
-## Text the seed comes from, as if typed into the seed field. Chosen by eye from frames of a few
-## candidates.
-const SEED_TEXT: String = "varde"
-## Cells of ground from the top to the bottom of the screen. Above the game's zoom, so the view takes
-## in the summit and the land around it.
-const ZOOM: float = 120.0
-## Cells from the summit to the circle the camera follows. Raising it shows more coast and less of the
-## mountain.
-const RADIUS: float = 50.0
-## Cells the camera moves per second. Raising it makes the drift livelier, lowering it calmer.
-const SPEED: float = 2.0
-
-# ponytail: holds the island and its meshes, about 40 MB, through every run. Rebuild them on return to
-# the title screen if memory gets tight, as on the web.
-static var _island: IslandData
-static var _meshes: Array[ArrayMesh]
-
-var _terrain := IslandTerrain.new()
-var _camera := GameCamera.new()
-var _loader := IslandLoader.new()
-var _summit := Vector3.ZERO
-## Radians around the circle, from east of the summit toward the south.
-var _angle: float = 0.0
+## The image pixel in the middle of the screen.
+var _center: Vector2
+## Radians, as Vector2.angle() gives them.
+var _heading: float
 
 
 func _ready() -> void:
-	add_child(_terrain)
-	_camera.zoom = ZOOM
-	add_child(_camera)
-	add_child(Sun.new())
-	if _island != null:
-		_show.call_deferred()
-		return
-	_loader.quiet = true
-	_loader.loaded.connect(_on_loaded)
-	add_child(_loader)
-	_loader.start(IslandLoader.seed_from(SEED_TEXT))
+	texture = IMAGE
+	centered = false
+	var steer: Rect2 = _inside().grow(-TURN_MARGIN)
+	var middle: Vector2 = steer.get_center()
+	# A point far out in a random direction, pulled back onto the edge of the turning box.
+	var far: Vector2 = middle + Vector2.from_angle(randf() * TAU) * steer.size.length()
+	_center = far.clamp(steer.position, steer.end)
+	_heading = (middle - _center).angle() + randf_range(-AIM_SPREAD, AIM_SPREAD)
+	_place()
 
 
 func _process(delta: float) -> void:
-	_angle += SPEED / RADIUS * delta
-	_camera.focus = _summit + Vector3(cos(_angle), 0.0, sin(_angle)) * RADIUS
-	_camera.place()
+	var steer: Rect2 = _inside().grow(-TURN_MARGIN)
+	if not steer.has_point(_center):
+		_heading = lerp_angle(_heading, (steer.get_center() - _center).angle(), minf(TURN * delta, 1.0))
+	_center += Vector2.from_angle(_heading) * SPEED * delta
+	_place()
 
 
-func _on_loaded(island: IslandData, meshes: Array[ArrayMesh], _msec: int) -> void:
-	_island = island
-	_meshes = meshes
-	_show()
+# Where the middle of the screen can go with the whole screen still on the image.
+func _inside() -> Rect2:
+	var screen: Vector2 = get_viewport_rect().size
+	return Rect2(screen / 2.0, IMAGE.get_size() - screen)
 
 
-func _show() -> void:
-	_terrain.show_island(_meshes, _island)
-	# The backdrop shows the whole island, with no fog.
-	_terrain.knowledge.mark_all(Knowledge.Level.SURVEYED, Knowledge.LONG_AGO)
-	var highest: int = 0
-	for i: int in _island.height.size():
-		if _island.height[i] > _island.height[highest]:
-			highest = i
-	# At sea level below the summit, as in the debug view, so the circle runs at one depth.
-	_summit = Vector3(highest % IslandData.SIZE + 0.5, 0.0, highest / IslandData.SIZE + 0.5)
-	shown.emit()
+func _place() -> void:
+	var inside: Rect2 = _inside()
+	_center = _center.clamp(inside.position, inside.end)
+	# Whole pixels, so the dither pattern doesn't shimmer.
+	position = (get_viewport_rect().size / 2.0 - _center).round()
