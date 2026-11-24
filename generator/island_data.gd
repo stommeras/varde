@@ -29,6 +29,9 @@ var rivers: Array[PackedInt32Array] = []
 var fresh_water: PackedByteArray
 ## 1 on every cell a lake covers and 0 elsewhere, so the fresh water cells it leaves out are rivers.
 var lake: PackedByteArray
+## 1 on every land cell next to a step steeper than the walk limit and 0 elsewhere. The player can't
+## stand on it, and the terrain shader draws it as cliff rock. Walkability.mark_cliffs() builds it.
+var cliff: PackedByteArray
 ## Every peak of the main island that rises at least Peaks.MIN_PROMINENCE times the summit's height
 ## above its key saddle, highest first, so peaks[0] is the summit.
 var peaks: Array[Peak] = []

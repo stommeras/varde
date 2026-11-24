@@ -11,6 +11,9 @@ uniform sampler2D material_map : filter_nearest, repeat_disable;
 // One byte per cell, 1 where a river or lake covers it, which the shader reads as 1 / 255. Linear,
 // so a river's edge runs between cells instead of along their sides.
 uniform sampler2D fresh_water_map : filter_linear, repeat_disable;
+// One byte per cell, 1 on a cliff the player can't stand on (IslandData.cliff), which the shader
+// reads as 1 / 255. Linear, so a cliff's edge runs between cells and rounds its corners.
+uniform sampler2D cliff_map : filter_linear, repeat_disable;
 // One byte per cell, a Knowledge.Level, which the shader reads as that value / 255. Nearest, so a
 // cell is fully one level. Knowledge updates the texture once a frame when the player learns more.
 uniform sampler2D knowledge_map : filter_nearest, repeat_disable;
@@ -47,13 +50,10 @@ uniform float warp_scale = 24.0;
 // How far, in cells, a boundary can move from the grid. Below about 0.5 the grid's straight edges
 // show, and above about 3 thin bands of a material break up into islands.
 uniform float warp_cells = 1.5;
-// The normal's y below which a face counts as a cliff and turns to rock. TerrainMaterial sets it from
-// Walkability.CLIFF_NORMAL_Y, cos(60°), because the player can't climb these faces. Raising it turns
-// gentler slopes to rock too.
-uniform float cliff_normal_y = 0.5;
-// How much noise moves the cliff threshold, so rock edges on a slope are ragged instead of following
-// one contour of steepness.
-uniform float cliff_wobble = 0.15;
+// How far, in cells, noise moves a cliff's edge off the grid, so it doesn't run in straight steps.
+// Keep it well under 0.5, or the drawn cliff strays onto cells the player can walk. Drawn from the
+// slope's normal with a wobble instead, rock showed as noisy blobs on ground either side of the limit.
+uniform float cliff_warp_cells = 0.2;
 // The interpolated fresh water map above which a pixel is water. At 0.5 a river one cell wide pinches
 // shut where it steps diagonally, because the corner between two diagonal cells reads 0.5. Lowering
 // it widens every river.
@@ -165,9 +165,11 @@ int material_at(vec2 cell, vec2 warp, float height) {
 	return kind == 0 ? 1 : kind;  // Ramps.Terrain.BEACH
 }
 
-// True where the terrain draws a cliff in rock, on land with the world normal normal.
-bool is_cliff(vec3 normal, vec2 warp) {
-	return normal.y + warp.y * 2.0 * cliff_wobble < cliff_normal_y;
+// True where the terrain draws a cliff in rock at cell, which is where the cliff map marks the
+// ground the player can't stand on.
+bool is_cliff(vec2 cell, vec2 warp) {
+	vec2 texel = 1.0 / vec2(textureSize(cliff_map, 0));
+	return texture(cliff_map, (cell + warp * 2.0 * cliff_warp_cells) * texel).r * 255.0 > 0.5;
 }
 
 // True where a river or lake covers land at cell. It takes the same warp as the material boundaries,

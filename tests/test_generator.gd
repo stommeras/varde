@@ -14,6 +14,7 @@ func test_thread_gives_same_island() -> void:
 	expect(threaded.rivers == data.rivers, "seed 7 gave different rivers on a thread")
 	expect(threaded.fresh_water == data.fresh_water, "seed 7 gave different fresh water on a thread")
 	expect(threaded.lake == data.lake, "seed 7 gave different lakes on a thread")
+	expect(threaded.cliff == data.cliff, "seed 7 gave different cliffs on a thread")
 	expect(peaks_text(threaded.peaks) == peaks_text(data.peaks), "seed 7 gave different peaks on a thread")
 	expect(threaded.start == data.start, "seed 7 gave a different start cell on a thread")
 

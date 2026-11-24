@@ -35,16 +35,20 @@ static func generate(island_seed: int, on_step: Callable = Callable()) -> Island
 	started = _record(data, "rivers", started, on_step)
 	data.peaks = Peaks.generate(data.height, data.main_island)
 	started = _record(data, "peaks", started, on_step)
+	Walkability.mark_cliffs(data)
 	var start_rng := RandomNumberGenerator.new()
 	start_rng.seed = rng.randi()
 	data.start = Walkability.start_cell(data, start_rng)
 	started = _record(data, "start", started, on_step)
-	# WaysUp needs the start, which needs the rivers and the material, so it runs after them and
-	# then redoes what depends on the heights it raised. Raising cells only lowers prominence, so
-	# the peaks can drop out but no new one appears that WaysUp didn't mend.
+	# WaysUp needs the start, which needs the rivers, the material and the cliffs, so it runs after
+	# them and then redoes what depends on the heights it raised. It marks the cliffs around each
+	# cell it raises as it goes, and the full grid is built again from the final heights. Raising
+	# cells only lowers prominence, so the peaks can drop out but no new one appears that WaysUp
+	# didn't mend.
 	if WaysUp.open(data) > 0:
 		data.material = MaterialLookup.generate(data.height, data.moisture)
 		data.peaks = Peaks.generate(data.height, data.main_island)
+		Walkability.mark_cliffs(data)
 	_record(data, "ways_up", started, on_step)
 	return data
 
