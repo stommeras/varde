@@ -59,7 +59,8 @@ func target_heading() -> float:
 
 
 func _process(delta: float) -> void:
-	if _turn_time >= TURN_SECONDS:
+	# Checking the heading too lets a TURN_SECONDS of 0 cut to the new heading on the next frame.
+	if _turn_time >= TURN_SECONDS and heading == target_heading():
 		return
 	_turn_time += delta
 	# The last frame lands on the whole quarter, so the camera rests on the same pixel grid at every heading.

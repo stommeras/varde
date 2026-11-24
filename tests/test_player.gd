@@ -116,6 +116,7 @@ func test_camera_turns_to_whole_quarters() -> void:
 	camera.free()
 
 
+## Q and E turn the camera, so surveying moved from E to F.
 func test_turning_and_surveying_have_their_own_keys() -> void:
 	var keys: Dictionary[String, Key] = {"turn_left": KEY_Q, "turn_right": KEY_E, "survey": KEY_F}
 	for action: String in keys:

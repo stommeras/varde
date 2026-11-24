@@ -7,7 +7,7 @@ extends DirectionalLight3D
 ## about midsummer in southern Norway.
 const NOON_ELEVATION: float = deg_to_rad(45.0)
 ## Degrees along the path where the sun stands until the day cycle in milestone 6 moves it. 120° is
-## mid-afternoon, with the sun in the south-west and the slopes that face the camera lit.
+## mid-afternoon, with the sun in the south-west and the slopes that face the camera lit while it faces north.
 const START_ANGLE: float = 120.0
 
 
