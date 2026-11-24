@@ -25,9 +25,10 @@ func test_moves_slide_along_walls() -> void:
 	var corner: int = a + size + 1
 	var saved: Dictionary[int, Array] = {}
 	for i: int in [a, east, south, corner]:
-		saved[i] = [data.height[i], data.lake[i]]
+		saved[i] = [data.height[i], data.lake[i], data.cliff[i]]
 		data.height[i] = 0.1
 		data.lake[i] = 0
+		data.cliff[i] = 0
 	var from := Vector2(a % size + 0.9, a / size + 0.9)
 	var motion := Vector2(0.2, 0.2)
 	expect(Player.move(data, from, motion) == from + motion, "an open diagonal move is refused")
@@ -42,6 +43,7 @@ func test_moves_slide_along_walls() -> void:
 	for i: int in saved:
 		data.height[i] = saved[i][0]
 		data.lake[i] = saved[i][1]
+		data.cliff[i] = saved[i][2]
 
 
 func test_input_actions_have_wasd_and_arrows() -> void:

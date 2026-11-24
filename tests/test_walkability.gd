@@ -1,7 +1,8 @@
 extends "res://tests/test_case.gd"
 
-## Share of the main island's land cells the start must reach. Lakes and cliffs take the rest.
-const MIN_REACHABLE: float = 0.85
+## Share of the main island's open land, off lakes and cliffs, the start must reach. On seeds 0 to 9
+## the lowest was 96.9%.
+const MIN_REACHABLE: float = 0.95
 
 
 ## The whole walk of seeds 0 to 4 takes about as long as generating them, so this test uses those.
@@ -16,11 +17,11 @@ func test_start_is_walkable_and_reaches_most_of_the_main_island() -> void:
 		expect(not Walkability.blocked(data, start), "seed %d: the start cell is blocked" % island_seed)
 		var land: int = 0
 		for i: int in data.main_island.size():
-			land += data.main_island[i]
+			land += int(data.main_island[i] == 1 and not Walkability.blocked(data, i))
 		var reached: PackedInt32Array = Walkability.reachable(data, start)
 		var share: float = float(reached.size()) / land
-		print("seed %d: %.1f%% of the main island reachable" % [island_seed, share * 100.0])
-		expect(share >= MIN_REACHABLE, "seed %d: only %.1f%% of the main island is reachable" % [island_seed, share * 100.0])
+		print("seed %d: %.1f%% of the main island's open land reachable" % [island_seed, share * 100.0])
+		expect(share >= MIN_REACHABLE, "seed %d: only %.1f%% of the main island's open land is reachable" % [island_seed, share * 100.0])
 		var off_island: int = 0
 		for i: int in reached:
 			off_island += 1 - data.main_island[i]
@@ -28,7 +29,8 @@ func test_start_is_walkable_and_reaches_most_of_the_main_island() -> void:
 
 
 ## Rules on a hand-made patch of the first island, so each case doesn't depend on where the
-## generator happened to put a cliff.
+## generator happened to put a cliff. The patch is 4 by 4 cells of flat land, with a, east, south
+## and corner in its middle, so each of those four has all its neighbors in the patch.
 func test_steps_block_water_lakes_and_cliffs() -> void:
 	var data: IslandData = island(0)
 	var size: int = IslandData.SIZE
@@ -40,26 +42,32 @@ func test_steps_block_water_lakes_and_cliffs() -> void:
 	var south: int = a + size
 	var corner: int = a + size + 1
 	var saved: Dictionary[int, Array] = {}
-	for i: int in [a, east, south, corner]:
-		saved[i] = [data.height[i], data.lake[i], data.fresh_water[i]]
-		data.height[i] = 0.1
-		data.lake[i] = 0
-		data.fresh_water[i] = 0
+	for dy: int in range(-1, 3):
+		for dx: int in range(-1, 3):
+			var i: int = a + dy * size + dx
+			saved[i] = [data.height[i], data.lake[i], data.fresh_water[i], data.cliff[i]]
+			data.height[i] = 0.1
+			data.lake[i] = 0
+			data.fresh_water[i] = 0
+			data.cliff[i] = 0
 	expect(Walkability.can_step(data, a, east), "a flat step blocks")
 	expect(Walkability.can_step(data, a, corner), "a flat corner step blocks")
+	expect(not Walkability.is_cliff(data, a), "flat land is a cliff")
 	data.height[east] = 0.1 + Walkability.MAX_SLOPE * 1.01
-	expect(not Walkability.can_step(data, a, east), "a step up past the cliff slope is open")
-	expect(not Walkability.can_step(data, east, a), "a step down past the cliff slope is open")
-	data.height[corner] = 0.1 + Walkability.MAX_SLOPE * 1.2
-	data.height[east] = 0.1
-	expect(Walkability.can_step(data, a, corner), "a corner step blocks below the cliff slope over its length")
-	data.height[corner] = 0.1
-	data.height[east] = 0.1 + Walkability.MAX_SLOPE * 2.0
-	data.height[south] = 0.1 + Walkability.MAX_SLOPE * 2.0
-	expect(not Walkability.can_step(data, a, corner), "a corner step slips between two cliffs")
+	expect(Walkability.is_cliff(data, a) and Walkability.is_cliff(data, east), "a step past the walk limit doesn't make both its cells cliffs")
+	data.height[east] = 0.1 + Walkability.MAX_SLOPE * 0.6
+	data.height[south] = 0.1 + Walkability.MAX_SLOPE * 0.6
+	data.height[corner] = 0.1 + Walkability.MAX_SLOPE * 1.3
+	expect(not Walkability.is_cliff(data, a), "a corner step below the walk limit over its length makes a cliff")
+	data.height[corner] = 0.1 + Walkability.MAX_SLOPE * 1.5
+	expect(Walkability.is_cliff(data, a), "a corner step past the walk limit over its length makes no cliff")
 	data.height[east] = 0.1
 	data.height[south] = 0.1
 	data.height[corner] = 0.1
+	data.cliff[east] = 1
+	expect(not Walkability.can_step(data, a, east), "a cliff is open")
+	expect(not Walkability.can_step(data, a, corner), "a corner step slips past a cliff")
+	data.cliff[east] = 0
 	data.fresh_water[east] = 1
 	expect(Walkability.can_step(data, a, east), "a river blocks")
 	data.lake[east] = 1
@@ -71,3 +79,14 @@ func test_steps_block_water_lakes_and_cliffs() -> void:
 		data.height[i] = saved[i][0]
 		data.lake[i] = saved[i][1]
 		data.fresh_water[i] = saved[i][2]
+		data.cliff[i] = saved[i][3]
+
+
+## The generator's cliff grid is the one the final heights give, so the shader draws the cells
+## walking blocks even after WaysUp raised some.
+func test_cliffs_match_the_final_heights() -> void:
+	for island_seed: int in [0, 7]:
+		var data: IslandData = island(island_seed)
+		var cliff: PackedByteArray = data.cliff
+		Walkability.mark_cliffs(data)
+		expect(data.cliff == cliff, "seed %d: the cliff grid doesn't match the heights" % island_seed)

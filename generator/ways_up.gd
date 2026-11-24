@@ -1,21 +1,23 @@
 class_name WaysUp
 ## Part of generator step 5, after the start: makes sure the player can walk from the start up to
 ## every peak. Erosion leaves a walkable side on most massifs by itself, down the soft ridge Massifs
-## gives each one. On seeds 0 to 9, a single step too steep to walk still cut off 1 of 70 peaks.
-## This finds the path from a peak's survey zone to the land the start reaches that crosses the
-## fewest such steps, and raises the lower cell of each until the step can be walked. It only
-## raises cells, and never to the height of the cell above, so no top moves and none appears.
+## gives each one, but a band of cliff cells can still cut a peak off. This finds the path from a
+## peak's survey zone to the land the start reaches that crosses the fewest cliff cells, and raises
+## each of them and its lower neighbors until no step around it is too steep. It only raises cells,
+## and never to the height of the cell above, so no top moves and none appears.
 ## Carving a whole way up made straight pathways, so this mends single steps and leaves the rest of
 ## the way to the terrain.
 
-## Share of the steepest walkable slope a mended step gets, so rounding never leaves it too steep.
+## Share of the steepest walkable slope a mended step gets, so rounding never leaves it too steep
+## and the mended cell off the cliffs.
 const FILL: float = 0.95
-## Times a peak's path is searched and mended. Each mend can make the next step too steep, so a
-## peak may take several. On seeds 0 to 9 the one mended peak needed 20 raised cells, and an
-## earlier tuning needed 45 rounds for 56 cells, a few world units each. They don't show in the
-## game at zoom 40 or 120.
+## Times a peak's path is searched and mended. Each mend can turn the next cell on the path into
+## cliff, so a peak may take several. On seeds 0 to 9 WaysUp raised 3 to 725 cells per island.
 const ROUNDS: int = 100
-## What _steep_steps returns, as its only element, when no path reaches the start's land.
+## Passes over all the peaks at most. On seed 4 the second pass opened a peak that a mend for a later
+## peak had cut off in the first. Raising it only matters if a warning shows up.
+const PASSES: int = 4
+## What _cliffs_on_path returns, as its only element, when no path reaches the start's land.
 const NO_PATH: int = -1
 
 
@@ -31,31 +33,73 @@ static func open(data: IslandData) -> int:
 	var came := PackedInt32Array()
 	came.resize(data.height.size())
 	var raised: int = 0
-	for peak: Peak in data.peaks:
-		var mended: bool = false
-		for attempt: int in ROUNDS:
-			var steep: PackedInt32Array = _steep_steps(data, peak.cell, reached, cost, came)
-			if steep.is_empty():
-				mended = true
-				break
-			if steep[0] == NO_PATH:
-				break
-			for k: int in range(0, steep.size(), 2):
-				var low: int = steep[k]
-				var high: int = steep[k + 1]
-				data.height[low] = data.height[high] - Walkability.MAX_SLOPE * FILL
-				# A raised cell may no longer meet the land around it, so the next round has to reach
-				# past it to land the start still reaches.
-				reached[low] = 0
-				raised += 1
-		if not mended:
-			push_warning("WaysUp: no way up to the peak at cell %d on island %d" % [peak.cell, data.island_seed])
+	# A mend for one peak can turn a cell on an earlier peak's way into cliff, or cut off land the
+	# start reached, so the peaks are checked again from a new flood until a pass raises nothing.
+	for pass_number: int in PASSES:
+		var before_pass: int = raised
+		for peak: Peak in data.peaks:
+			var mended: bool = false
+			for attempt: int in ROUNDS:
+				var steep: PackedInt32Array = _cliffs_on_path(data, peak.cell, reached, cost, came)
+				if steep.is_empty():
+					mended = true
+					break
+				if steep[0] == NO_PATH:
+					break
+				var before: int = raised
+				for cell: int in steep:
+					raised += _mend(data, cell, reached)
+				if raised == before:
+					break
+			if not mended:
+				push_warning("WaysUp: no way up to the peak at cell %d on island %d" % [peak.cell, data.island_seed])
+		if raised == before_pass:
+			break
+		reached = _flood(data, data.start)
 	return raised
 
 
-## The cells reached from start through open edge steps, as 1 in a mask. The player takes corner
-## steps too, so this is a part of what Walkability.reachable() finds, and each cell in it can
-## really be reached. It skips the corner rules, so it takes about half as long.
+## Raises cell and its lower neighbors until no step from cell is steeper than the walk limit, and
+## marks the cliffs around them again. Returns how many cells it raised. cell rises to just under
+## its highest neighbor's reach, and each neighbor still too far below it rises to just under cell,
+## so neither ever reaches the height of the cell above it. It leaves river and lake cells as they
+## are, so water doesn't run uphill.
+static func _mend(data: IslandData, cell: int, reached: PackedByteArray) -> int:
+	var size: int = IslandData.SIZE
+	var raised: int = 0
+	var around := PackedInt32Array()
+	var limits := PackedFloat32Array()
+	for dy: int in [-1, 0, 1]:
+		for dx: int in [-1, 0, 1]:
+			if dx != 0 or dy != 0:
+				around.append(cell + dy * size + dx)
+				limits.append(Walkability.MAX_SLOPE * FILL * (1.0 if dx == 0 or dy == 0 else sqrt(2.0)))
+	if data.fresh_water[cell] == 0:
+		var floor_height: float = data.height[cell]
+		for k: int in around.size():
+			floor_height = maxf(floor_height, data.height[around[k]] - limits[k])
+		if floor_height > data.height[cell]:
+			data.height[cell] = floor_height
+			raised += 1
+	for k: int in around.size():
+		var next: int = around[k]
+		var low: float = data.height[cell] - limits[k]
+		if data.height[next] > 0.0 and data.fresh_water[next] == 0 and data.height[next] < low:
+			data.height[next] = low
+			raised += 1
+	# A raised cell changes the steps of its neighbors too, two cells out from cell.
+	for dy: int in range(-2, 3):
+		for dx: int in range(-2, 3):
+			var near: int = cell + dy * size + dx
+			data.cliff[near] = 1 if Walkability.is_cliff(data, near) else 0
+			if data.cliff[near] == 1:
+				reached[near] = 0
+	return raised
+
+
+## The cells the start reaches through edge steps, as 1 in a mask. The player takes corner steps
+## too, so this is a part of what Walkability.reachable() finds, and each cell in it can really be
+## reached. It skips the corner rules, so it takes about half as long.
 static func _flood(data: IslandData, start: int) -> PackedByteArray:
 	var size: int = IslandData.SIZE
 	var reached := PackedByteArray()
@@ -67,37 +111,36 @@ static func _flood(data: IslandData, start: int) -> PackedByteArray:
 		var cell: int = queue[head]
 		head += 1
 		for next: int in [cell - 1, cell + 1, cell - size, cell + size]:
-			if reached[next] == 0 and not Walkability.blocked(data, next) \
-					and absf(data.height[next] - data.height[cell]) <= Walkability.MAX_SLOPE:
+			if reached[next] == 0 and not Walkability.blocked(data, next):
 				reached[next] = 1
 				queue.append(next)
 	return reached
 
 
-## The steps too steep to walk on the path from peak's survey zone to a reached cell that has the
-## fewest of them, as pairs of the lower and the higher cell. Empty when the path is open, and
-## [NO_PATH] when no path reaches the start's land. A steep step whose lower cell is a river or lake
-## is never taken, since raising it would make the water run uphill. It
-## searches by the number of steep steps, spreading through open steps first, so it stops at the
-## first reached cell it finds with the least of them. cost and came are scratch arrays the size of
-## the grid, and cost is left all -1 again.
-static func _steep_steps(data: IslandData, peak: int, reached: PackedByteArray, cost: PackedInt32Array, came: PackedInt32Array) -> PackedInt32Array:
+## The cliff cells on the edge-step path from peak's survey zone to a reached cell that crosses the
+## fewest of them. Empty when the path is open, and [NO_PATH] when no path reaches the start's land.
+## The path never crosses the sea, a lake, or a cliff on or next to a river, since mending it would
+## raise the river and make the water run uphill. It searches by the number of cliff cells,
+## spreading through open cells first, so it stops at the first reached cell it finds with the least
+## of them. cost and came are scratch arrays the size of the grid, and cost is left all -1 again.
+static func _cliffs_on_path(data: IslandData, peak: int, reached: PackedByteArray, cost: PackedInt32Array, came: PackedInt32Array) -> PackedInt32Array:
 	var size: int = IslandData.SIZE
 	var reach: int = int(Peak.ZONE_RADIUS)
 	var touched := PackedInt32Array()
+	# The cells at the level being searched, and those one cliff cell more.
 	var front := PackedInt32Array()
+	var later := PackedInt32Array()
 	for dy: int in range(-reach, reach + 1):
 		for dx: int in range(-reach, reach + 1):
 			var cell: int = peak + dy * size + dx
-			if dx * dx + dy * dy <= reach * reach and not Walkability.blocked(data, cell):
-				cost[cell] = 0
+			if dx * dx + dy * dy <= reach * reach and _passable(data, cell):
+				cost[cell] = data.cliff[cell]
 				came[cell] = cell
-				front.append(cell)
+				(later if data.cliff[cell] == 1 else front).append(cell)
 				touched.append(cell)
 	var found: int = -1
 	var level: int = 0
-	while found < 0 and not front.is_empty():
-		var later := PackedInt32Array()
+	while found < 0 and not (front.is_empty() and later.is_empty()):
 		var head: int = 0
 		while head < front.size():
 			var cell: int = front[head]
@@ -108,35 +151,43 @@ static func _steep_steps(data: IslandData, peak: int, reached: PackedByteArray, 
 				found = cell
 				break
 			for next: int in [cell - 1, cell + 1, cell - size, cell + size]:
-				if Walkability.blocked(data, next) or (cost[next] >= 0 and cost[next] <= level):
+				if not _passable(data, next):
+					continue
+				var through: int = level + data.cliff[next]
+				if cost[next] >= 0 and cost[next] <= through:
 					continue
 				if cost[next] < 0:
 					touched.append(next)
-				if absf(data.height[next] - data.height[cell]) <= Walkability.MAX_SLOPE:
-					cost[next] = level
-					came[next] = cell
-					front.append(next)
-				elif data.fresh_water[next if data.height[next] < data.height[cell] else cell] == 1:
-					continue
-				elif cost[next] < 0 or cost[next] > level + 1:
-					cost[next] = level + 1
-					came[next] = cell
-					later.append(next)
+				cost[next] = through
+				came[next] = cell
+				(later if data.cliff[next] == 1 else front).append(next)
 		front = later
+		later = PackedInt32Array()
 		level += 1
-	if found < 0:
-		for t: int in touched:
-			cost[t] = -1
-		return PackedInt32Array([NO_PATH])
 	var steep := PackedInt32Array()
 	var cell: int = found
-	while cell >= 0 and came[cell] != cell:
-		var prev: int = came[cell]
-		if absf(data.height[cell] - data.height[prev]) > Walkability.MAX_SLOPE:
-			var low: int = cell if data.height[cell] < data.height[prev] else prev
-			steep.append(low)
-			steep.append(prev if low == cell else cell)
-		cell = prev
+	while cell >= 0:
+		if data.cliff[cell] == 1:
+			steep.append(cell)
+		if came[cell] == cell:
+			break
+		cell = came[cell]
 	for t: int in touched:
 		cost[t] = -1
-	return steep
+	return steep if found >= 0 else PackedInt32Array([NO_PATH])
+
+
+## True when the way up may cross cell: on land, off lakes, and off a cliff that _mend() can't open
+## because it is a river or stands next to one. A river can't be raised, so the step to it may stay
+## too steep.
+static func _passable(data: IslandData, cell: int) -> bool:
+	if data.height[cell] <= 0.0 or data.lake[cell] == 1:
+		return false
+	if data.cliff[cell] == 0:
+		return true
+	var size: int = IslandData.SIZE
+	for dy: int in [-1, 0, 1]:
+		for dx: int in [-1, 0, 1]:
+			if data.fresh_water[cell + dy * size + dx] == 1:
+				return false
+	return true

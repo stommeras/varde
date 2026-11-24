@@ -36,9 +36,6 @@ const float CLUMP_SCALE = 14.0;
 // How far a detail can stand from its cell's center, as a share of the cell. Lowering it lines the
 // details up in rows along the grid.
 const float JITTER = 0.45;
-// How much flatter than a cliff the ground must be for a detail. The cliff threshold wobbles with
-// noise, and without the margin details stand on the edges of rock faces.
-const float CLIFF_MARGIN = 0.1;
 
 // The sprite's square in the atlas, in sprites.
 varying flat vec2 sprite;
@@ -105,7 +102,7 @@ void vertex() {
 	int kind = material_at(point, warp, height);
 	float clump = 2.0 * smoothstep(0.3, 0.7, texture(noise, point / CLUMP_SCALE + vec2(0.61, 0.23)).r);
 	bool stands = height > 0.0 && draw(h, 3u) < DENSITY[kind] * clump
-		&& !is_cliff(normal - vec3(0.0, CLIFF_MARGIN, 0.0), warp) && !is_fresh_water(point, warp);
+		&& !is_cliff(point, warp) && !is_fresh_water(point, warp);
 
 	vec3 base = vec3(point.x, mesh_height(point) * summit, point.y);
 	vec3 base_view = (VIEW_MATRIX * vec4(base, 1.0)).xyz;

@@ -23,10 +23,9 @@ uniform float grain_steps = 0.6;
 uniform float strata_spacing = 5.0;
 // How many spacings noise can bend a stratum up or down along the cliff, so the bands aren't perfectly level.
 uniform float strata_wobble = 0.6;
-// The normal's y below which rock shows strata, cos(73°). Rock starts at the walk limit of 60°, and
-// with strata on all of it, whole mountainsides turned to grey stripes. Raising it adds strata to
-// gentler rock.
-uniform float strata_normal_y = 0.3;
+// Ramp steps a cliff sits below rock the player can walk on, so a wall reads apart from rock they
+// can climb. 0 draws cliffs in the light of plain rock.
+uniform float cliff_darken = 1.0;
 
 // Depth below sea level, in height-map units, where the sea reaches its darkest step. The summit is
 // 1.0, and the sea floor drops about 0.012 per cell from the coast. Raising it widens the light
@@ -110,13 +109,11 @@ void fragment() {
 
 	float grain = texture(noise, cell / grain_scale + vec2(0.17, 0.73)).r - 0.5;
 	step_offset = grain * 2.0 * grain_steps;
-	if (kind != 0 && is_cliff(world_normal, warp)) {
+	if (kind != 0 && is_cliff(cell, warp)) {
 		kind = 5;  // Ramps.Terrain.ROCK
 		// Every other stratum is one step darker, which draws level bands across the cliff.
-		if (world_normal.y + warp.y * 2.0 * cliff_wobble < strata_normal_y) {
-			float stratum = floor(height * summit / strata_spacing + warp.x * 2.0 * strata_wobble);
-			step_offset -= mod(stratum, 2.0);
-		}
+		float stratum = floor(height * summit / strata_spacing + warp.x * 2.0 * strata_wobble);
+		step_offset -= cliff_darken + mod(stratum, 2.0);
 	}
 	ramp_reach = 1.0;
 	if (kind == 0) {

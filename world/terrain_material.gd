@@ -22,6 +22,9 @@ static func create(island: IslandData, knowledge: Knowledge) -> ShaderMaterial:
 	material.set_shader_parameter("material_map", ImageTexture.create_from_image(terrain))
 	var fresh_water := Image.create_from_data(IslandData.SIZE, IslandData.SIZE, false, Image.FORMAT_R8, island.fresh_water)
 	material.set_shader_parameter("fresh_water_map", ImageTexture.create_from_image(fresh_water))
+	# The cells Walkability blocks as cliff, so the rock the shader draws marks exactly the walls.
+	var cliff := Image.create_from_data(IslandData.SIZE, IslandData.SIZE, false, Image.FORMAT_R8, island.cliff)
+	material.set_shader_parameter("cliff_map", ImageTexture.create_from_image(cliff))
 	material.set_shader_parameter("knowledge_map", knowledge.texture)
 	material.set_shader_parameter("reveal_map", knowledge.reveal_texture)
 	if _ramps == null:
@@ -33,8 +36,6 @@ static func create(island: IslandData, knowledge: Knowledge) -> ShaderMaterial:
 	for kind: Ramps.Terrain in Ramps.Terrain.values():
 		sizes.append(Ramps.RAMPS[kind].size())
 	material.set_shader_parameter("ramp_sizes", sizes)
-	# Walkability blocks steps at this slope, so the rock the shader draws marks the walls.
-	material.set_shader_parameter("cliff_normal_y", Walkability.CLIFF_NORMAL_Y)
 	return material
 
 
