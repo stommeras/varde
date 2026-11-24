@@ -68,6 +68,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("map"):
 		get_viewport().set_input_as_handled()
 		_map.open()
+	# A survey turns the camera itself, and holds the player still while it does.
+	elif _player.frozen:
+		return
 	elif event.is_action_pressed("turn_left"):
 		_camera.turn(1)
 	elif event.is_action_pressed("turn_right"):
