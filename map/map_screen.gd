@@ -4,7 +4,8 @@ extends CanvasLayer
 ## sides. M opens and closes it, and Escape closes it too. The map is ink on paper at one pixel per
 ## cell, drawn by map.gdshader into a 1024×1024 SubViewport, which redraws whenever the player learns
 ## new cells. The sheet follows the player until the player drags it, and the mouse wheel or + and -
-## zoom it. North is always up. A red marker shows the player, and a small cairn shows each varde the
+## zoom it, and it keeps its zoom between closing and reopening it. North is always up. A red dot
+## shows the player, with a pointer on its edge the way the camera faces, and a small cairn shows each varde the
 ## player has built.
 
 const SHADER: Shader = preload("res://map/map.gdshader")
@@ -15,7 +16,8 @@ const HEIGHT_SHARE: float = 0.9
 ## thin lines blend instead of dropping out, and at 1 and up with nearest filtering, so every cell
 ## stays a crisp pixel.
 const ZOOMS: Array[float] = [1.0, 2.0, 4.0]
-## The index in _zooms the map opens at, 1, the first of ZOOMS.
+## The index in _zooms the map first opens at in a run, 1, the first of ZOOMS. Each run makes its
+## own map screen, so a new run starts here again.
 const OPEN_ZOOM: int = 1
 ## How far known land takes the color of its ground over the paper, from 0, plain paper, to 1, the
 ## ground's own color. With plain paper, known land was hard to tell from the unknown paper around
@@ -23,13 +25,18 @@ const OPEN_ZOOM: int = 1
 const LAND_TINT: float = 0.45
 ## Screen pixels of ink around the sheet.
 const BORDER: float = 2.0
-## Radius of the player's marker in screen pixels.
+## Radius of the player's dot in screen pixels.
 const MARKER_RADIUS: float = 4.0
+## Screen pixels the pointer on the dot's edge reaches past the dot, and half its width where it
+## meets the dot. Raising them draws a bigger pointer.
+const POINTER_LENGTH: float = 6.0
+const POINTER_HALF_WIDTH: float = 3.0
 ## Half the width of a varde's cairn in screen pixels. Its height is twice this.
 const VARDE_SIZE: float = 4.0
 
 ## Set these before adding the node.
 var player: Player
+var camera: GameCamera
 var survey: Survey
 var _knowledge: Knowledge
 ## The Knowledge.version the map last drew, or -1 to draw on the next frame.
@@ -104,7 +111,7 @@ func start(terrain: IslandTerrain) -> void:
 ## Shows the map around the player.
 func open() -> void:
 	_follow = true
-	_set_zoom(OPEN_ZOOM)
+	_set_zoom(_zoom)
 	show()
 
 
@@ -193,5 +200,13 @@ func _draw_map() -> void:
 		_view.draw_colored_polygon(cairn, ink)
 	var marker: PackedColorArray = Ramps.MAP[Ramps.MapPart.MARKER]
 	var at: Vector2 = _to_screen(player.grid_position)
+	# The camera's forward on the ground, in map axes with y south. At heading 0 it points north.
+	var ahead := Vector2(-sin(camera.heading), -cos(camera.heading))
+	var side: Vector2 = ahead.orthogonal() * POINTER_HALF_WIDTH
+	var base: Vector2 = at + ahead * (MARKER_RADIUS - 1.0)
+	var tip: Vector2 = at + ahead * (MARKER_RADIUS + POINTER_LENGTH)
+	# The dark shapes go first and a pixel larger, so they draw the rim around the red ones.
 	_view.draw_circle(at, MARKER_RADIUS + 1.0, marker[0])
+	_view.draw_colored_polygon(PackedVector2Array([tip + ahead, base + side * 1.4, base - side * 1.4]), marker[0])
 	_view.draw_circle(at, MARKER_RADIUS, marker[1])
+	_view.draw_colored_polygon(PackedVector2Array([tip, base + side, base - side]), marker[1])

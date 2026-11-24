@@ -87,3 +87,37 @@ func test_hidden_finds_terrain_toward_the_camera() -> void:
 	expect(Player.hidden(data, head, toward, knowledge), "a seen wall south of the figure doesn't hide it")
 	for i: int in saved:
 		data.height[i] = saved[i]
+
+
+## Up walks away from the camera and right walks to the screen's right at all four headings.
+func test_walking_follows_the_camera() -> void:
+	var camera := GameCamera.new()
+	for quarters: int in 4:
+		camera.heading = quarters * PI / 2.0
+		# The rotation place() gives it. place() itself snaps to the window's pixels, which tests lack.
+		camera.rotation = Vector3(deg_to_rad(GameCamera.TILT_DEGREES) - PI / 2.0, camera.heading, 0.0)
+		var away := Vector2(-camera.basis.z.x, -camera.basis.z.z).normalized()
+		var right := Vector2(camera.basis.x.x, camera.basis.x.z).normalized()
+		expect(Player.walk_direction(Vector2.UP, camera.heading).is_equal_approx(away), "up doesn't walk away from the camera at %d quarters" % quarters)
+		expect(Player.walk_direction(Vector2.RIGHT, camera.heading).is_equal_approx(right), "right doesn't walk to the screen's right at %d quarters" % quarters)
+	camera.free()
+
+
+## A turn eases to its quarter and stops there exactly, so the camera rests on the same pixel grid.
+func test_camera_turns_to_whole_quarters() -> void:
+	var camera := GameCamera.new()
+	camera.turn(1)
+	camera._process(GameCamera.TURN_SECONDS / 2.0)
+	expect(camera.heading > 0.0 and camera.heading < PI / 2.0, "the turn doesn't pass between the quarters")
+	camera.turn(-2)
+	for i: int in 10:
+		camera._process(GameCamera.TURN_SECONDS / 4.0)
+	expect(camera.heading == -PI / 2.0, "the turn stops at %f, not on its quarter" % camera.heading)
+	camera.free()
+
+
+func test_turning_and_surveying_have_their_own_keys() -> void:
+	var keys: Dictionary[String, Key] = {"turn_left": KEY_Q, "turn_right": KEY_E, "survey": KEY_F}
+	for action: String in keys:
+		var events: Array[InputEvent] = InputMap.action_get_events(action) if InputMap.has_action(action) else []
+		expect(events.size() == 1 and (events[0] as InputEventKey).physical_keycode == keys[action], "%s isn't on its key" % action)

@@ -1,7 +1,8 @@
 class_name GameCamera
 extends Camera3D
-## The game's orthographic camera. It faces north, looks down at tilt from vertical, and keeps focus
-## in the middle of the screen. The game scene and the debug view both place it with place().
+## The game's orthographic camera. It looks down at tilt from vertical, faces north until the player
+## turns it in quarter turns, and keeps focus in the middle of the screen. The game scene and the
+## debug view both place it with place().
 
 ## Cells of ground from the top to the bottom of the screen, recorded in SPEC.md. Raising it shows more
 ## of the island at less detail, lowering it shows less, closer up. Milestone 2 chose 80 by eye, where
@@ -18,6 +19,9 @@ const NEAR_GAP: float = 1.0
 ## World units the camera's depth range reaches past the terrain on each side, so the summit and the
 ## farthest sea never touch the near or far plane.
 const DEPTH_MARGIN: float = 2.0
+## Seconds a quarter turn takes, eased in and out, so the player sees the world turn and keeps their
+## bearings. Raising it makes the turn calmer, and at 0 it cuts straight to the new heading.
+const TURN_SECONDS: float = 0.4
 
 ## Cells of flat ground at sea level from the top to the bottom of the screen.
 var zoom: float = ZOOM
@@ -27,17 +31,50 @@ var tilt_degrees: float = TILT_DEGREES
 var summit_height: float = IslandTerrain.SUMMIT_HEIGHT
 ## The point in the middle of the screen. The game puts it on the player, the debug view at sea level.
 var focus := Vector3(IslandData.SIZE / 2.0, 0.0, IslandData.SIZE / 2.0)
+## Radians the camera has turned counterclockwise from north, seen from above, so a quarter turn
+## faces west. It eases between whole quarters while a turn runs.
+var heading: float = 0.0
+## Quarter turns counterclockwise from north the camera is turning to, or stands at.
+var _quarters: int = 0
+## The heading the running turn started from, and the seconds since it started.
+var _turn_from: float = 0.0
+var _turn_time: float = TURN_SECONDS
 
 
 func _init() -> void:
 	projection = Camera3D.PROJECTION_ORTHOGONAL
 
 
-## Moves and turns the camera to show focus at the current zoom and tilt. Call it after changing any of them.
+## Starts turning the camera by quarters quarter turns, counterclockwise from above for a positive
+## count. A turn started during another starts from where the camera has got to.
+func turn(quarters: int) -> void:
+	_turn_from = heading
+	_quarters += quarters
+	_turn_time = 0.0
+
+
+## The heading the camera is turning to, or stands at, in radians as heading counts them.
+func target_heading() -> float:
+	return _quarters * PI / 2.0
+
+
+func _process(delta: float) -> void:
+	if _turn_time >= TURN_SECONDS:
+		return
+	_turn_time += delta
+	# The last frame lands on the whole quarter, so the camera rests on the same pixel grid at every heading.
+	heading = lerpf(_turn_from, target_heading(), smoothstep(0.0, 1.0, _turn_time / maxf(TURN_SECONDS, 0.001)))
+	if _turn_time >= TURN_SECONDS:
+		heading = target_heading()
+
+
+## Moves and turns the camera to show focus at the current zoom, tilt and heading. Call it after
+## changing any of them. The player places the camera every frame, which picks up a running turn.
 func place() -> void:
 	var tilt: float = deg_to_rad(tilt_degrees)
-	rotation = Vector3(tilt - PI / 2.0, 0.0, 0.0)
-	# Flat ground along north-south shrinks by cos(tilt) on screen, so the view is that much
+	# Godot applies the yaw before the pitch, so the camera turns about the world's up axis.
+	rotation = Vector3(tilt - PI / 2.0, heading, 0.0)
+	# Flat ground along the view shrinks by cos(tilt) on screen, so the view is that much
 	# shorter than the ground it covers.
 	size = zoom * cos(tilt)
 	# Godot ignores the sun's shadow distance for an orthographic camera and fits the shadow map around

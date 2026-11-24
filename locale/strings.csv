@@ -29,7 +29,7 @@ STEP_PEAKS,Måler fjelltoppene
 STEP_WAYS_UP,Leter etter veien opp
 STEP_START,Finner en strand å gå i land på
 STEP_MESH,Tegner kartet
-SURVEY_PEAK,[E] Kartlegg toppen
+SURVEY_PEAK,[F] Kartlegg toppen
 GOD_MODE,Gudemodus ×%d (%d km/t)
 GOD_CELL,"Rute: %d, %d"
 GOD_GROUND,"%s, %s"
