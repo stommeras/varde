@@ -90,3 +90,10 @@ func test_cliffs_match_the_final_heights() -> void:
 		var cliff: PackedByteArray = data.cliff
 		Walkability.mark_cliffs(data)
 		expect(data.cliff == cliff, "seed %d: the cliff grid doesn't match the heights" % island_seed)
+
+
+## WaysUp raises cells after the start is placed, and must never turn the start into a cliff.
+func test_start_stays_open_after_ways_up() -> void:
+	for island_seed: int in SEEDS:
+		var data: IslandData = island(island_seed)
+		expect(data.start >= 0 and not Walkability.blocked(data, data.start), "seed %d: the start is blocked" % island_seed)

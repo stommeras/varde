@@ -54,8 +54,9 @@ static func open(data: IslandData) -> int:
 			if not mended:
 				push_warning("WaysUp: no way up to the peak at cell %d on island %d" % [peak.cell, data.island_seed])
 		if raised == before_pass:
-			break
+			return raised
 		reached = _flood(data, data.start)
+	push_warning("WaysUp: the mends still changed after %d passes on island %d" % [PASSES, data.island_seed])
 	return raised
 
 
@@ -63,7 +64,8 @@ static func open(data: IslandData) -> int:
 ## marks the cliffs around them again. Returns how many cells it raised. cell rises to just under
 ## its highest neighbor's reach, and each neighbor still too far below it rises to just under cell,
 ## so neither ever reaches the height of the cell above it. It leaves river and lake cells as they
-## are, so water doesn't run uphill.
+## are, so water doesn't run uphill, and the start and its neighbors, so the start never turns into
+## a cliff.
 static func _mend(data: IslandData, cell: int, reached: PackedByteArray) -> int:
 	var size: int = IslandData.SIZE
 	var raised: int = 0
@@ -74,7 +76,7 @@ static func _mend(data: IslandData, cell: int, reached: PackedByteArray) -> int:
 			if dx != 0 or dy != 0:
 				around.append(cell + dy * size + dx)
 				limits.append(Walkability.MAX_SLOPE * FILL * (1.0 if dx == 0 or dy == 0 else sqrt(2.0)))
-	if data.fresh_water[cell] == 0:
+	if data.fresh_water[cell] == 0 and not _near_start(data, cell):
 		var floor_height: float = data.height[cell]
 		for k: int in around.size():
 			floor_height = maxf(floor_height, data.height[around[k]] - limits[k])
@@ -84,7 +86,8 @@ static func _mend(data: IslandData, cell: int, reached: PackedByteArray) -> int:
 	for k: int in around.size():
 		var next: int = around[k]
 		var low: float = data.height[cell] - limits[k]
-		if data.height[next] > 0.0 and data.fresh_water[next] == 0 and data.height[next] < low:
+		if data.height[next] > 0.0 and data.fresh_water[next] == 0 and data.height[next] < low \
+				and not _near_start(data, next):
 			data.height[next] = low
 			raised += 1
 	# A raised cell changes the steps of its neighbors too, two cells out from cell.
@@ -178,16 +181,26 @@ static func _cliffs_on_path(data: IslandData, peak: int, reached: PackedByteArra
 
 
 ## True when the way up may cross cell: on land, off lakes, and off a cliff that _mend() can't open
-## because it is a river or stands next to one. A river can't be raised, so the step to it may stay
-## too steep.
+## because it is a river or stands next to a river or the sea, or is one of the start's neighbors.
+## None of those can be raised, so the step to it may stay too steep.
 static func _passable(data: IslandData, cell: int) -> bool:
 	if data.height[cell] <= 0.0 or data.lake[cell] == 1:
 		return false
 	if data.cliff[cell] == 0:
 		return true
+	if _near_start(data, cell):
+		return false
 	var size: int = IslandData.SIZE
 	for dy: int in [-1, 0, 1]:
 		for dx: int in [-1, 0, 1]:
-			if data.fresh_water[cell + dy * size + dx] == 1:
+			var near: int = cell + dy * size + dx
+			if data.fresh_water[near] == 1 or data.height[near] <= 0.0:
 				return false
 	return true
+
+
+## True when cell is the start or one of its eight neighbors. Raising one of them could make a step
+## from the start too steep and turn it into a cliff the player can't stand on.
+static func _near_start(data: IslandData, cell: int) -> bool:
+	var size: int = IslandData.SIZE
+	return absi(cell % size - data.start % size) <= 1 and absi(cell / size - data.start / size) <= 1
