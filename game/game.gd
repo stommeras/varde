@@ -2,7 +2,8 @@ class_name Game
 extends Node3D
 ## One run on one island. The title screen generates the island and hands it over. Run on its own, the
 ## scene generates it on a background thread behind "Kartlegger øya". The island then shows through the game camera at the view values in SPEC.md. Once the island shows, Escape
-## pauses the run behind the pause menu, E surveys a peak the player stands on, and M opens the map.
+## pauses the run behind the pause menu, Q and E turn the camera, F surveys a peak the player stands
+## on, and M opens the map.
 ## G toggles god mode in debug builds.
 
 const TITLE_SCREEN: String = "res://game/title_screen.tscn"
@@ -44,6 +45,7 @@ func _ready() -> void:
 	_god.terrain = _terrain
 	add_child(_god)
 	_map.player = _player
+	_map.camera = _camera
 	_map.survey = _survey
 	add_child(_map)
 	add_child(_menu)
@@ -66,6 +68,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("map"):
 		get_viewport().set_input_as_handled()
 		_map.open()
+	# A survey turns the camera itself, and holds the player still while it does.
+	elif _player.frozen:
+		return
+	elif event.is_action_pressed("turn_left"):
+		_camera.turn(1)
+	elif event.is_action_pressed("turn_right"):
+		_camera.turn(-1)
 
 
 func _on_loaded(loaded_island: IslandData, loaded_meshes: Array[ArrayMesh], _msec: int) -> void:

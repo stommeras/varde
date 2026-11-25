@@ -104,7 +104,7 @@ func _process(delta: float) -> void:
 	_fade = move_toward(_fade, 1.0 if _hidden else 0.0, delta / maxf(FADE_SECONDS, 0.001))
 	terrain.fade_around(_feet, _fade)
 	var step: float = minf(delta, MAX_DELTA)
-	var direction: Vector2 = Vector2.ZERO if frozen else Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	var direction: Vector2 = Vector2.ZERO if frozen else walk_direction(Input.get_vector("move_left", "move_right", "move_up", "move_down"), camera.heading)
 	if direction != Vector2.ZERO:
 		_figure.face(Vector2.from_angle(facing(direction) * PI / 4.0))
 	_velocity = _velocity.move_toward(direction * SPEED, SPEED / maxf(EASE_SECONDS, 0.001) * step)
@@ -176,6 +176,12 @@ func _exit_tree() -> void:
 ## Turns the figure to face direction, x east and y south.
 func face(direction: Vector2) -> void:
 	_figure.face(direction)
+
+
+## The grid direction, x east and y south, that the walking keys' input means for a camera at heading,
+## so up always walks away from the camera. It follows a turn while it runs.
+static func walk_direction(input: Vector2, heading: float) -> Vector2:
+	return input.rotated(-heading)
 
 
 ## The nearest of the 8 facings to a walking direction, x east and y south, counted clockwise from
