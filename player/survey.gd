@@ -1,9 +1,8 @@
 class_name Survey
 extends Node
 ## Surveying from a peak. Inside a peak's survey zone it shows "Kartlegg toppen", and the survey
-## action starts the survey: the camera pulls out and turns once around in quarter turns while the
-## figure turns to look around and the
-## fog clears from the surveyed land in a ring that spreads from the peak, then the figure stacks a
+## action starts the survey: the camera pulls out and turns once around in quarter turns, the
+## figure turns with it to look out over each side, and the fog clears from the surveyed land in a ring that spreads from the peak, then the figure stacks a
 ## varde on the peak as the camera comes back. Each peak can be surveyed once.
 
 ## Cells from a peak's top within which the player can survey it. The generator keeps a way open
@@ -16,14 +15,13 @@ const MARKER_REACH: float = 6.0
 const MARKER_FADE_SECONDS: float = 0.5
 ## How many times the walking view radius a survey reaches.
 const REACH_SCALE: float = 2.0
-## Seconds the figure takes to turn once around, looking out. Raising it slows the whole reveal. At
-## 3 s the turn looked hurried, and at 5 s it rests about 0.6 s on each of the 8 directions.
+## Seconds the figure and the camera take to turn once around, looking out. Raising it slows the
+## whole reveal. At 3 s a smooth turn of the figure looked hurried.
 const LOOK_SECONDS: float = 5.0
 ## Seconds the ring of clearing fog takes to reach the edge of the survey. Shorter than LOOK_SECONDS,
 ## so the fog has cleared from the farthest land before the camera comes back in.
 const RING_SECONDS: float = 4.5
-## Quarter turns the camera makes while the figure looks around, clockwise like the figure, so the
-## player sees the fog clear on every side of the peak. Each side holds still for LOOK_SECONDS / 4
+## Quarter turns the camera makes while the figure looks around, clockwise, so the player sees the fog clear on every side of the peak. Each side holds still for LOOK_SECONDS / 4
 ## less the turn. Quarter steps instead of a smooth spin, because the camera snaps to its pixel grid
 ## only on whole quarters, and between them the dither and the edges shimmer. 4 brings the camera
 ## back to the heading it started at, and 0 keeps it still.
@@ -70,8 +68,6 @@ var _zone_ring := ZoneRing.new()
 ## The camera zoom when the survey started, which the camera pulls out from and comes back to, so a
 ## survey in god mode keeps the zoom the player chose.
 var _base_zoom: float = GameCamera.ZOOM
-## The camera's heading when the survey started, which the figure starts its turn from.
-var _base_heading: float = 0.0
 ## Quarter turns the camera has started in this survey.
 var _turns: int = 0
 ## Bands marked so far. Each is marked when the ring reaches it, because marking all of them in one
@@ -122,7 +118,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	_time = 0.0
 	_marked = 0
 	_base_zoom = camera.zoom
-	_base_heading = camera.target_heading()
 	_turns = 0
 	player.frozen = true
 	var cell: int = _island.peaks[peak].cell
@@ -156,8 +151,9 @@ func _process(delta: float) -> void:
 		_marked += 1
 	if _time < LOOK_SECONDS:
 		camera.zoom = lerpf(_base_zoom, SURVEY_ZOOM, smoothstep(0.0, ZOOM_SECONDS, _time))
-		# One full turn, clockwise from facing the camera.
-		player.face(Player.walk_direction(Vector2.DOWN, _base_heading).rotated(TAU * _time / LOOK_SECONDS))
+		# Away from the camera, over the side it shows, turning as the camera turns. A smooth turn of
+		# the figure clockwise with the camera only swung it within a quarter of facing the camera.
+		player.face(Player.walk_direction(Vector2.UP, camera.heading))
 		# Each turn starts so that it ends on its quarter of the look, and the last one as the look ends.
 		while _turns < LOOK_TURNS and _time >= LOOK_SECONDS * (_turns + 1) / LOOK_TURNS - GameCamera.TURN_SECONDS:
 			camera.turn(-1)
