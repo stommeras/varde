@@ -6,7 +6,7 @@ name: site
 on:
   push:
     branches: [main]
-    paths: ["site/**", ".github/workflows/site.yml"]
+    paths: ["site/**", "game/backdrop.png", ".github/workflows/site.yml"]
   workflow_call:
   workflow_dispatch:
 

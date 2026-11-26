@@ -41,7 +41,7 @@ backdrop.png   game/backdrop.png, the title screen's backdrop
 spill/         varde-web.zip from the latest release, unpacked
 ```
 
-It runs after every release, and on every push to `main` that changes `site/`. A fix to the page goes live when it merges, with no tag. The page follows `main` and the game follows the latest tag, so describe a new key or feature on the page only once it is released. To deploy by hand, run the `site` workflow from the Actions tab.
+It runs after every release, and on every push to `main` that changes `site/` or `game/backdrop.png`. A fix to the page goes live when it merges, with no tag. The page follows `main` and the game follows the latest tag, so describe a new key or feature on the page only once it is released. To deploy by hand, run the `site` workflow from the Actions tab.
 
 The download buttons point at `releases/latest/download/varde-linux.zip` and `varde-windows.zip`, so they always fetch the newest release without changing the page. The page takes its colors from the `MAP` ramps in `world/ramps.gd`. When the ramps change, change the page to match.
 
