@@ -1,8 +1,9 @@
 class_name Reading
 extends CanvasLayer
 ## Reading the notes the island holds. Within Landing.READ_REACH of the shipwreck it shows "[F] Les",
-## and F opens the wreck's note in a panel of map paper over the game. The world keeps running, and
-## F or Escape closes it. A note that opened by itself would stop the player each time they walked
+## and F opens the wreck's note in a panel of map paper over the game. The world keeps running.
+## F or Escape closes it, and so does walking CLOSE_MARGIN past the reach, so the note doesn't follow
+## the player. A note that opened by itself would stop the player each time they walked
 ## past. The note points toward the first old varde. A later issue writes the notes from the
 ## island's features, and until then the text is a placeholder that names a compass direction.
 
@@ -13,6 +14,10 @@ const PADDING: int = 16
 ## Pixels from the top of the screen to the panel. It sits high, so it leaves the figure in the
 ## middle of the screen in view while the player walks with the note open.
 const TOP: int = 32
+## Cells past Landing.READ_REACH the player walks before an open note closes. The start lies about
+## 3.2 cells from the wreck, so at 0 the first step away closed the note in under a quarter of a
+## second. Raising it lets the player walk further while reading.
+const CLOSE_MARGIN: float = 3.0
 
 ## Set it before adding the node.
 var player: Player
@@ -61,13 +66,15 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
+	if _panel.visible and not _in_reach(Landing.READ_REACH + CLOSE_MARGIN):
+		_panel.hide()
 	_prompt.fade(_in_reach() and not _panel.visible, delta)
 
 
-func _in_reach() -> bool:
+func _in_reach(reach: float = Landing.READ_REACH) -> bool:
 	if _island == null or _island.wreck < 0 or _island.vardes.is_empty() or player.frozen:
 		return false
-	return player.grid_position.distance_to(IslandData.center(_island.wreck)) <= Landing.READ_REACH
+	return player.grid_position.distance_to(IslandData.center(_island.wreck)) <= reach
 
 
 ## The nearest of the 8 compass directions from cell from to cell to, 0 for north and counting
