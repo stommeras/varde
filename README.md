@@ -6,13 +6,17 @@ Nothing is drawn by hand. The generator, shaders and code make the terrain, the 
 
 The game is in progress. The generator and the look are done: erosion, rivers, a sea with depth and foam, and sun shadows, drawn in 3D as pixel art. You can walk the island now. Line of sight, the map, the vardes and the summit come next. [SPEC.md](SPEC.md) describes the whole game and lists the milestones.
 
-You can play the current build in the browser at [lab.tommeras.no/varde](https://lab.tommeras.no/varde/). It works best on a desktop with a keyboard.
+You can play the latest release in the browser or download it for Windows and Linux at [varde.tommeras.no](https://varde.tommeras.no). It works best on a desktop with a keyboard.
 
 ## Controls
 
 | Key | What it does |
 | --- | --- |
 | WASD or arrow keys | Walk |
+| Q and E | Turn the camera |
+| F | Survey a peak you stand near |
+| M | Open the map |
+| Mouse wheel or + and - | Zoom |
 | Escape | Pause the run |
 
 ## Build
@@ -25,8 +29,7 @@ You need Godot 4.7.2.
 | `godot -e` | Opens the editor |
 | `godot` | Runs the game from the title screen |
 | `godot --headless -s tests/run.gd` | Runs the tests |
-| `godot --headless --export-release Web build/web/index.html` | Exports the web build. Needs the 4.7.2 export templates |
 
-The web build uses threads, so the server has to send `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`.
+[docs/releasing.md](docs/releasing.md) explains how to export the web, Linux and Windows builds and how a version tag releases them.
 
 [AGENTS.md](AGENTS.md) has the conventions for working on the code.

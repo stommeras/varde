@@ -1,0 +1,52 @@
+# Builds a release when a version tag like v0.4.0 is pushed. docs/releasing.md explains when to tag
+# and the one-time setup this needs.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GODOT_VERSION: 4.7.2
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Godot and the export templates
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -sSL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          curl -sSL -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          # The archive holds a templates/ folder, which Godot wants named after the version.
+          unzip -q templates.tpz
+          mkdir -p ~/.local/share/godot/export_templates
+          mv templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+      - name: Import
+        run: godot --headless --import
+      - name: Run tests
+        run: godot --headless -s tests/run.gd
+      - name: Export
+        run: |
+          mkdir -p build/linux build/windows build/site/spill
+          godot --headless --export-release Linux build/linux/varde.x86_64
+          godot --headless --export-release Windows build/windows/varde.exe
+          godot --headless --export-release Web build/site/spill/index.html
+          cp site/index.html site/vercel.json game/backdrop.png build/site/
+          (cd build/linux && zip -q ../varde-linux.zip varde.x86_64)
+          (cd build/windows && zip -q ../varde-windows.zip varde.exe)
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" build/varde-linux.zip build/varde-windows.zip --generate-notes
+      - name: Deploy varde.tommeras.no
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: npx --yes vercel@65.1.0 deploy build/site --prod --yes --token "$VERCEL_TOKEN"

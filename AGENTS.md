@@ -23,6 +23,14 @@ A calm, run-based exploration game made in Godot 4. Each run generates an island
 4. Look at anything visual before calling it done. Record a few frames of a scene with `godot <scene.tscn> --write-movie <dir>/f.png --fixed-fps 10 --quit-after 5`, read the last frame, and put the image path or a description in the PR.
 5. Open the PR with what changed, what you checked, and anything left for the user to judge, such as how a tuning value looks.
 
+## Releases
+
+A version tag like `v0.4.0` builds the Linux and Windows downloads and updates varde.tommeras.no. `docs/releasing.md` has the steps and the version scheme. Releases are outward-facing, so never push a tag yourself. Tell the user when one is due and give the version:
+
+- When a PR closes the last open issue in a milestone, suggest `v0.<milestone>.0`.
+- When a fix lands for a crash, a run that can't be finished, or a broken web build in the latest release, suggest the next patch version.
+- Don't suggest a release for other changes. They wait for the next milestone.
+
 ## Gotchas
 
 - `Material` is a built-in Godot class. Don't name an enum or class after a built-in, and don't name a variable `seed`, which shadows the global `seed()`.
