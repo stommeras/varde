@@ -26,7 +26,8 @@ const START_REACH: int = 20000
 ## mountainsides, lowering it leaves more dark specks.
 const CLIFF_SPECK_CELLS: int = 24
 ## Fewest cells a pocket of open land walled in by cliffs needs. A smaller one turns to cliff, since
-## nothing can walk into it. Raising it fills bigger pockets, which are all out of reach anyway.
+## nothing can walk into it. Raising it fills bigger pockets, which are all out of reach anyway, and
+## lowering it leaves more open specks inside the walls.
 const POCKET_CELLS: int = 24
 
 
@@ -38,9 +39,9 @@ static func blocked(data: IslandData, cell: int) -> bool:
 
 
 ## True when the player can step from cell from to its neighbor to, edge or corner. Every step
-## between two cells off the cliffs is walkable, because a steeper one would make both cliffs. A
-## corner step also needs the cells beside it open, so the player can't slip between two corners of
-## water or cliff.
+## between two cells off the cliffs is walkable, because a steeper one would make both cliffs, except
+## the few steps of a cliff patch that mark_cliffs() cleared as a speck. A corner step also needs
+## the cells beside it open, so the player can't slip between two corners of water or cliff.
 static func can_step(data: IslandData, from: int, to: int) -> bool:
 	var size: int = IslandData.SIZE
 	var dx: int = to % size - from % size
@@ -96,7 +97,7 @@ static func _clear_specks(data: IslandData) -> void:
 	# Corners count for a cliff patch, since a corner step can't slip between two cliff cells.
 	var corners := PackedInt32Array([-size - 1, -size, -size + 1, -1, 1, size - 1, size, size + 1])
 	for start: int in data.cliff.size():
-		if data.cliff[start] == 1 and seen[start] == 0:
+		if data.cliff[start] == 1 and seen[start] == 0 and data.lake[start] == 0:
 			var patch: PackedInt32Array = _patch(data, start, seen, corners, 1)
 			if patch.size() < CLIFF_SPECK_CELLS:
 				for i: int in patch:
@@ -149,7 +150,8 @@ static func _mark_pair(data: IslandData, a: int, b: int) -> void:
 
 
 ## True when cell, on land, has a step to a neighbor steeper than WALK_DEGREES. mark_cliffs() sets
-## data.cliff to this on every cell, and WaysUp calls it on the cells around those it raises.
+## data.cliff to this on every cell before it clears the specks, and WaysUp calls it on the cells
+## around those it raises.
 static func is_cliff(data: IslandData, cell: int) -> bool:
 	var h: PackedFloat32Array = data.height
 	if h[cell] <= 0.0:
