@@ -13,7 +13,7 @@ const MARGIN: int = 8
 func _init() -> void:
 	text = ProjectSettings.get_setting("application/config/version", "")
 	visible = text != ""
-	add_theme_font_size_override("font_size", 12)
+	add_theme_font_size_override("font_size", 11)
 	add_theme_color_override("font_color", Ramps.RAMPS[Ramps.Terrain.SNOW][3])
 	add_theme_color_override("font_outline_color", Ramps.RAMPS[Ramps.Terrain.WATER][0])
 	add_theme_constant_override("outline_size", OUTLINE)
