@@ -10,7 +10,10 @@ on:
   workflow_call:
   workflow_dispatch:
 
-# Two deploys at once could finish in either order, so the later one waits.
+# Two deploys at once could finish in either order, so the later one waits. GitHub keeps only one
+# waiting run per group, and a newer one cancels it. That can mark a release's site job as cancelled,
+# but the newer run deploys the same latest release with a newer page, so the site ends up right.
+# Separate groups would let an older page finish last and overwrite a newer one.
 concurrency:
   group: site
   cancel-in-progress: false

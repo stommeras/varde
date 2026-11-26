@@ -43,7 +43,14 @@ jobs:
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" build/varde-linux.zip build/varde-windows.zip build/varde-web.zip --generate-notes
+        # The site and the download buttons follow the latest release, so a patch to an older version
+        # mustn't take that mark from a newer one.
+        run: |
+          latest=$(gh release view --json tagName -q .tagName 2>/dev/null || echo v0.0.0)
+          newest=$(printf '%s\n' "$latest" "$GITHUB_REF_NAME" | sort -V | tail -1)
+          if [ "$newest" = "$GITHUB_REF_NAME" ]; then mark=true; else mark=false; fi
+          gh release create "$GITHUB_REF_NAME" build/varde-linux.zip build/varde-windows.zip build/varde-web.zip \
+            --generate-notes --latest="$mark"
 
   site:
     needs: release

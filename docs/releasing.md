@@ -13,6 +13,8 @@ If the tests fail, nothing is published. A release build leaves out debug-only c
 
 Versions are `v0.<milestone>.<patch>`. The release that closes milestone 4 is `v0.4.0`, and a fix to it is `v0.4.1`. Milestone 6 done is `v1.0.0`. AGENTS.md says when a release is due.
 
+The site and the download buttons follow the release GitHub marks as latest. The workflow marks a new release latest only when its version is higher than the current latest, so a patch to an older version, such as `v0.3.1` after `v0.4.0`, is published without moving the site or the downloads back.
+
 ## Make a release
 
 ```console
@@ -66,12 +68,13 @@ The desktop builds carry the game data inside the executable, so each one is a s
 
 ## One-time setup
 
-These steps were done once, on 2026-11-26.
+These steps are done once. Steps 1 to 4 were done on 2026-11-26.
 
 1. `vercel project create varde --scope stommeras-projects` creates the project. It isn't connected to the Git repository, since the workflow deploys it.
 2. `vercel link --project varde --scope stommeras-projects` in an empty folder writes the org and project ids to `.vercel/project.json`. The CLI isn't allowed to create tokens, so create the token in the browser at Account Settings → Tokens, with the scope stommeras' projects.
 3. `gh secret set` stores the three repository secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID`.
 4. `vercel domains add varde.tommeras.no varde --scope stommeras-projects` adds the domain, and `vercel domains verify varde.tommeras.no --scope stommeras-projects` prints the record it needs. DNS for tommeras.no is at Domeneshop (ns1.hyp.net), so add the `CNAME` there by hand. Vercel recommends `16cb7a88c0b11380.vercel-dns-017.com` for this project.
+5. In the lab repo, delete `public/varde/` and the `/varde` header rule in `vercel.json`, so lab.tommeras.no stops serving an old build. This is [lab.tommeras.no#32](https://github.com/stommeras/lab.tommeras.no/pull/32), not merged yet.
 
 ## Unsigned builds
 
