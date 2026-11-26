@@ -7,6 +7,10 @@ extends CanvasLayer
 ## Sent on the main thread when an island is ready. msec is the generator's time, without the mesh.
 signal loaded(island: IslandData, meshes: Array[ArrayMesh], msec: int)
 
+## Random seeds run from 0 to one below this. A full 32-bit seed had up to 10 digits, too many to read
+## off the pause menu and type back in. Six digits still give a million islands.
+const RANDOM_SEEDS: int = 1000000
+
 ## Milliseconds each step took for seed "varde" on a desktop, in the order the steps run, with the
 ## terrain mesh last. The bar fills by these, and within a step by the time since it started, up to
 ## its share, so it moves on through the long erosion step. Only the shares matter, so a slower
@@ -90,11 +94,12 @@ func start(island_seed: int) -> void:
 
 
 ## The seed for text typed into a seed field. A whole number is used as it is, so a seed shown on
-## screen loads the same island again. Other text is hashed, and empty text gives a random seed.
+## screen loads the same island again. Other text is hashed, and empty text gives a random seed
+## below RANDOM_SEEDS.
 static func seed_from(text: String) -> int:
 	var trimmed: String = text.strip_edges()
 	if trimmed.is_empty():
-		return randi()
+		return randi() % RANDOM_SEEDS
 	if trimmed.is_valid_int():
 		return trimmed.to_int()
 	return trimmed.hash()

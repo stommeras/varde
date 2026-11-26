@@ -7,6 +7,9 @@ func test_seed_from_takes_numbers_as_they_are_and_hashes_other_text() -> void:
 	expect(IslandLoader.seed_from("-5") == -5, "a negative number is not used as it is")
 	expect(IslandLoader.seed_from("fjell") == "fjell".hash(), "text is not hashed")
 	expect(IslandLoader.seed_from("fjell") != IslandLoader.seed_from("hav"), "two words give the same seed")
+	for i: int in 100:
+		var random: int = IslandLoader.seed_from("")
+		expect(random >= 0 and random < IslandLoader.RANDOM_SEEDS, "a random seed %d is out of range" % random)
 
 
 ## The loader's bar looks each finished step up in STEP_MSEC, so a renamed or added step must be added there too.

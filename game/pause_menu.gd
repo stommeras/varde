@@ -8,6 +8,8 @@ extends CanvasLayer
 const DIM: float = 0.6
 
 var _resume := Button.new()
+## VersionLabel hides itself without a version, so the seed shows it again once it has text.
+var _seed := VersionLabel.new()
 
 
 func _ready() -> void:
@@ -35,6 +37,17 @@ func _ready() -> void:
 	quit.pressed.connect(_quit)
 	column.add_child(quit)
 	add_child(VersionLabel.new())
+	# Styled like the version, in the other corner, so a bug report can name the island too.
+	_seed.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, VersionLabel.MARGIN)
+	_seed.grow_horizontal = Control.GROW_DIRECTION_END
+	_seed.hide()
+	add_child(_seed)
+
+
+## Shows island_seed in the bottom-left corner, as the number the seed field takes to load the island again.
+func show_seed(island_seed: int) -> void:
+	_seed.text = tr("PAUSE_SEED") % island_seed
+	_seed.show()
 
 
 func _unhandled_input(event: InputEvent) -> void:
