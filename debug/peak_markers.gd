@@ -6,7 +6,7 @@ extends Node2D
 
 ## Size of a dot and of the numbers in screen pixels.
 const DOT_RADIUS: float = 4.0
-const FONT_SIZE: int = 11
+const FONT_SIZE: int = 16
 
 var _peaks: Array[Peak] = []
 var _pixels_per_cell: float = 1.0
