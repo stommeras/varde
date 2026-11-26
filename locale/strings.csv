@@ -18,6 +18,7 @@ GAME_TITLE,Varde
 SEED_OPTIONAL,Frø (valgfritt)
 RESUME,Fortsett
 QUIT_RUN,Avslutt
+PAUSE_SEED,Frø: %d
 STEP_HEIGHT,Løfter landet opp av havet
 STEP_EROSION,Lar elvene grave ut dalene
 STEP_CRAGS,Hogger ut fjellknausene

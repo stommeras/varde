@@ -93,6 +93,7 @@ func _zoom(event: InputEvent) -> void:
 func _on_loaded(loaded_island: IslandData, loaded_meshes: Array[ArrayMesh], _msec: int) -> void:
 	_terrain.show_island(loaded_meshes, loaded_island)
 	_player.place(loaded_island, loaded_island.start)
+	_menu.show_seed(loaded_island.island_seed)
 	_survey.start(loaded_island)
 	_god.start(loaded_island)
 	_map.start(_terrain)
