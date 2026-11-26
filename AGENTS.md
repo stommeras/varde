@@ -25,7 +25,7 @@ A calm, run-based exploration game made in Godot 4. Each run generates an island
 
 ## Releases
 
-A version tag like `v0.4.0` builds the Linux and Windows downloads and updates varde.tommeras.no. `docs/releasing.md` has the steps and the version scheme. Releases are outward-facing, so never push a tag yourself. Tell the user when one is due and give the version:
+A version tag like `v0.4.0` builds the Linux, Windows and web builds and puts the new web build on varde.tommeras.no. The version is the game's, so a change to the landing page in `site/` deploys when it merges to `main`, without a tag. `docs/releasing.md` has the steps and the version scheme. Releases are outward-facing, so never push a tag yourself. Tell the user when one is due and give the version:
 
 - When a PR closes the last open issue in a milestone, suggest `v0.<milestone>.0`.
 - When a fix lands for a crash, a run that can't be finished, or a broken web build in the latest release, suggest the next patch version.

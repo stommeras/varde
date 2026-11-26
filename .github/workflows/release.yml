@@ -1,5 +1,5 @@
-# Builds a release when a version tag like v0.4.0 is pushed. docs/releasing.md explains when to tag
-# and the one-time setup this needs.
+# Builds a release when a version tag like v0.4.0 is pushed, then deploys the site with its web build
+# through site.yml. docs/releasing.md explains when to tag and the one-time setup this needs.
 name: release
 
 on:
@@ -37,16 +37,22 @@ jobs:
           godot --headless --export-release Linux build/linux/varde.x86_64
           godot --headless --export-release Windows build/windows/varde.exe
           godot --headless --export-release Web build/site/spill/index.html
-          cp site/index.html site/vercel.json game/backdrop.png build/site/
+          (cd build/site/spill && zip -q ../../varde-web.zip *)
           (cd build/linux && zip -q ../varde-linux.zip varde.x86_64)
           (cd build/windows && zip -q ../varde-windows.zip varde.exe)
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" build/varde-linux.zip build/varde-windows.zip --generate-notes
-      - name: Deploy varde.tommeras.no
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: npx --yes vercel@65.1.0 deploy build/site --prod --yes --token "$VERCEL_TOKEN"
+        # The site and the download buttons follow the latest release, so a patch to an older version
+        # mustn't take that mark from a newer one.
+        run: |
+          latest=$(gh release view --json tagName -q .tagName 2>/dev/null || echo v0.0.0)
+          newest=$(printf '%s\n' "$latest" "$GITHUB_REF_NAME" | sort -V | tail -1)
+          if [ "$newest" = "$GITHUB_REF_NAME" ]; then mark=true; else mark=false; fi
+          gh release create "$GITHUB_REF_NAME" build/varde-linux.zip build/varde-windows.zip build/varde-web.zip \
+            --generate-notes --latest="$mark"
+
+  site:
+    needs: release
+    uses: ./.github/workflows/site.yml
+    secrets: inherit
