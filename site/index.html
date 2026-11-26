@@ -22,7 +22,24 @@
 <meta property="og:locale" content="nb_NO">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="spill/index.icon.png">
+<link rel="preload" href="fonts/Literata.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+  /* Literata (SIL OFL, fonts/OFL.txt), served from the site so the page needs no other origin. The
+     upright file is variable in weight and optical size, subset to Latin-1. The italic is only the
+     title's, so it is pinned to bold at 44px and holds just the letters A to Z and a to z. */
+  @font-face {
+    font-family: "Literata";
+    src: url("fonts/Literata.woff2") format("woff2");
+    font-weight: 200 900;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: "Literata";
+    src: url("fonts/Literata-Italic.woff2") format("woff2");
+    font-weight: 700;
+    font-style: italic;
+    font-display: swap;
+  }
   :root {
     --paper: #e6d6b0;
     --paper-dark: #d2bb8e;
@@ -36,7 +53,7 @@
   body {
     margin: 0;
     min-height: 100vh;
-    font: 17px/1.55 system-ui, sans-serif;
+    font: 17px/1.55 "Literata", Georgia, serif;
     color: var(--ink);
     /* At its own size, centered, so a narrower window crops the sides instead of shrinking the
        island. A size tied to the window width scaled the pixel art by uneven factors. */
@@ -55,7 +72,7 @@
     box-shadow: 6px 6px 0 var(--ink);
     padding: 28px 28px 20px;
   }
-  h1 { font-size: 44px; line-height: 1; margin: 0 0 12px; letter-spacing: 0.02em; }
+  h1 { font-size: 44px; font-style: italic; font-weight: 700; line-height: 1; margin: 0 0 12px; }
   h2 { font-size: 17px; margin: 28px 0 8px; }
   p { margin: 0 0 12px; }
   a { color: var(--water); }

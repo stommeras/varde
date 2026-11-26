@@ -139,8 +139,6 @@ func _build_ui() -> void:
 	_controls_3d.position = Vector2(4, 24)
 	_controls_3d.hide()
 	layer.add_child(_controls_3d)
-	for control: Control in row.get_children() + _controls_3d.get_children():
-		control.add_theme_font_size_override("font_size", 10)
 
 
 func _on_seed_submitted(text: String) -> void:

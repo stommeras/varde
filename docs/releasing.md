@@ -40,6 +40,7 @@ The version number belongs to the game, so the page deploys apart from it. `.git
 ```
 index.html     site/index.html, in bokmål, with __VERSION__ replaced by the latest tag
 vercel.json    the headers
+fonts/         site/fonts, Literata and its license
 backdrop.png   game/backdrop.png, the title screen's backdrop
 spill/         varde-web.zip from the latest release, unpacked
 ```
@@ -59,7 +60,7 @@ $ mkdir -p build/linux build/windows build/site/spill
 $ godot --headless --export-release Linux build/linux/varde.x86_64
 $ godot --headless --export-release Windows build/windows/varde.exe
 $ godot --headless --export-release Web build/site/spill/index.html
-$ cp site/index.html site/vercel.json game/backdrop.png build/site/
+$ cp -r site/index.html site/vercel.json site/fonts game/backdrop.png build/site/
 $ python3 site/serve.py
 ```
 

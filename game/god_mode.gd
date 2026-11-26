@@ -35,7 +35,6 @@ var _rings: Array[ZoneRing] = []
 func _ready() -> void:
 	layer = 10
 	_panel.position = Vector2(8, 8)
-	_panel.add_theme_font_size_override("font_size", 12)
 	_panel.add_theme_color_override("font_color", Ramps.RAMPS[Ramps.Terrain.SNOW][3])
 	_panel.add_theme_color_override("font_outline_color", Ramps.RAMPS[Ramps.Terrain.ROCK][0])
 	_panel.add_theme_constant_override("outline_size", 4)

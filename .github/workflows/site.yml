@@ -33,7 +33,7 @@ jobs:
           gh release download --pattern varde-web.zip
           mkdir -p build/site/spill
           unzip -q varde-web.zip -d build/site/spill
-          cp site/index.html site/vercel.json game/backdrop.png build/site/
+          cp -r site/index.html site/vercel.json site/fonts game/backdrop.png build/site/
           sed -i "s/__VERSION__/$(gh release view --json tagName -q .tagName)/" build/site/index.html
       - name: Deploy
         env:

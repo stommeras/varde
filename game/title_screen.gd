@@ -42,7 +42,8 @@ func _ready() -> void:
 	var title := Label.new()
 	title.text = tr("GAME_TITLE")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 64)
+	# Pixel Operator is drawn on a 16px grid, so 80 scales its pixels by a whole 5.
+	title.add_theme_font_size_override("font_size", 80)
 	title.add_theme_color_override("font_color", Ramps.RAMPS[Ramps.Terrain.SNOW][3])
 	title.add_theme_color_override("font_outline_color", Ramps.RAMPS[Ramps.Terrain.WATER][0])
 	title.add_theme_constant_override("outline_size", TITLE_OUTLINE)
@@ -51,7 +52,6 @@ func _ready() -> void:
 	var new_island := _new_island
 	new_island.text = tr("NEW_ISLAND")
 	new_island.custom_minimum_size.x = 200
-	new_island.add_theme_font_size_override("font_size", 24)
 	new_island.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_style_key(new_island)
 	new_island.pressed.connect(_start)
@@ -62,7 +62,6 @@ func _ready() -> void:
 	_seed_field.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_seed_field.custom_minimum_size.x = 120
 	_seed_field.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_seed_field.add_theme_font_size_override("font_size", 12)
 	_seed_field.text_submitted.connect(_start.unbind(1))
 	column.add_child(_seed_field)
 	# Hidden until the player tabs or uses the arrow keys, like focus-visible on the web.
