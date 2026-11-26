@@ -48,6 +48,9 @@ static func generate(island_seed: int, on_step: Callable = Callable()) -> Island
 	if WaysUp.open(data) > 0:
 		data.material = MaterialLookup.generate(data.height, data.moisture)
 		data.peaks = Peaks.generate(data.height, data.main_island)
+	# A mend that raises nothing still marks the cliffs around it without clearing specks, so the
+	# cliffs are built again even when WaysUp raised no cell.
+	if data.start >= 0:
 		Walkability.mark_cliffs(data)
 	_record(data, "ways_up", started, on_step)
 	return data
