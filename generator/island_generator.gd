@@ -44,7 +44,7 @@ static func generate(island_seed: int, on_step: Callable = Callable()) -> Island
 	Walkability.mark_cliffs(data)
 	var start_rng := RandomNumberGenerator.new()
 	start_rng.seed = rng.randi()
-	data.start = Walkability.start_cell(data, start_rng)
+	Landing.place(data, start_rng)
 	started = _record(data, "start", started, on_step)
 	# WaysUp needs the start, which needs the rivers, the material and the cliffs, so it runs after
 	# them and then redoes what depends on the heights it raised. It marks the cliffs around each
@@ -58,7 +58,12 @@ static func generate(island_seed: int, on_step: Callable = Callable()) -> Island
 	# cliffs are built again even when WaysUp raised no cell.
 	if data.start >= 0:
 		Walkability.mark_cliffs(data)
-	_record(data, "ways_up", started, on_step)
+	started = _record(data, "ways_up", started, on_step)
+	if data.start >= 0:
+		data.route = Walkability.route(data, data.start, data.peaks[0].cell)
+		if not data.route.is_empty():
+			data.vardes = PackedInt32Array([Landing.first_varde(data, start_rng)])
+	_record(data, "route", started, on_step)
 	return data
 
 
