@@ -9,9 +9,11 @@ const SEA_RADIUS: float = 40.0
 ## with the ground's height, so every metre climbed widens the view by the same amount and a low hill
 ## already pays off. Raising it makes climbing a peak reveal more of the island.
 const SUMMIT_RADIUS: float = 120.0
-## World units from the ground to the eye, the figure's height. Raising it lets the player see over
-## low bumps close by.
-const EYE_HEIGHT: float = Figure.HEIGHT
+## World units from the ground to the eye. Raising it lets the player see over low bumps close by
+## and down past an edge from further back. At the figure's height, 1.5, the player had to stand at
+## the very edge of a cliff to clear the fog below it, which felt wrong from a camera that looks
+## down. At 8 the player sees about twice as many cells on a massif's slopes, and a cast costs the same.
+const EYE_HEIGHT: float = 8.0
 ## Cells between the samples along a ray. At 1 the samples at whole distances skipped cells whose
 ## corner the ray clipped between two of them, 168 of the 4,800 inside the sea-level radius. Halving
 ## it doubles the cost of a cast.

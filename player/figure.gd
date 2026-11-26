@@ -13,7 +13,7 @@ const SILHOUETTE: Ramps.FigurePart = Ramps.FigurePart.COAT
 ## 0.052 units and the camera looks down at 45°, it draws the figure about 25 pixels tall and 12 wide.
 const HEIGHT: float = 1.5
 ## Cells walked per full walk cycle, a step with each foot. Raising it slows the legs against the
-## ground. At 3.5 cells per second, 2.4 gives about 3 steps a second. Legs that kept pace with the
+## ground. At 5 cells per second, 2.4 gives about 4 steps a second, and 3.4 would give 3. Legs that kept pace with the
 ## ground would need 7, and at 2 cells the steps looked fast and mechanical.
 const CELLS_PER_CYCLE: float = 2.4
 ## World units the body drops at each footfall, when the legs are furthest apart, and rises from as

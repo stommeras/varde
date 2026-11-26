@@ -27,8 +27,9 @@ uniform vec4 ground[9];
 uniform float land_tint = 0.0;
 
 // Height-map units between two contour lines, where the summit is 1.0. Lowering it draws more lines.
-// At 0.02 a line runs every 2 world units and every fifth, the thick one, every 10.
-uniform float contour_interval = 0.02;
+// At 0.04 a line runs every 4 world units, 40 m, and every fifth, the dark one, every 20. At 0.02 the
+// sides of the massifs turned into solid bands of ink.
+uniform float contour_interval = 0.04;
 // Share of paper cells stained one step darker, the grain of the aged paper. 0 gives a clean sheet.
 uniform float grain = 0.06;
 // Distance from the middle of the sheet, in halves of its width, at which the edges start to yellow.
@@ -101,10 +102,10 @@ void fragment() {
 				int next_terrain = material_at(next);
 				outline = outline || ((terrain == forest || terrain == snow) && next_terrain != terrain && other > 0.0);
 				int next_band = int(floor(other / contour_interval));
-				// A line lies on the upper side of each step between bands, so it is one cell wide. A
-				// line every fifth band also takes the lower side, two cells wide.
+				// A line lies on the upper side of each step between bands, so it is one cell wide. Every
+				// fifth line is drawn in dark ink. Two cells wide, those lines grew thick when the map zoomed in.
 				thin = thin || next_band < band;
-				thick = thick || (next_band < band && band / 5 > next_band / 5) || (next_band > band && next_band / 5 > band / 5);
+				thick = thick || (next_band < band && band / 5 > next_band / 5);
 			}
 			if (outline && (cell.x + cell.y) % 2 == 0) {
 				COLOR = ink_faded;
