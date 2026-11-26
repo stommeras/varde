@@ -57,6 +57,12 @@ READ,[F] Les
 NOTE_WRECK,"Skipsloggen, siste side:
 
 Vi så en varde fra dekk like før vi gikk på grunn. Den sto mot %s, et godt stykke inn i landet."
+NOTE_VARDE,"Ei gammel varde. Under den øverste steinen ligger en lapp:
+
+Neste varde står mot %s."
+NOTE_LAST_VARDE,"Ei gammel varde. Under den øverste steinen ligger en lapp:
+
+Herfra er det ikke langt igjen. Toppvarden står mot %s."
 COMPASS_0,nord
 COMPASS_1,nordøst
 COMPASS_2,øst

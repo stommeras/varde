@@ -46,9 +46,10 @@ var wreck: int = -1
 ## The cells of a walk from start to the summit's top or a cell beside it, start first. Every step
 ## passes Walkability.can_step(). Empty with no start.
 var route := PackedInt32Array()
-## The cells of the old vardes along route, first first. For now it holds only the first, the one
-## the wreck's note points to.
+## The cells of the old vardes along route, first first. The wreck's note points to the first.
 var vardes := PackedInt32Array()
+## A Trail.Kind per varde, in the order of vardes.
+var varde_kinds := PackedByteArray()
 ## Milliseconds each generator step took, in the order the steps ran. Timing differs between runs,
 ## so this is the one field that the same seed doesn't reproduce.
 var step_msec: Dictionary[String, int] = {}

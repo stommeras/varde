@@ -62,7 +62,7 @@ static func generate(island_seed: int, on_step: Callable = Callable()) -> Island
 	if data.start >= 0:
 		data.route = Walkability.route(data, data.start, data.peaks[0].cell)
 		if not data.route.is_empty():
-			data.vardes = PackedInt32Array([Landing.first_varde(data, start_rng)])
+			Trail.place(data, start_rng)
 	_record(data, "route", started, on_step)
 	return data
 

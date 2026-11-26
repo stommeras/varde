@@ -1,11 +1,13 @@
 class_name Reading
 extends CanvasLayer
-## Reading the notes the island holds. Within Landing.READ_REACH of the shipwreck it shows "[F] Les",
-## and F opens the wreck's note in a panel of map paper over the game. The world keeps running.
-## F or Escape closes it, and so does walking CLOSE_MARGIN past the reach, so the note doesn't follow
-## the player. A note that opened by itself would stop the player each time they walked
-## past. The note points toward the first old varde. A later issue writes the notes from the
+## Reading the notes the island holds, on the shipwreck and on each old varde. Within reach of one,
+## Landing.READ_REACH of the wreck or Trail.READ_REACH of a varde, it shows "[F] Les", and F opens
+## that note in a panel of map paper over the game. The world keeps running. F or Escape closes it,
+## and so does walking CLOSE_MARGIN past the reach, so the note doesn't follow the player. A note
+## that opened by itself would stop the player each time they walked past. Each note points toward
+## the next varde, and the last one toward the summit. A later issue writes the notes from the
 ## island's features, and until then the text is a placeholder that names a compass direction.
+## It records the vardes found and the notes read, for the map screen and the end screen.
 
 ## Width of the note panel in base-resolution pixels. Raising it gives longer lines and a lower panel.
 const WIDTH: int = 360
@@ -14,20 +16,29 @@ const PADDING: int = 16
 ## Pixels from the top of the screen to the panel. It sits high, so it leaves the figure in the
 ## middle of the screen in view while the player walks with the note open.
 const TOP: int = 32
-## Cells past Landing.READ_REACH the player walks before an open note closes. The start lies about
+## Cells past a note's reach the player walks before an open note closes. The start lies about
 ## 3.2 cells from the wreck, so at 0 the first step away closed the note in under a quarter of a
 ## second. Raising it lets the player walk further while reading.
 const CLOSE_MARGIN: float = 3.0
 
 ## Set it before adding the node.
 var player: Player
-var _island: IslandData
+## The cells of the old vardes the player has come within reach of, in the order found.
+var found := PackedInt32Array()
+## The cells of the wreck and the old vardes whose notes the player has opened, in the order read.
+var read := PackedInt32Array()
+## The cell, reach and text of each note, the wreck's first if there is one.
+var _cells := PackedInt32Array()
+var _reaches := PackedFloat32Array()
+var _texts := PackedStringArray()
+## The note open in the panel, an index into _cells, or -1.
+var _open: int = -1
 var _prompt := Prompt.new("READ")
 var _panel := PanelContainer.new()
 var _text := Label.new()
 
 
-func _ready() -> void:
+func _init() -> void:
 	# Above the prompts, below the pause menu.
 	layer = 2
 	add_child(_prompt)
@@ -47,34 +58,79 @@ func _ready() -> void:
 	add_child(_panel)
 
 
-## Starts a new island with the note closed.
+## Starts a new island with the note closed and nothing found or read.
 func start(island: IslandData) -> void:
-	_island = island
-	_panel.hide()
-	if island.wreck >= 0 and not island.vardes.is_empty():
-		_text.text = tr("NOTE_WRECK") % tr("COMPASS_%d" % compass(island.wreck, island.vardes[0]))
+	_close()
+	found.clear()
+	read.clear()
+	_cells.clear()
+	_reaches.clear()
+	_texts.clear()
+	var vardes: PackedInt32Array = island.vardes
+	if island.wreck < 0 or vardes.is_empty():
+		return
+	_add(island.wreck, Landing.READ_REACH, tr("NOTE_WRECK") % tr("COMPASS_%d" % compass(island.wreck, vardes[0])))
+	for i: int in vardes.size():
+		var last: bool = i == vardes.size() - 1
+		var next: int = island.peaks[0].cell if last else vardes[i + 1]
+		_add(vardes[i], Trail.READ_REACH, tr("NOTE_LAST_VARDE" if last else "NOTE_VARDE") % tr("COMPASS_%d" % compass(vardes[i], next)))
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _panel.visible and (event.is_action_pressed("survey") or event.is_action_pressed("ui_cancel")):
+	if _open >= 0 and (event.is_action_pressed("survey") or event.is_action_pressed("ui_cancel")):
 		get_viewport().set_input_as_handled()
-		_panel.hide()
-	# F reads as it surveys, since a wreck never lies in a peak's zone.
-	elif _in_reach() and event.is_action_pressed("survey"):
+		_close()
+		return
+	# F reads as it surveys, since no note lies in reach of a peak's zone.
+	var note: int = _in_reach()
+	if note >= 0 and event.is_action_pressed("survey"):
 		get_viewport().set_input_as_handled()
+		_open = note
+		_text.text = _texts[note]
 		_panel.show()
+		if not read.has(_cells[note]):
+			read.append(_cells[note])
 
 
 func _process(delta: float) -> void:
-	if _panel.visible and not _in_reach(Landing.READ_REACH + CLOSE_MARGIN):
-		_panel.hide()
-	_prompt.fade(_in_reach() and not _panel.visible, delta)
+	if _open >= 0 and not _within(_open, CLOSE_MARGIN):
+		_close()
+	var note: int = _in_reach()
+	# The wreck is note 0 and isn't a varde.
+	if note > 0 and not found.has(_cells[note]):
+		found.append(_cells[note])
+	_prompt.fade(note >= 0 and _open < 0, delta)
 
 
-func _in_reach(reach: float = Landing.READ_REACH) -> bool:
-	if _island == null or _island.wreck < 0 or _island.vardes.is_empty() or player.frozen:
-		return false
-	return player.grid_position.distance_to(IslandData.center(_island.wreck)) <= reach
+## The text of the note on cell, or an empty string if no note lies there.
+func note_at(cell: int) -> String:
+	var note: int = _cells.find(cell)
+	return _texts[note] if note >= 0 else ""
+
+
+func _add(cell: int, reach: float, text: String) -> void:
+	_cells.append(cell)
+	_reaches.append(reach)
+	_texts.append(text)
+
+
+func _close() -> void:
+	_open = -1
+	_panel.hide()
+
+
+## The note whose reach the player stands in, or -1.
+func _in_reach() -> int:
+	if player.frozen:
+		return -1
+	for note: int in _cells.size():
+		if _within(note, 0.0):
+			return note
+	return -1
+
+
+func _within(note: int, margin: float) -> bool:
+	return player.grid_position.distance_to(IslandData.center(_cells[note])) <= _reaches[note] + margin
 
 
 ## The nearest of the 8 compass directions from cell from to cell to, 0 for north and counting

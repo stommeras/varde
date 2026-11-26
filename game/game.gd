@@ -3,7 +3,7 @@ extends Node3D
 ## One run on one island. The title screen generates the island and hands it over. Run on its own, the
 ## scene generates it on a background thread behind "Kartlegger øya". The island then shows through the game camera at the view values in SPEC.md. Once the island shows, Escape
 ## pauses the run behind the pause menu, Q and E turn the camera, F surveys a peak the player stands
-## on or reads the shipwreck's note beside it, and M opens the map.
+## on or reads the note on the shipwreck or an old varde beside it, and M opens the map.
 ## G toggles god mode in debug builds.
 
 const TITLE_SCREEN: String = "res://game/title_screen.tscn"
@@ -102,6 +102,11 @@ func _on_loaded(loaded_island: IslandData, loaded_meshes: Array[ArrayMesh], _mse
 		# Bow first up the beach, toward the start.
 		wreck.place(loaded_island, loaded_island.wreck, loaded_island.start)
 		add_child(wreck)
+	for i: int in loaded_island.vardes.size():
+		# Made only here, since a node that never joins the tree is never freed.
+		var varde := OldVarde.new(loaded_island.varde_kinds[i], loaded_island.island_seed + i)
+		varde.place(loaded_island, loaded_island.vardes[i])
+		add_child(varde)
 	_reading.start(loaded_island)
 	_menu.show_seed(loaded_island.island_seed)
 	_survey.start(loaded_island)
