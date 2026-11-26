@@ -1,0 +1,113 @@
+<!doctype html>
+<!--
+  The landing page at varde.tommeras.no. The release workflow copies it to the root of the site,
+  game/backdrop.png next to it, and the web export into spill/. The colors are the paper and ink of
+  the MAP ramps in world/ramps.gd, so the page reads as the game's map.
+-->
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Varde</title>
+<meta name="description" content="Et rolig utforskingsspill. Hver runde lager en ny øy, og du følger gamle varder opp til den ekte toppen.">
+<link rel="icon" href="spill/index.icon.png">
+<style>
+  :root {
+    --paper: #e6d6b0;
+    --paper-dark: #d2bb8e;
+    --stain: #b89c70;
+    --ink: #3a2a1c;
+    --ink-faded: #8a6c4c;
+    --water: #2f5a7a;
+    --marker: #a8342e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font: 17px/1.55 system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--water) url("backdrop.png") center / 200% auto;
+    image-rendering: pixelated;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+  }
+  main {
+    width: 100%;
+    max-width: 560px;
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink);
+    padding: 28px 28px 20px;
+  }
+  h1 { font-size: 44px; line-height: 1; margin: 0 0 12px; letter-spacing: 0.02em; }
+  h2 { font-size: 17px; margin: 28px 0 8px; }
+  p { margin: 0 0 12px; }
+  a { color: var(--water); }
+  .play {
+    display: block;
+    text-align: center;
+    margin: 20px 0 6px;
+    padding: 14px;
+    background: var(--marker);
+    color: var(--paper);
+    font-size: 20px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 2px solid var(--ink);
+  }
+  .play:hover { background: #6a1e22; }
+  .small { font-size: 14px; color: var(--ink-faded); }
+  .downloads { display: flex; gap: 12px; flex-wrap: wrap; }
+  .downloads a {
+    flex: 1 1 140px;
+    text-align: center;
+    padding: 10px;
+    background: var(--paper-dark);
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .downloads a:hover { background: var(--stain); }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  td { padding: 4px 0; border-bottom: 1px solid var(--paper-dark); vertical-align: top; }
+  td:first-child { width: 45%; font-weight: 600; }
+  footer { margin-top: 24px; font-size: 14px; color: var(--ink-faded); }
+  footer a { color: var(--ink-faded); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Varde</h1>
+  <p>Et rolig utforskingsspill. Hver runde lager en ny øy. Du går i land med et blankt kart og følger gamle varder opp til den ekte toppen, mens kartet fyller seg ut med det du ser.</p>
+  <p>Spillet er ikke ferdig, og hver versjon viser hvor langt det har kommet.</p>
+
+  <a class="play" href="spill/">Spill i nettleseren</a>
+  <p class="small">Nettleseren laster ned rundt 40 MB første gang. Spillet styres med tastaturet, så det fungerer best på en PC.</p>
+
+  <h2>Last ned</h2>
+  <div class="downloads">
+    <a href="https://github.com/stommeras/varde/releases/latest/download/varde-windows.zip">Windows</a>
+    <a href="https://github.com/stommeras/varde/releases/latest/download/varde-linux.zip">Linux</a>
+  </div>
+  <p class="small" style="margin-top: 10px">Pakk ut zip-filen og start <code>varde.exe</code> eller <code>varde.x86_64</code>. Spillet er ikke signert, så Windows kan advare. Velg «Mer informasjon» og så «Kjør likevel».</p>
+
+  <h2>Taster</h2>
+  <table>
+    <tr><td>WASD eller piltastene</td><td>Gå</td></tr>
+    <tr><td>Q og E</td><td>Snu kameraet</td></tr>
+    <tr><td>F</td><td>Kartlegg en topp du står nær</td></tr>
+    <tr><td>M</td><td>Kartet</td></tr>
+    <tr><td>Musehjulet eller + og -</td><td>Zoom</td></tr>
+    <tr><td>Escape</td><td>Pause</td></tr>
+  </table>
+
+  <footer>
+    Laget av Steffen Tømmerås. <a href="https://github.com/stommeras/varde">Koden</a> og <a href="https://github.com/stommeras/varde/releases">alle versjoner</a> ligger på GitHub.
+  </footer>
+</main>
+</body>
+</html>
