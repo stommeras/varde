@@ -19,11 +19,12 @@ func test_summit_is_a_peak_and_every_peak_is_valid() -> void:
 			continue
 		expect(data.peaks[0].height == highest, "seed %d: the highest peak is %f, the highest cell %f" % [island_seed, data.peaks[0].height, highest])
 		# A loose guard around SPEC's 5 to 10 on most islands, so a retune that floods or empties the
-		# islands fails. Seeds 0 to 9 give 3 to 12.
-		expect(data.peaks.size() >= 3 and data.peaks.size() <= 12, "seed %d has %d peaks" % [island_seed, data.peaks.size()])
+		# islands fails. Seeds 0 to 9 give 6 to 12.
+		expect(data.peaks.size() >= 5 and data.peaks.size() <= 12, "seed %d has %d peaks" % [island_seed, data.peaks.size()])
 		for peak: Peak in data.peaks:
 			expect(data.main_island[peak.cell] == 1, "seed %d: a peak is off the main island" % island_seed)
 			expect(data.height[peak.cell] == peak.height, "seed %d: a peak's height is not its cell's" % island_seed)
+			expect(peak.height >= Peaks.MIN_HEIGHT * highest, "seed %d: a peak stands at %f of the summit" % [island_seed, peak.height / highest])
 			expect(peak.prominence >= Peaks.MIN_PROMINENCE * highest and peak.prominence <= peak.height,
 				"seed %d: a peak of height %f has prominence %f" % [island_seed, peak.height, peak.prominence])
 

@@ -9,8 +9,12 @@ extends RefCounted
 ## The least prominence a peak needs, as a share of the summit's height. Lowering it adds small
 ## knolls, raising it keeps only the big mountains. SPEC.md aims for 5 to 10 peaks per island. The
 ## massifs stand in ranges with saddles about half the summit's height, so 0.35 kept only 2 to 4
-## of their tops.
-const MIN_PROMINENCE: float = 0.25
+## of their tops, and 0.25 left seed 2 with 3. With MIN_HEIGHT, 0.2 gives 6 to 12 on seeds 0 to 9.
+const MIN_PROMINENCE: float = 0.2
+## The least height a peak needs, as a share of the summit's. A lone knoll on the lowland rises from
+## a low saddle, so prominence alone counted hills at 29 to 58% of the summit's height on four of
+## seeds 0 to 9. Raising it keeps only the high tops of the massifs.
+const MIN_HEIGHT: float = 0.5
 ## Heights are packed into the sort key as whole numbers of this many steps per height unit. Two
 ## cells less than 2^-30 apart tie in the key and sort by cell index, which shifts a saddle by far
 ## less than MIN_PROMINENCE.
@@ -40,6 +44,7 @@ static func generate(height: PackedFloat32Array, main_island: PackedByteArray) -
 	keys.sort()
 	var cell_mask: int = (1 << INDEX_BITS) - 1
 	var min_prominence: float = MIN_PROMINENCE * height[keys[-1] & cell_mask]
+	var min_height: float = MIN_HEIGHT * height[keys[-1] & cell_mask]
 
 	# -1 is a cell not visited yet. A visited cell points at another cell of its group, and a
 	# group's root points at itself.
@@ -72,7 +77,7 @@ static func generate(height: PackedFloat32Array, main_island: PackedByteArray) -
 			var winner: int = a if a_wins else b
 			var loser: int = b if a_wins else a
 			var prominence: float = height[top[loser]] - height[cell]
-			if prominence >= min_prominence:
+			if prominence >= min_prominence and height[top[loser]] >= min_height:
 				peaks.append(Peak.new(top[loser], height[top[loser]], prominence))
 			parent[loser] = winner
 	# One group is left, topped by the summit, which rises from the sea.

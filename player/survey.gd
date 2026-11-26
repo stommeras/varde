@@ -9,8 +9,8 @@ extends Node
 ## tuning notes.
 const ZONE_RADIUS: float = Peak.ZONE_RADIUS
 ## Cells from a peak's top within which a ring floats over the edge of its zone, so the player can
-## find the top. Raising it shows the ring from further down.
-const MARKER_REACH: float = 6.0
+## find the top. Raising it shows the ring from further down. It reaches twice the zone's radius.
+const MARKER_REACH: float = 10.0
 ## Seconds the zone ring takes to dither in or out.
 const MARKER_FADE_SECONDS: float = 0.5
 ## How many times the walking view radius a survey reaches.

@@ -4,10 +4,11 @@ extends Node3D
 ## with Walkability, stands on the terrain mesh's surface, and keeps the game camera on it, trailing
 ## its height by CAMERA_LAG.
 
-## Cells per second on any ground. Raising it crosses the island faster. At 3.5, walking across the
-## 50 cells of a 960×540 screen at zoom 40 takes about 14 s. At 6 the figure, about 1.5 units tall,
-## crossed four of its own heights a second and looked like it was sprinting.
-const SPEED: float = 3.5
+## Cells per second on any ground. Raising it crosses the island faster. At 5, walking across the
+## 50 cells of a 960×540 screen at zoom 40 takes about 10 s. At 3.5 the walks between massifs, often
+## 100 to 200 cells, felt slow, and at 6 the figure, about 1.5 units tall, crossed four of its own
+## heights a second and looked like it was sprinting.
+const SPEED: float = 5.0
 ## Seconds the player takes to reach full speed from standing, and to stop again. Raising it gives
 ## the figure more weight and makes it slide further after the key comes up. At 0 it starts and
 ## stops dead, which made it float.
