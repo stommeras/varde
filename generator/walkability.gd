@@ -21,6 +21,13 @@ const START_TRIES: int = 100000
 ## Cells a start cell must reach. It keeps the player out of a cove walled in by cliffs. Raising it
 ## costs a longer search for each beach cell tried.
 const START_REACH: int = 20000
+## Fewest cells a cliff patch needs, counting cells that touch at a corner. A smaller one is a few
+## steps just past the limit, and the player can walk it. Raising it opens more of the steep
+## mountainsides, lowering it leaves more dark specks.
+const CLIFF_SPECK_CELLS: int = 24
+## Fewest cells a pocket of open land walled in by cliffs needs. A smaller one turns to cliff, since
+## nothing can walk into it. Raising it fills bigger pockets, which are all out of reach anyway.
+const POCKET_CELLS: int = 24
 
 
 ## True when the player can't stand on cell: in the sea, in a lake or on a cliff. Rivers can be
@@ -45,8 +52,15 @@ static func can_step(data: IslandData, from: int, to: int) -> bool:
 
 ## Sets data.cliff for the whole grid: 1 on every land cell that has a step to a neighbor, edge or
 ## corner, steeper than WALK_DEGREES. The sea counts at sea level, as the terrain mesh draws it. A
-## steep pair marks both its cells, so a wall is about two cells thick: its foot and its top.
+## steep pair marks both its cells, so a wall is about two cells thick: its foot and its top. Then it
+## clears the specks, see _clear_specks().
 static func mark_cliffs(data: IslandData) -> void:
+	_mark_steep(data)
+	_clear_specks(data)
+
+
+## Sets data.cliff to 1 on every land cell with a step steeper than WALK_DEGREES, and 0 elsewhere.
+static func _mark_steep(data: IslandData) -> void:
 	var size: int = IslandData.SIZE
 	data.cliff = PackedByteArray()
 	data.cliff.resize(size * size)
@@ -67,6 +81,63 @@ static func mark_cliffs(data: IslandData) -> void:
 				_mark_pair(data, cell, cell + size)
 			if absf(maxf(h[cell + size + 1], 0.0) - here) > corner:
 				_mark_pair(data, cell, cell + size + 1)
+
+
+## Mountainsides near WALK_DEGREES cross the limit back and forth with the crag noise, which marked
+## hundreds of small cliff patches and walled-in pockets per island. The shader drew them as dark
+## blotches. This clears every cliff patch smaller than CLIFF_SPECK_CELLS, so the player can walk
+## over a few steps a little steeper than the limit. Then it turns every pocket of open land smaller
+## than POCKET_CELLS that cliffs wall in on all sides to cliff. Nothing can walk into a pocket, so
+## filling it changes no route.
+static func _clear_specks(data: IslandData) -> void:
+	var size: int = IslandData.SIZE
+	var seen := PackedByteArray()
+	seen.resize(data.cliff.size())
+	# Corners count for a cliff patch, since a corner step can't slip between two cliff cells.
+	var corners := PackedInt32Array([-size - 1, -size, -size + 1, -1, 1, size - 1, size, size + 1])
+	for start: int in data.cliff.size():
+		if data.cliff[start] == 1 and seen[start] == 0:
+			var patch: PackedInt32Array = _patch(data, start, seen, corners, 1)
+			if patch.size() < CLIFF_SPECK_CELLS:
+				for i: int in patch:
+					data.cliff[i] = 0
+	seen.fill(0)
+	# Open land joins only through edges, since a corner step needs both cells beside it open too.
+	var edges := PackedInt32Array([-size, -1, 1, size])
+	for start: int in data.cliff.size():
+		if seen[start] == 0 and data.cliff[start] == 0 and data.height[start] > 0.0 and data.lake[start] == 0:
+			var pocket: PackedInt32Array = _patch(data, start, seen, edges, 0, POCKET_CELLS)
+			if pocket.size() < POCKET_CELLS and _walled_in(data, pocket, edges):
+				for i: int in pocket:
+					data.cliff[i] = 1
+
+
+## The cells joined to start through offsets that have the same cliff value as start, on land off the
+## lakes. Marks each in seen. Stops growing at limit cells, so a search through a big open area stays short.
+static func _patch(data: IslandData, start: int, seen: PackedByteArray, offsets: PackedInt32Array, cliff: int, limit: int = 1 << 30) -> PackedInt32Array:
+	seen[start] = 1
+	var patch := PackedInt32Array([start])
+	var head: int = 0
+	while head < patch.size() and patch.size() < limit:
+		var i: int = patch[head]
+		head += 1
+		# Land never reaches the grid's edge, so a land cell's neighbors are always on the grid.
+		for offset: int in offsets:
+			var n: int = i + offset
+			if seen[n] == 0 and data.cliff[n] == cliff and data.height[n] > 0.0 and data.lake[n] == 0:
+				seen[n] = 1
+				patch.append(n)
+	return patch
+
+
+## True when every edge neighbor of pocket outside it is a cliff, so no sea or lake shore borders it.
+static func _walled_in(data: IslandData, pocket: PackedInt32Array, edges: PackedInt32Array) -> bool:
+	for i: int in pocket:
+		for offset: int in edges:
+			var n: int = i + offset
+			if data.cliff[n] == 0 and pocket.find(n) < 0:
+				return false
+	return true
 
 
 ## Marks a and b as cliffs, those of them on land.

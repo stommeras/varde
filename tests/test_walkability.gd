@@ -97,3 +97,26 @@ func test_start_stays_open_after_ways_up() -> void:
 	for island_seed: int in SEEDS:
 		var data: IslandData = island(island_seed)
 		expect(data.start >= 0 and not Walkability.blocked(data, data.start), "seed %d: the start is blocked" % island_seed)
+
+
+## A lone cliff cell on open land clears, and a lone open cell walled in by cliffs fills.
+func test_specks_and_pockets_clear() -> void:
+	var data: IslandData = island(0)
+	var size: int = IslandData.SIZE
+	var cliff: PackedByteArray = data.cliff.duplicate()
+	var lake: PackedByteArray = data.lake.duplicate()
+	var middle: int = data.peaks[0].cell
+	for dy: int in range(-8, 9):
+		for dx: int in range(-8, 9):
+			var i: int = middle + dy * size + dx
+			data.lake[i] = 0
+			data.cliff[i] = int(absi(dx) <= 4 and absi(dy) <= 4)
+	data.cliff[middle] = 0
+	var speck: int = middle + 7
+	data.cliff[speck] = 1
+	Walkability._clear_specks(data)
+	expect(data.cliff[middle] == 1, "a walled-in pocket stays open")
+	expect(data.cliff[speck] == 0, "a lone cliff cell stays")
+	expect(data.cliff[middle + 4] == 1, "a big cliff patch clears")
+	data.cliff = cliff
+	data.lake = lake

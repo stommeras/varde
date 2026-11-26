@@ -18,13 +18,9 @@ uniform float grain_scale = 6.0;
 // How many ramp steps the grain shifts the light up or down. 0 gives flat dithering, above about
 // 1 the grain drowns out the shape of the land.
 uniform float grain_steps = 0.6;
-// World units between the tops of two strata. Lower gives thinner bands. At 1.2 the bands read as
-// fine rings around each mountain instead of layers in a cliff.
-uniform float strata_spacing = 5.0;
-// How many spacings noise can bend a stratum up or down along the cliff, so the bands aren't perfectly level.
-uniform float strata_wobble = 0.6;
 // Ramp steps a cliff sits below rock the player can walk on, so a wall reads apart from rock they
-// can climb. 0 draws cliffs in the light of plain rock.
+// can climb. 0 draws cliffs in the light of plain rock. Every other band of 5 world units was one
+// step darker too, but on the mountainsides near the walk limit the bands broke into dark blotches.
 uniform float cliff_darken = 1.0;
 
 // Depth below sea level, in height-map units, where the sea reaches its darkest step. The summit is
@@ -70,7 +66,7 @@ const float FAR_DEPTH = 0.00001;
 varying vec3 world_position;
 // The Ramps.Terrain value whose ramp this pixel uses. Floats, because light() reads it.
 varying float terrain;
-// Ramp steps added to the light's position along the ramp, from grain, strata and ripples.
+// Ramp steps added to the light's position along the ramp, from grain, cliffs and ripples.
 varying float step_offset;
 // The share of the ramp full sun reaches. 1 on land and foam, and less in deeper water.
 varying float ramp_reach;
@@ -111,9 +107,7 @@ void fragment() {
 	step_offset = grain * 2.0 * grain_steps;
 	if (kind != 0 && is_cliff(cell, warp)) {
 		kind = 5;  // Ramps.Terrain.ROCK
-		// Every other stratum is one step darker, which draws level bands across the cliff.
-		float stratum = floor(height * summit / strata_spacing + warp.x * 2.0 * strata_wobble);
-		step_offset -= cliff_darken + mod(stratum, 2.0);
+		step_offset -= cliff_darken;
 	}
 	ramp_reach = 1.0;
 	if (kind == 0) {
