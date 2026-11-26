@@ -21,4 +21,4 @@ func test_thread_gives_same_island() -> void:
 
 func test_every_step_is_timed() -> void:
 	var steps: Array[String] = island(0).step_msec.keys()
-	expect(steps == ["height", "erosion", "crags", "moisture", "material", "main_island", "rivers", "peaks", "start", "ways_up"], "timed steps are %s" % [steps])
+	expect(steps == ["height", "erosion", "crags", "moisture", "material", "main_island", "rivers", "peaks", "contenders", "start", "ways_up"], "timed steps are %s" % [steps])
