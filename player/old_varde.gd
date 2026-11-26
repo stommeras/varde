@@ -8,9 +8,12 @@ extends Node3D
 
 ## Slab layers of a standing varde. Raising it makes a taller tower.
 const LAYERS: int = 10
-## Layers left of a fallen varde's stump, and of a hidden one.
+## Layers left of a fallen varde's stump. Raising it leaves a taller stump and strews fewer slabs.
 const FALLEN_LAYERS: int = 3
+## Layers of a hidden varde. Lowering it sinks the varde further into the forest floor's shrubs.
 const HIDDEN_LAYERS: int = 6
+## Layers by Trail.Kind.
+const KIND_LAYERS: Dictionary[Trail.Kind, int] = {Trail.Kind.STANDING: LAYERS, Trail.Kind.FALLEN: FALLEN_LAYERS, Trail.Kind.HIDDEN: HIDDEN_LAYERS}
 ## Size of one slab in world units: long, thick and deep. Two lie side by side in each layer, so the
 ## tower is about SLAB.x wide. At 10 layers of 0.17 it stands 1.7 units, over the figure's 1.5.
 const SLAB := Vector3(0.62, 0.17, 0.3)
@@ -18,8 +21,15 @@ const SLAB := Vector3(0.62, 0.17, 0.3)
 ## out past the slab below cast a dark seam under them, which is what shows the layers. At 0.15 the
 ## faces lined up and the tower read as one block. Raising it makes the tower more crooked.
 const WOBBLE: float = 0.3
-## World units a fallen varde's slabs land from its middle at most, toward the side it fell.
+## World units from a fallen varde's middle to its nearest and furthest strewn slab, on the side it
+## fell. Raising FALL_REACH spreads the slabs further.
+const FALL_NEAREST: float = 0.5
 const FALL_REACH: float = 1.6
+## Radians to each side of the fall's direction that the strewn slabs spread. Raising it turns the
+## fan into a ring around the stump, which reads as a varde taken apart, not one that fell.
+const FALL_SPREAD: float = 0.6
+## Radians a strewn slab tips at most, as it lies on rough ground.
+const FALL_TILT: float = 0.3
 
 
 ## Builds an old varde of kind, a Trail.Kind, shaped by varde_seed, so the same varde always looks
@@ -28,7 +38,7 @@ func _init(kind: Trail.Kind = Trail.Kind.STANDING, varde_seed: int = 0) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = varde_seed
 	var material: ShaderMaterial = Figure.lit(Ramps.FigurePart.MOSS if kind == Trail.Kind.HIDDEN else Ramps.FigurePart.LICHEN)
-	var layers: int = {Trail.Kind.STANDING: LAYERS, Trail.Kind.FALLEN: FALLEN_LAYERS, Trail.Kind.HIDDEN: HIDDEN_LAYERS}[kind]
+	var layers: int = KIND_LAYERS[kind]
 	var turn: float = rng.randf() * TAU
 	for layer: int in layers:
 		# Each layer crosses the one below, so the joints don't line up and the slabs lock together.
@@ -39,9 +49,9 @@ func _init(kind: Trail.Kind = Trail.Kind.STANDING, varde_seed: int = 0) -> void:
 	if kind == Trail.Kind.FALLEN:
 		var toward: float = rng.randf() * TAU
 		for slab: int in (LAYERS - FALLEN_LAYERS) * 2:
-			# Spread in a fan on the side the tower fell, nearer slabs from lower down.
-			var at := Vector2.from_angle(toward + rng.randf_range(-0.6, 0.6)) * rng.randf_range(0.5, FALL_REACH)
-			_slab(material, Vector3(at.x, SLAB.y * 0.3, at.y), Vector3(rng.randf_range(-0.3, 0.3), rng.randf() * TAU, rng.randf_range(-0.3, 0.3)), rng)
+			var at := Vector2.from_angle(toward + rng.randf_range(-FALL_SPREAD, FALL_SPREAD)) * rng.randf_range(FALL_NEAREST, FALL_REACH)
+			# Its middle a third of a slab up, so a tipped slab sinks into the ground instead of floating.
+			_slab(material, Vector3(at.x, SLAB.y * 0.3, at.y), Vector3(rng.randf_range(-FALL_TILT, FALL_TILT), rng.randf() * TAU, rng.randf_range(-FALL_TILT, FALL_TILT)), rng)
 
 
 ## Stands the varde on island's ground at the middle of cell.

@@ -7,7 +7,7 @@ extends CanvasLayer
 ## that opened by itself would stop the player each time they walked past. Each note points toward
 ## the next varde, and the last one toward the summit. A later issue writes the notes from the
 ## island's features, and until then the text is a placeholder that names a compass direction.
-## It records the vardes found and the notes read, for the map screen and the end screen.
+## It records the vardes found_vardes and the notes read, for the map screen and the end screen.
 
 ## Width of the note panel in base-resolution pixels. Raising it gives longer lines and a lower panel.
 const WIDTH: int = 360
@@ -23,10 +23,10 @@ const CLOSE_MARGIN: float = 3.0
 
 ## Set it before adding the node.
 var player: Player
-## The cells of the old vardes the player has come within reach of, in the order found.
-var found := PackedInt32Array()
+## The cells of the old vardes the player has come within reach of, in the order found_vardes.
+var found_vardes := PackedInt32Array()
 ## The cells of the wreck and the old vardes whose notes the player has opened, in the order read.
-var read := PackedInt32Array()
+var read_notes := PackedInt32Array()
 ## The cell, reach and text of each note, the wreck's first if there is one.
 var _cells := PackedInt32Array()
 var _reaches := PackedFloat32Array()
@@ -58,11 +58,11 @@ func _init() -> void:
 	add_child(_panel)
 
 
-## Starts a new island with the note closed and nothing found or read.
+## Starts a new island with the note closed and nothing found_vardes or read.
 func start(island: IslandData) -> void:
 	_close()
-	found.clear()
-	read.clear()
+	found_vardes.clear()
+	read_notes.clear()
 	_cells.clear()
 	_reaches.clear()
 	_texts.clear()
@@ -88,8 +88,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_open = note
 		_text.text = _texts[note]
 		_panel.show()
-		if not read.has(_cells[note]):
-			read.append(_cells[note])
+		if not read_notes.has(_cells[note]):
+			read_notes.append(_cells[note])
 
 
 func _process(delta: float) -> void:
@@ -97,8 +97,8 @@ func _process(delta: float) -> void:
 		_close()
 	var note: int = _in_reach()
 	# The wreck is note 0 and isn't a varde.
-	if note > 0 and not found.has(_cells[note]):
-		found.append(_cells[note])
+	if note > 0 and not found_vardes.has(_cells[note]):
+		found_vardes.append(_cells[note])
 	_prompt.fade(note >= 0 and _open < 0, delta)
 
 

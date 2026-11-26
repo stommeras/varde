@@ -16,7 +16,7 @@ const FIRST_MAX: float = 120.0
 const GAP_MIN: float = 40.0
 const GAP_MAX: float = 60.0
 ## Most old vardes on one island. A long route stops placing them here.
-const MOST: int = 10
+const MOST_VARDES: int = 10
 ## Straight-line cells the last old varde keeps from the summit's top, so it doesn't stand beside
 ## the summit varde.
 const SUMMIT_GAP: float = 40.0
@@ -47,7 +47,7 @@ static func place(data: IslandData, rng: RandomNumberGenerator) -> void:
 			continue
 		data.vardes.append(cell)
 		data.varde_kinds.append(_kind(data, cell, data.vardes.size() == 1, rng))
-		if data.vardes.size() == MOST:
+		if data.vardes.size() == MOST_VARDES:
 			return
 		last = at
 		reach = rng.randf_range(GAP_MIN, GAP_MAX)
