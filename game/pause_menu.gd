@@ -34,6 +34,7 @@ func _ready() -> void:
 	quit.text = tr("QUIT_RUN")
 	quit.pressed.connect(_quit)
 	column.add_child(quit)
+	add_child(VersionLabel.new())
 
 
 func _unhandled_input(event: InputEvent) -> void:

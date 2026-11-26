@@ -3,9 +3,10 @@
 A release is a version tag on `main`. Pushing the tag starts `.github/workflows/release.yml`, which:
 
 1. runs the tests,
-2. exports the `Linux`, `Windows` and `Web` presets in `export_presets.cfg` with the release templates,
-3. publishes a GitHub Release with `varde-linux.zip`, `varde-windows.zip` and `varde-web.zip` and notes generated from the merged PRs,
-4. runs `.github/workflows/site.yml`, which deploys [varde.tommeras.no](https://varde.tommeras.no) with the new web build.
+2. writes the tag into `application/config/version` in `project.godot`, which the title screen and the pause menu show,
+3. exports the `Linux`, `Windows` and `Web` presets in `export_presets.cfg` with the release templates,
+4. publishes a GitHub Release with `varde-linux.zip`, `varde-windows.zip` and `varde-web.zip` and notes generated from the merged PRs,
+5. runs `.github/workflows/site.yml`, which deploys [varde.tommeras.no](https://varde.tommeras.no) with the new web build.
 
 If the tests fail, nothing is published. A release build leaves out debug-only code such as god mode.
 
@@ -37,7 +38,7 @@ $ git push --delete origin v0.4.0 && git tag -d v0.4.0
 The version number belongs to the game, so the page deploys apart from it. `.github/workflows/site.yml` takes the page from `main` and the game from the latest release, and puts together `build/site/` like this:
 
 ```
-index.html     site/index.html, in bokmål
+index.html     site/index.html, in bokmål, with __VERSION__ replaced by the latest tag
 vercel.json    the headers
 backdrop.png   game/backdrop.png, the title screen's backdrop
 spill/         varde-web.zip from the latest release, unpacked
@@ -62,7 +63,7 @@ $ cp site/index.html site/vercel.json game/backdrop.png build/site/
 $ python3 site/serve.py
 ```
 
-`site/serve.py` serves `build/site/` at http://localhost:8000 with the two headers the game needs. After changing only `site/index.html`, copy it again and reload. The exports don't need to run again.
+A local copy of the page shows `__VERSION__` where the site shows the tag. `site/serve.py` serves `build/site/` at http://localhost:8000 with the two headers the game needs. After changing only `site/index.html`, copy it again and reload. The exports don't need to run again.
 
 The desktop builds carry the game data inside the executable, so each one is a single file of about 75 MB (Linux) or 110 MB (Windows). They use Forward+, and the web build uses Compatibility. SPEC.md describes how the two renderers are kept alike.
 

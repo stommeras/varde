@@ -68,6 +68,8 @@ func _ready() -> void:
 	# Hidden until the player tabs or uses the arrow keys, like focus-visible on the web.
 	new_island.grab_focus(true)
 
+	add_child(VersionLabel.new())
+
 	# Clear, so the veil does the dimming and can fade.
 	_loader.cover_alpha = 0.0
 	_loader.loaded.connect(_on_loaded)
