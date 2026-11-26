@@ -55,7 +55,10 @@ $ godot --headless --export-release Linux build/linux/varde.x86_64
 $ godot --headless --export-release Windows build/windows/varde.exe
 $ godot --headless --export-release Web build/site/spill/index.html
 $ cp site/index.html site/vercel.json game/backdrop.png build/site/
+$ python3 site/serve.py
 ```
+
+`site/serve.py` serves `build/site/` at http://localhost:8000 with the two headers the game needs. After changing only `site/index.html`, copy it again and reload. The exports don't need to run again.
 
 The desktop builds carry the game data inside the executable, so each one is a single file of about 75 MB (Linux) or 110 MB (Windows). They use Forward+, and the web build uses Compatibility. SPEC.md describes how the two renderers are kept alike.
 
