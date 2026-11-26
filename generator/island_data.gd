@@ -35,6 +35,9 @@ var cliff: PackedByteArray
 ## Every peak of the main island that rises at least Peaks.MIN_PROMINENCE times the summit's height
 ## above its key saddle, highest first, so peaks[0] is the summit.
 var peaks: Array[Peak] = []
+## The top cells of the contender peaks, whose heights lie in a narrow band under the summit (see
+## Contenders). contenders[0] is the true summit, the same cell as peaks[0].
+var contenders: PackedInt32Array
 ## The cell the player starts on, a beach cell of the main island, or -1 if the generator found none.
 var start: int
 ## Milliseconds each generator step took, in the order the steps ran. Timing differs between runs,
