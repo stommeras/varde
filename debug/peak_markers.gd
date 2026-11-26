@@ -6,7 +6,7 @@ extends Node2D
 
 ## Size of a dot and of the numbers in screen pixels.
 const DOT_RADIUS: float = 4.0
-const FONT_SIZE: int = 12
+const FONT_SIZE: int = 11
 
 var _peaks: Array[Peak] = []
 var _pixels_per_cell: float = 1.0
@@ -27,7 +27,8 @@ func set_zoom(zoom: float) -> void:
 
 
 func _draw() -> void:
-	var font: Font = ThemeDB.fallback_font
+	# The project theme's font, since ThemeDB.fallback_font stays Godot's Open Sans.
+	var font: Font = ThemeDB.get_project_theme().default_font
 	var fill: Color = Ramps.base(Ramps.Terrain.SNOW)
 	var outline: Color = Ramps.RAMPS[Ramps.Terrain.ROCK][0]
 	var unit: float = 1.0 / _zoom

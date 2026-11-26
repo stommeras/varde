@@ -43,6 +43,9 @@ jobs:
           (cd build/site/spill && zip -q ../../varde-web.zip *)
           (cd build/linux && zip -q ../varde-linux.zip varde.x86_64)
           (cd build/windows && zip -q ../varde-windows.zip varde.exe)
+          # The SIL OFL asks every copy of Pixelify Sans to come with its license, and the export
+          # packs the font into the .pck but leaves the .txt out.
+          for zip in build/varde-linux.zip build/varde-windows.zip build/varde-web.zip; do zip -qj "$zip" fonts/OFL.txt; done
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
