@@ -8,6 +8,15 @@ extends Camera3D
 ## of the island at less detail, lowering it shows less, closer up. Milestone 2 chose 80 by eye, where
 ## the figure was only about 6×12 pixels, so the game moved to 40.
 const ZOOM: float = 40.0
+## The zooms the player steps between with the mouse wheel or + and -, closest first. 80 puts the
+## fog's edge at sea level on screen, and 30 shows the way through cliffs closer up. Past 80 the
+## figure shrinks below about 6×12 pixels, and the survey's pull-out to 120 would lose its reward.
+const STEPS: Array[float] = [30.0, 40.0, 60.0, 80.0]
+## The tilt that goes with each of STEPS, in degrees from looking straight down. Close in, the
+## camera tips toward the horizon so the slopes read as tall walls, and far out it looks down
+## toward a map, which suits reading the fog's edge. At 70° the slope between the camera and the
+## figure filled most of the screen.
+const TILTS: Array[float] = [55.0, 45.0, 40.0, 35.0]
 ## Degrees from looking straight down, chosen by eye in milestone 2 and recorded in SPEC.md. Raising it
 ## shows more of the slopes and less of the ground plan, lowering it flattens the view toward a map.
 const TILT_DEGREES: float = 45.0
@@ -22,9 +31,14 @@ const DEPTH_MARGIN: float = 2.0
 ## Seconds a quarter turn takes, eased in and out, so the player sees the world turn and keeps their
 ## bearings. Raising it makes the turn calmer, and at 0 it cuts straight to the new heading.
 const TURN_SECONDS: float = 0.4
+## Seconds a step of zoom and tilt takes, eased in and out. Raising it makes the change calmer, and
+## at 0 it cuts straight to the new step.
+const STEP_SECONDS: float = 0.3
 
 ## Cells of flat ground at sea level from the top to the bottom of the screen.
 var zoom: float = ZOOM
+## The index in STEPS of the zoom the player chose, which a survey and god mode come back to.
+var step: int = STEPS.find(ZOOM)
 ## Degrees from looking straight down.
 var tilt_degrees: float = TILT_DEGREES
 ## World units from sea level to the highest cell, which sets how near the near plane must come.
@@ -39,6 +53,9 @@ var _quarters: int = 0
 ## The heading the running turn started from, and the seconds since it started.
 var _turn_from: float = 0.0
 var _turn_time: float = TURN_SECONDS
+## The zoom and tilt the running step started from, and the seconds since it started.
+var _step_from := Vector2(ZOOM, TILT_DEGREES)
+var _step_time: float = STEP_SECONDS
 
 
 func _init() -> void:
@@ -53,12 +70,21 @@ func turn(quarters: int) -> void:
 	_turn_time = 0.0
 
 
+## Steps the zoom by count steps of STEPS, out for a positive count, and stops at either end.
+func step_zoom(count: int) -> void:
+	step = clampi(step + count, 0, STEPS.size() - 1)
+	# A step started during another starts from where the camera has got to.
+	_step_from = Vector2(zoom, tilt_degrees)
+	_step_time = 0.0
+
+
 ## The heading the camera is turning to, or stands at, in radians as heading counts them.
 func target_heading() -> float:
 	return _quarters * PI / 2.0
 
 
 func _process(delta: float) -> void:
+	_ease_step(delta)
 	# Checking the heading too lets a TURN_SECONDS of 0 cut to the new heading on the next frame.
 	if _turn_time >= TURN_SECONDS and heading == target_heading():
 		return
@@ -67,6 +93,21 @@ func _process(delta: float) -> void:
 	heading = lerpf(_turn_from, target_heading(), smoothstep(0.0, 1.0, _turn_time / maxf(TURN_SECONDS, 0.001)))
 	if _turn_time >= TURN_SECONDS:
 		heading = target_heading()
+
+
+# Eases zoom and tilt toward the step the player chose, landing on it exactly.
+func _ease_step(delta: float) -> void:
+	# A survey's pull-out or god mode's free zoom set the zoom themselves, so the ease only runs
+	# while a step is under way.
+	if _step_time >= STEP_SECONDS:
+		return
+	_step_time += delta
+	var eased: float = smoothstep(0.0, 1.0, _step_time / maxf(STEP_SECONDS, 0.001))
+	zoom = lerpf(_step_from.x, STEPS[step], eased)
+	tilt_degrees = lerpf(_step_from.y, TILTS[step], eased)
+	if _step_time >= STEP_SECONDS:
+		zoom = STEPS[step]
+		tilt_degrees = TILTS[step]
 
 
 ## Moves and turns the camera to show focus at the current zoom, tilt and heading. Call it after

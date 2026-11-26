@@ -75,6 +75,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		_camera.turn(-1)
 	elif event.is_action_pressed("turn_right"):
 		_camera.turn(1)
+	# God mode zooms freely on the wheel, so the steps wait until it is off, and + and - zoom the
+	# map while it is open.
+	elif not _player.god and not _map.visible:
+		_zoom(event)
+
+
+# Steps the camera's zoom on the mouse wheel or + and -, which zoom the map too while it is open.
+func _zoom(event: InputEvent) -> void:
+	var wheel := event as InputEventMouseButton
+	if event.is_action_pressed("zoom_in") or (wheel != null and wheel.pressed and wheel.button_index == MOUSE_BUTTON_WHEEL_UP):
+		_camera.step_zoom(-1)
+	elif event.is_action_pressed("zoom_out") or (wheel != null and wheel.pressed and wheel.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+		_camera.step_zoom(1)
 
 
 func _on_loaded(loaded_island: IslandData, loaded_meshes: Array[ArrayMesh], _msec: int) -> void:

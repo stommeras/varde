@@ -91,5 +91,5 @@ func test_varde_cells_are_the_surveyed_peaks() -> void:
 
 
 func test_the_map_has_its_keys() -> void:
-	for action: String in ["map", "map_zoom_in", "map_zoom_out"]:
+	for action: String in ["map", "zoom_in", "zoom_out"]:
 		expect(InputMap.has_action(action) and not InputMap.action_get_events(action).is_empty(), "%s lacks its key" % action)

@@ -130,7 +130,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	surveyed[peak] = 1
 	_time = 0.0
 	_marked = 0
-	_base_zoom = camera.zoom
+	# The step's zoom, not the camera's, in case a step is still easing toward it.
+	_base_zoom = GameCamera.STEPS[camera.step] if not player.god else camera.zoom
 	_turns = 0
 	player.frozen = true
 	var cell: int = _island.peaks[peak].cell
