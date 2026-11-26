@@ -35,6 +35,32 @@ func test_only_unsurveyed_peaks_in_their_zone_are_in_reach() -> void:
 	expect(Survey.peak_in_reach(island, Vector2(100.5, 100.5), surveyed) == -1, "a surveyed peak is in reach again")
 
 
+## Pressing survey at the zone's edge walks the figure to a cell beside the top, so the varde can
+## stand on the top itself, and every step of the way is one the player can take.
+func test_the_walk_to_the_top_ends_beside_it() -> void:
+	var island := IslandData.new()
+	island.height.resize(IslandData.SIZE * IslandData.SIZE)
+	island.height.fill(0.1)
+	island.lake.resize(island.height.size())
+	island.cliff.resize(island.height.size())
+	var top: int = IslandData.index(CENTER, CENTER)
+	# A wall west of the top, so the way has to go around it.
+	for y: int in range(CENTER - 2, CENTER + 3):
+		island.cliff[IslandData.index(CENTER - 1, y)] = 1
+	var from: int = IslandData.index(CENTER - 3, CENTER)
+	var path: PackedInt32Array = Survey.path_to_top(island, from, top)
+	expect(path.size() > 1 and path[0] == from, "the walk doesn't start where the player stands")
+	var last: int = path[-1]
+	expect(last != top and absi(last % IslandData.SIZE - CENTER) <= 1 and absi(last / IslandData.SIZE - CENTER) <= 1, "the walk doesn't end beside the top")
+	for i: int in path.size() - 1:
+		expect(Walkability.can_step(island, path[i], path[i + 1]), "the walk takes a step the player can't")
+	island.cliff.fill(0)
+	for y: int in range(CENTER - 1, CENTER + 2):
+		for x: int in range(CENTER - 1, CENTER + 2):
+			island.cliff[IslandData.index(x, y)] = 1 if IslandData.index(x, y) != top else 0
+	expect(Survey.path_to_top(island, from, top).is_empty(), "a walled-in top has a way up")
+
+
 func test_survey_has_its_key() -> void:
 	expect(InputMap.has_action("survey") and InputMap.action_get_events("survey").size() == 1, "survey lacks its key")
 

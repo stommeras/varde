@@ -5,8 +5,8 @@ extends CanvasLayer
 ## cell, drawn by map.gdshader into a 1024×1024 SubViewport, which redraws whenever the player learns
 ## new cells. The sheet follows the player until the player drags it, and the mouse wheel or + and -
 ## zoom it, and it keeps its zoom between closing and reopening it. North is always up. A red dot
-## shows the player, with a pointer on its edge the way the camera faces, and a small cairn shows each varde the
-## player has built.
+## shows the player, with a pointer on its edge the way the figure faces and a faint wedge the way the
+## camera looks, and a small cairn shows each varde the player has built.
 
 const SHADER: Shader = preload("res://map/map.gdshader")
 ## The sheet's side as a share of the screen's height. Raising it covers more of the run.
@@ -31,6 +31,13 @@ const MARKER_RADIUS: float = 4.0
 ## meets the dot. Raising them draws a bigger pointer.
 const POINTER_LENGTH: float = 6.0
 const POINTER_HALF_WIDTH: float = 3.0
+## The wedge that shows where the camera looks: its reach in sheet pixels, half its angle, its
+## opacity over the paper, and the points along its arc. A longer or wider wedge reads more easily
+## and covers more of the map under it.
+const BEAM_LENGTH: float = 22.0
+const BEAM_HALF_ANGLE: float = PI / 4.0
+const BEAM_ALPHA: float = 0.3
+const BEAM_POINTS: int = 8
 ## Half the width of a varde's cairn in screen pixels. Its height is twice this.
 const VARDE_SIZE: float = 4.0
 
@@ -201,7 +208,14 @@ func _draw_map() -> void:
 	var marker: PackedColorArray = Ramps.MAP[Ramps.MapPart.MARKER]
 	var at: Vector2 = _to_screen(player.grid_position)
 	# The camera's forward on the ground, in map axes with y south. At heading 0 it points north.
-	var ahead := Vector2(-sin(camera.heading), -cos(camera.heading))
+	var view := Vector2(-sin(camera.heading), -cos(camera.heading))
+	# A faint wedge toward where the camera looks, under the marker, so the arrow is free to show
+	# the way the figure faces.
+	var beam := PackedVector2Array([at])
+	for k: int in BEAM_POINTS + 1:
+		beam.append(at + view.rotated(lerpf(-BEAM_HALF_ANGLE, BEAM_HALF_ANGLE, float(k) / BEAM_POINTS)) * BEAM_LENGTH)
+	_view.draw_colored_polygon(beam, Color(marker[1], BEAM_ALPHA))
+	var ahead: Vector2 = player.facing_direction
 	var side: Vector2 = ahead.orthogonal() * POINTER_HALF_WIDTH
 	var base: Vector2 = at + ahead * (MARKER_RADIUS - 1.0)
 	var tip: Vector2 = at + ahead * (MARKER_RADIUS + POINTER_LENGTH)

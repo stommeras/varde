@@ -4,7 +4,7 @@ extends RefCounted
 
 ## Cells from a peak's top within which the player can survey it. Raising it lets the player survey
 ## from further down the slope. At 6 the prompt came up well below the top of a steep peak, so the
-## survey didn't feel like it happened on the top. WaysUp keeps a way open into this zone.
+## survey didn't feel like it happened on the top. WaysUp keeps a way open to the top.
 const ZONE_RADIUS: float = 3.0
 
 ## The array index of the peak's highest cell.
