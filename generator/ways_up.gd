@@ -12,7 +12,8 @@ class_name WaysUp
 ## and the mended cell off the cliffs.
 const FILL: float = 0.95
 ## Times a peak's path is searched and mended. Each mend can turn the next cell on the path into
-## cliff, so a peak may take several. On seeds 0 to 9 WaysUp raised 3 to 725 cells per island.
+## cliff, so a peak may take several. On seeds 0 to 9 WaysUp raises 136 to 1,325 cells per island,
+## the most on seed 1.
 const ROUNDS: int = 100
 ## Passes over all the peaks at most. On seed 4 the second pass opened a peak that a mend for a later
 ## peak had cut off in the first. Raising it only matters if a warning shows up.
