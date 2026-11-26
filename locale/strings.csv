@@ -29,6 +29,7 @@ STEP_RIVERS,Finner elvene
 STEP_PEAKS,Måler fjelltoppene
 STEP_CONTENDERS,Hever de høyeste toppene
 STEP_WAYS_UP,Leter etter veien opp
+STEP_ROUTE,Finner veien fra stranda til toppen
 STEP_START,Finner en strand å gå i land på
 STEP_MESH,Tegner kartet
 SURVEY_PEAK,[F] Kartlegg toppen
@@ -52,3 +53,15 @@ MATERIAL_MARSH,myr
 MATERIAL_ROCK,stein
 MATERIAL_SNOW,snø
 GOD_HELP,[1–5] fart  [hjul] zoom  [T] til toppen  [G] av
+READ,[F] Les
+NOTE_WRECK,"Skipsloggen, siste side:
+
+Vi så en varde fra dekk like før vi gikk på grunn. Den sto mot %s, et godt stykke inn i landet."
+COMPASS_0,nord
+COMPASS_1,nordøst
+COMPASS_2,øst
+COMPASS_3,sørøst
+COMPASS_4,sør
+COMPASS_5,sørvest
+COMPASS_6,vest
+COMPASS_7,nordvest

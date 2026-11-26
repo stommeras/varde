@@ -1,8 +1,8 @@
 class_name Walkability
 extends RefCounted
 ## Which cells the player can stand on and which steps between them they can take. Movement checks
-## every step the player takes against can_step(), and the route guarantee in generator step 6
-## searches with the same function, so the generator can never promise a route that movement refuses.
+## every step the player takes against can_step(), and route() in generator step 6 searches with the
+## same rule, so the generator can never promise a route that movement refuses.
 
 ## World units the summit stands above sea level, as in SPEC.md. IslandTerrain.SUMMIT_HEIGHT reads
 ## it, so the terrain and the debug view's height slider start here. Raising it makes every slope
@@ -15,12 +15,6 @@ const WALK_DEGREES: float = 60.0
 ## Steepest walkable slope, in height units per cell: about 1.73 world units per cell at 60°,
 ## 0.0173 against a summit of 1.0.
 const MAX_SLOPE: float = tan(deg_to_rad(WALK_DEGREES)) / SUMMIT_UNITS
-## Random cells start_cell() tries before it gives up. Most tries land off the beach and cost little.
-## Raising it only matters on an island with very little beach, and lowering it risks no start.
-const START_TRIES: int = 100000
-## Cells a start cell must reach. It keeps the player out of a cove walled in by cliffs. Raising it
-## costs a longer search for each beach cell tried.
-const START_REACH: int = 20000
 ## Fewest cells a cliff patch needs, counting cells that touch at a corner. A smaller one is a few
 ## steps just past the limit, and the player can walk it. Raising it opens more of the steep
 ## mountainsides, lowering it leaves more dark specks.
@@ -177,16 +171,30 @@ static func steps(data: IslandData, cell: int) -> PackedInt32Array:
 	return open
 
 
-## A random beach cell on the main island, off the rivers, that reaches at least START_REACH
-## cells. Milestone 5 replaces it with the landing beach. Returns -1 if no try finds one.
-static func start_cell(data: IslandData, rng: RandomNumberGenerator) -> int:
-	for attempt: int in START_TRIES:
-		var cell: int = rng.randi_range(0, data.height.size() - 1)
-		if data.main_island[cell] == 1 and data.material[cell] == Ramps.Terrain.BEACH \
-				and data.fresh_water[cell] == 0 and not blocked(data, cell) and reachable(data, cell, START_REACH).size() >= START_REACH:
-			return cell
-	push_error("Walkability: no start cell on island %d" % data.island_seed)
-	return -1
+## The cells of a shortest walk from cell from to cell to, from first. When to is blocked, as a
+## peak's top on a cliff can be, the walk ends on the neighbor of to it reaches, edge before corner.
+## Empty when it reaches neither. AStarGrid2D's corner rule, ONLY_IF_NO_OBSTACLES, is can_step()'s, so
+## movement takes every step of it. A breadth-first search with steps() took 1.8 s to cover the main
+## island of seed 0, and the grid takes about 0.2 s to set up and a few ms to search.
+static func route(data: IslandData, from: int, to: int) -> PackedInt32Array:
+	var size: int = IslandData.SIZE
+	var grid := AStarGrid2D.new()
+	grid.region = Rect2i(0, 0, size, size)
+	grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
+	grid.update()
+	grid.fill_solid_region(grid.region)
+	# Only the main island can join from to to, and its byte is cheaper to read than blocked().
+	for cell: int in data.height.size():
+		if data.main_island[cell] == 1 and not blocked(data, cell):
+			grid.set_point_solid(Vector2i(cell % size, cell / size), false)
+	# A blocked to can't be reached, so the search returns the reached cell nearest to it.
+	var path: Array[Vector2i] = grid.get_id_path(Vector2i(from % size, from / size), Vector2i(to % size, to / size), true)
+	var cells := PackedInt32Array()
+	for point: Vector2i in path:
+		cells.append(IslandData.index(point.x, point.y))
+	if cells.is_empty() or absi(cells[-1] % size - to % size) > 1 or absi(cells[-1] / size - to / size) > 1:
+		return PackedInt32Array()
+	return cells
 
 
 ## The cells the player can walk to from start, start first, breadth first. Stops after limit cells.

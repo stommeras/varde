@@ -38,8 +38,17 @@ var peaks: Array[Peak] = []
 ## The top cells of the contender peaks, whose heights lie in a narrow band under the summit (see
 ## Contenders). contenders[0] is the true summit, the same cell as peaks[0].
 var contenders: PackedInt32Array
-## The cell the player starts on, a beach cell of the main island, or -1 if the generator found none.
-var start: int
+## The cell the player starts on, a beach cell of the main island beside the wreck, or -1 if the
+## generator found none.
+var start: int = -1
+## The shore cell of the landing beach the shipwreck lies on, or -1 with no start. See Landing.
+var wreck: int = -1
+## The cells of a walk from start to the summit's top or a cell beside it, start first. Every step
+## passes Walkability.can_step(). Empty with no start.
+var route := PackedInt32Array()
+## The cells of the old vardes along route, first first. For now it holds only the first, the one
+## the wreck's note points to.
+var vardes := PackedInt32Array()
 ## Milliseconds each generator step took, in the order the steps ran. Timing differs between runs,
 ## so this is the one field that the same seed doesn't reproduce.
 var step_msec: Dictionary[String, int] = {}
@@ -48,6 +57,11 @@ var step_msec: Dictionary[String, int] = {}
 ## Meters above sea level of a height in the units of the height array, negative under the sea.
 static func meters(cell_height: float) -> float:
 	return cell_height * Walkability.SUMMIT_UNITS * METERS_PER_CELL
+
+
+## The middle of cell in grid units, x east and y south.
+static func center(cell: int) -> Vector2:
+	return Vector2(cell % SIZE + 0.5, cell / SIZE + 0.5)
 
 
 ## The array index of the cell at column x, row y.

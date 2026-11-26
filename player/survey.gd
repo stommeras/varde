@@ -45,8 +45,6 @@ const ARRIVE: float = 0.1
 const WALK_LIMIT: float = 4.0
 ## Cells the search for a way to the top looks at before it gives up. The zone holds about 29 cells.
 const PATH_LIMIT: int = 400
-## Seconds the prompt takes to fade in or out.
-const PROMPT_SECONDS: float = 0.2
 ## Distance bands the survey's cells are split into, each revealed at its own time. Raising it gives
 ## a smoother ring, and each band costs one mark_cells() call.
 const RINGS: int = 48
@@ -81,7 +79,7 @@ var _turns: int = 0
 ## Bands marked so far. Each is marked when the ring reaches it, because marking all of them in one
 ## frame took 6 to 11 ms for the 60,000 to 126,000 cells of a survey.
 var _marked: int = 0
-var _prompt := Label.new()
+var _prompt := Prompt.new("SURVEY_PEAK")
 ## The cells the figure walks through to the top before the look starts, and the index of the next.
 var _path := PackedInt32Array()
 var _step: int = 0
@@ -91,19 +89,7 @@ var _walk_time: float = 0.0
 
 func _ready() -> void:
 	add_child(_zone_ring)
-	var layer := CanvasLayer.new()
-	add_child(layer)
-	_prompt.text = tr("SURVEY_PEAK")
-	_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_prompt.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_prompt.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_prompt.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_prompt.position.y -= 24
-	_prompt.add_theme_color_override("font_color", Ramps.RAMPS[Ramps.Terrain.SNOW][3])
-	_prompt.add_theme_color_override("font_outline_color", Ramps.RAMPS[Ramps.Terrain.ROCK][0])
-	_prompt.add_theme_constant_override("outline_size", 4)
-	_prompt.modulate.a = 0.0
-	layer.add_child(_prompt)
+	add_child(_prompt)
 
 
 ## Starts a new island with no peak surveyed.
@@ -158,7 +144,7 @@ func _process(delta: float) -> void:
 	if _island == null:
 		return
 	var wanted: bool = _peak < 0 and peak_in_reach(_island, player.grid_position, surveyed) >= 0
-	_prompt.modulate.a = move_toward(_prompt.modulate.a, 1.0 if wanted else 0.0, delta / PROMPT_SECONDS)
+	_prompt.fade(wanted, delta)
 	_update_marker(delta)
 	if _peak < 0:
 		return
