@@ -72,9 +72,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif _player.frozen:
 		return
 	elif event.is_action_pressed("turn_left"):
-		_camera.turn(1)
-	elif event.is_action_pressed("turn_right"):
 		_camera.turn(-1)
+	elif event.is_action_pressed("turn_right"):
+		_camera.turn(1)
 
 
 func _on_loaded(loaded_island: IslandData, loaded_meshes: Array[ArrayMesh], _msec: int) -> void:

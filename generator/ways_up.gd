@@ -2,7 +2,7 @@ class_name WaysUp
 ## Part of generator step 5, after the start: makes sure the player can walk from the start up to
 ## every peak. Erosion leaves a walkable side on most massifs by itself, down the soft ridge Massifs
 ## gives each one, but a band of cliff cells can still cut a peak off. This finds the path from a
-## peak's survey zone to the land the start reaches that crosses the fewest cliff cells, and raises
+## peak's top to the land the start reaches that crosses the fewest cliff cells, and raises
 ## each of them and its lower neighbors until no step around it is too steep. It only raises cells,
 ## and never to the height of the cell above, so no top moves and none appears.
 ## Carving a whole way up made straight pathways, so this mends single steps and leaves the rest of
@@ -17,6 +17,11 @@ const ROUNDS: int = 100
 ## Passes over all the peaks at most. On seed 4 the second pass opened a peak that a mend for a later
 ## peak had cut off in the first. Raising it only matters if a warning shows up.
 const PASSES: int = 4
+## Cells from a peak's top that the way must reach. A way into the edge of the 3-cell survey zone
+## left the top of seed 3638347899's summit walled in by cliff cells, with one open cell 3 cells
+## east of it, so the player could survey but never climb the peak. Raising it lets the way stop
+## further from the top.
+const TOP_REACH: int = 1
 ## What _cliffs_on_path returns, as its only element, when no path reaches the start's land.
 const NO_PATH: int = -1
 
@@ -120,7 +125,7 @@ static func _flood(data: IslandData, start: int) -> PackedByteArray:
 	return reached
 
 
-## The cliff cells on the edge-step path from peak's survey zone to a reached cell that crosses the
+## The cliff cells on the edge-step path from within TOP_REACH of peak's top to a reached cell that crosses the
 ## fewest of them. Empty when the path is open, and [NO_PATH] when no path reaches the start's land.
 ## The path never crosses the sea, a lake, or a cliff on or next to a river, since mending it would
 ## raise the river and make the water run uphill. It searches by the number of cliff cells,
@@ -128,7 +133,7 @@ static func _flood(data: IslandData, start: int) -> PackedByteArray:
 ## of them. cost and came are scratch arrays the size of the grid, and cost is left all -1 again.
 static func _cliffs_on_path(data: IslandData, peak: int, reached: PackedByteArray, cost: PackedInt32Array, came: PackedInt32Array) -> PackedInt32Array:
 	var size: int = IslandData.SIZE
-	var reach: int = int(Peak.ZONE_RADIUS)
+	var reach: int = TOP_REACH
 	var touched := PackedInt32Array()
 	# The cells at the level being searched, and those one cliff cell more.
 	var front := PackedInt32Array()

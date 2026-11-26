@@ -1,12 +1,12 @@
 class_name Survey
 extends Node
 ## Surveying from a peak. Inside a peak's survey zone it shows "Kartlegg toppen", and the survey
-## action starts the survey: the camera pulls out and turns once around in quarter turns, the
+## action walks the figure up beside the top and starts the survey: the camera pulls out and turns once around in quarter turns, the
 ## figure turns with it to look out over each side, and the fog clears from the surveyed land in a ring that spreads from the peak, then the figure stacks a
 ## varde on the peak as the camera comes back. Each peak can be surveyed once.
 
-## Cells from a peak's top within which the player can survey it. The generator keeps a way open
-## into this zone, so the value lives on Peak.
+## Cells from a peak's top within which the player can survey it. Peak holds the value and its
+## tuning notes.
 const ZONE_RADIUS: float = Peak.ZONE_RADIUS
 ## Cells from a peak's top within which a ring floats over the edge of its zone, so the player can
 ## find the top. Raising it shows the ring from further down.
@@ -37,6 +37,14 @@ const SURVEY_ZOOM: float = 120.0
 ## Cells between the player and the varde at the least. The varde's base is about 0.6 units wide,
 ## so at 1 the stones stand clear of the figure.
 const VARDE_GAP: float = 1.0
+## Cells from a waypoint at which the walk to the top moves on to the next one. Lowering it walks the
+## figure closer through each cell's middle.
+const ARRIVE: float = 0.1
+## Seconds the walk to the top may take before the survey starts where the player stands. It only
+## runs out if something stops the figure, since the walk is a few cells at the walking speed.
+const WALK_LIMIT: float = 4.0
+## Cells the search for a way to the top looks at before it gives up. The zone holds about 29 cells.
+const PATH_LIMIT: int = 400
 ## Seconds the prompt takes to fade in or out.
 const PROMPT_SECONDS: float = 0.2
 ## Distance bands the survey's cells are split into, each revealed at its own time. Raising it gives
@@ -74,6 +82,11 @@ var _turns: int = 0
 ## frame took 6 to 11 ms for the 60,000 to 126,000 cells of a survey.
 var _marked: int = 0
 var _prompt := Label.new()
+## The cells the figure walks through to the top before the look starts, and the index of the next.
+var _path := PackedInt32Array()
+var _step: int = 0
+## Seconds spent walking to the top.
+var _walk_time: float = 0.0
 
 
 func _ready() -> void:
@@ -124,12 +137,18 @@ func _unhandled_input(event: InputEvent) -> void:
 	var island: IslandData = _island
 	_task = WorkerThreadPool.add_task(func() -> void: _rings = rings(island, cell))
 	_varde = Varde.new(cell)
-	var top := Vector2(cell % IslandData.SIZE + 0.5, cell / IslandData.SIZE + 0.5)
-	# A player standing on the top would have the stones built around their feet, so the varde
-	# goes up VARDE_GAP in front of them instead, to the north if they stand right on the center.
-	var away: Vector2 = top - player.grid_position
+	var top: Vector2 = _center(cell)
+	# The figure walks up beside the top first, so the survey happens on the summit and the varde
+	# stands on the top cell itself.
+	_path = path_to_top(island, IslandData.index(int(player.grid_position.x), int(player.grid_position.y)), cell)
+	_step = 0
+	_walk_time = 0.0
+	var stand: Vector2 = player.grid_position if _path.is_empty() else _center(_path[-1])
+	# When the only open cell is the top itself, the stones would go up around the figure's feet, so
+	# the varde goes up VARDE_GAP away instead, to the north if the figure stands right on the center.
+	var away: Vector2 = top - stand
 	if away.length() < VARDE_GAP:
-		top = player.grid_position + (away.normalized() if away != Vector2.ZERO else Vector2.UP) * VARDE_GAP
+		top = stand + (away.normalized() if away != Vector2.ZERO else Vector2.UP) * VARDE_GAP
 	_varde.position = Vector3(top.x, Player.height_at(_island, top), top.y)
 	terrain.get_parent().add_child(_varde)
 
@@ -141,6 +160,8 @@ func _process(delta: float) -> void:
 	_prompt.modulate.a = move_toward(_prompt.modulate.a, 1.0 if wanted else 0.0, delta / PROMPT_SECONDS)
 	_update_marker(delta)
 	if _peak < 0:
+		return
+	if _walking(delta):
 		return
 	_time += delta
 	if _task >= 0 and WorkerThreadPool.is_task_completed(_task):
@@ -168,6 +189,57 @@ func _process(delta: float) -> void:
 	if build >= 1.0 and _marked == RINGS:
 		_peak = -1
 		player.frozen = false
+
+
+# Steers the figure along _path. Returns true while it is still on its way.
+func _walking(delta: float) -> bool:
+	_walk_time += delta
+	while _step < _path.size() and _center(_path[_step]).distance_to(player.grid_position) < ARRIVE:
+		_step += 1
+	if _step >= _path.size() or _walk_time > WALK_LIMIT:
+		player.steer = Vector2.ZERO
+		return false
+	var gap: Vector2 = _center(_path[_step]) - player.grid_position
+	# Full speed through the cells on the way, slowing into the last one so it stops on its middle.
+	player.steer = gap.limit_length(1.0) if _step == _path.size() - 1 else gap.normalized()
+	return true
+
+
+## The cells the player walks through from cell from to stand beside the peak's top at cell top,
+## starting with from and ending on a cell next to the top. It ends on the top itself if no cell
+## beside it can be reached, and it is empty if the top can't be reached either.
+static func path_to_top(island: IslandData, from: int, top: int) -> PackedInt32Array:
+	var size: int = IslandData.SIZE
+	var came := {from: from}
+	var queue := PackedInt32Array([from])
+	var head: int = 0
+	var fallback: int = -1
+	while head < queue.size() and queue.size() < PATH_LIMIT:
+		var cell: int = queue[head]
+		head += 1
+		if cell == top:
+			fallback = cell
+		elif absi(cell % size - top % size) <= 1 and absi(cell / size - top / size) <= 1:
+			return _trace(came, cell)
+		for to: int in Walkability.steps(island, cell):
+			if not came.has(to):
+				came[to] = cell
+				queue.append(to)
+	return _trace(came, fallback) if fallback >= 0 else PackedInt32Array()
+
+
+# The cells from the search's first cell to cell, following came back.
+static func _trace(came: Dictionary, cell: int) -> PackedInt32Array:
+	var path := PackedInt32Array([cell])
+	while came[cell] != cell:
+		cell = came[cell]
+		path.append(cell)
+	path.reverse()
+	return path
+
+
+static func _center(cell: int) -> Vector2:
+	return Vector2(cell % IslandData.SIZE + 0.5, cell / IslandData.SIZE + 0.5)
 
 
 ## The cells of the peaks the player has surveyed, each of which has one of the player's vardes. The

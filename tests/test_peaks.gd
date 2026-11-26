@@ -28,10 +28,10 @@ func test_summit_is_a_peak_and_every_peak_is_valid() -> void:
 				"seed %d: a peak of height %f has prominence %f" % [island_seed, peak.height, peak.prominence])
 
 
-## The player must be able to walk from the start into every peak's survey zone.
+## The player must be able to walk from the start up to every peak's top.
 func test_every_peak_is_reachable_from_the_start() -> void:
 	var size: int = IslandData.SIZE
-	var reach: int = int(Peak.ZONE_RADIUS)
+	var reach: int = WaysUp.TOP_REACH
 	for island_seed: int in SEEDS:
 		var data: IslandData = island(island_seed)
 		var reached := PackedByteArray()

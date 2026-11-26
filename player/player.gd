@@ -35,6 +35,9 @@ const DEPTH_PUSH: float = 0.3
 ## True while something else, such as a survey, holds the player still. The figure stands and takes
 ## no input, and the camera keeps following.
 var frozen: bool = false
+## A grid direction, x east and y south, the player walks in while frozen, for walks the game makes,
+## such as up to a peak's top before a survey. Its length scales the speed.
+var steer: Vector2 = Vector2.ZERO
 ## The camera that follows the player. Set it before adding the player.
 var camera: GameCamera
 ## The terrain that fades in front of the player. Set it before placing the player.
@@ -68,6 +71,8 @@ var _sight_cell: int = -1
 var _sight_task: int = -1
 ## The cells the running task sees, written by the task and read once it completes.
 var _sight_cells := PackedInt32Array()
+## The way the figure faces, x east and y south, for the map's arrow.
+var facing_direction: Vector2 = Vector2.DOWN
 
 
 func _ready() -> void:
@@ -104,11 +109,11 @@ func _process(delta: float) -> void:
 	_fade = move_toward(_fade, 1.0 if _hidden else 0.0, delta / maxf(FADE_SECONDS, 0.001))
 	terrain.fade_around(_feet, _fade)
 	var step: float = minf(delta, MAX_DELTA)
-	var direction: Vector2 = Vector2.ZERO if frozen else walk_direction(Input.get_vector("move_left", "move_right", "move_up", "move_down"), camera.heading)
+	var direction: Vector2 = steer if frozen else walk_direction(Input.get_vector("move_left", "move_right", "move_up", "move_down"), camera.heading)
 	_velocity = _velocity.move_toward(direction * SPEED, SPEED / maxf(EASE_SECONDS, 0.001) * step)
-	if _velocity != Vector2.ZERO and not frozen:
+	if _velocity != Vector2.ZERO and (not frozen or steer != Vector2.ZERO):
 		# The way it moves, not the keys, so a turn doesn't slide the figure backward while it eases.
-		_figure.face(Vector2.from_angle(facing(_velocity) * PI / 4.0))
+		face(Vector2.from_angle(facing(_velocity) * PI / 4.0))
 	var moved: Vector2 = grid_position
 	if god:
 		# Several cells a frame, which move() can't take, so it skips the step check.
@@ -177,6 +182,7 @@ func _exit_tree() -> void:
 
 ## Turns the figure to face direction, x east and y south.
 func face(direction: Vector2) -> void:
+	facing_direction = direction.normalized()
 	_figure.face(direction)
 
 
