@@ -61,12 +61,12 @@ The desktop builds carry the game data inside the executable, so each one is a s
 
 ## One-time setup
 
-These steps are done once, by hand.
+These steps are done once. Steps 1 to 4 were done on 2026-11-26, and step 5 waits for the first release.
 
-1. In Vercel, create a project named `varde` with the framework preset Other and no build command. Don't connect it to the Git repository, since the workflow deploys it.
-2. Create a Vercel token (Account Settings → Tokens). Run `vercel link` in an empty folder to get the org and project ids from `.vercel/project.json`.
-3. Add three repository secrets on GitHub: `VERCEL_TOKEN`, `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID`.
-4. In the Vercel project, add the domain `varde.tommeras.no`. At the DNS host for tommeras.no, add a `CNAME` record from `varde` to `cname.vercel-dns.com`.
+1. `vercel project create varde --scope stommeras-projects` creates the project. It isn't connected to the Git repository, since the workflow deploys it.
+2. `vercel link --project varde --scope stommeras-projects` in an empty folder writes the org and project ids to `.vercel/project.json`. The CLI isn't allowed to create tokens, so create the token in the browser at Account Settings → Tokens, with the scope stommeras' projects.
+3. `gh secret set` stores the three repository secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID`.
+4. `vercel domains add varde.tommeras.no varde --scope stommeras-projects` adds the domain, and `vercel domains verify varde.tommeras.no --scope stommeras-projects` prints the record it needs. DNS for tommeras.no is at Domeneshop (ns1.hyp.net), so add the `CNAME` there by hand. Vercel recommends `16cb7a88c0b11380.vercel-dns-017.com` for this project.
 5. In the lab repo, remove `public/varde/` and the `/varde` header rule in `vercel.json`, and point the Varde experiment at varde.tommeras.no.
 
 ## Unsigned builds
