@@ -58,6 +58,8 @@ var _zooms: Array[float] = []
 var _zoom: int = OPEN_ZOOM
 ## True while the sheet keeps the player in its middle. Dragging the sheet stops it until it reopens.
 var _follow: bool = true
+## Whether the sheet last drew the whole island for god mode.
+var _shown_all: bool = false
 
 
 func _ready() -> void:
@@ -133,9 +135,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("map") or event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
 		close()
-	elif event.is_action_pressed("map_zoom_in"):
+	elif event.is_action_pressed("zoom_in"):
 		_set_zoom(_zoom + 1)
-	elif event.is_action_pressed("map_zoom_out"):
+	elif event.is_action_pressed("zoom_out"):
 		_set_zoom(_zoom - 1)
 
 
@@ -143,6 +145,10 @@ func _process(_delta: float) -> void:
 	if not visible:
 		return
 	# The terrain uploads knowledge once a frame, before this node, which comes later in the tree.
+	if player.god != _shown_all:
+		_shown_all = player.god
+		(_sheet.material as ShaderMaterial).set_shader_parameter("show_all", _shown_all)
+		_drawn = -1
 	if _knowledge.version != _drawn:
 		_drawn = _knowledge.version
 		_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE

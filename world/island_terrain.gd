@@ -57,6 +57,13 @@ func _process(delta: float) -> void:
 		material.set_shader_parameter("reveal_now", knowledge.now)
 
 
+## Hides the fog everywhere while on is true, as god mode does, without marking any cell known.
+## Call it after show_island(), which makes a new material with the fog shown.
+func show_all(on: bool) -> void:
+	for material: ShaderMaterial in [_material, _details]:
+		material.set_shader_parameter("show_all", on)
+
+
 ## The terrain shader's material, whose grid textures the map screen draws from too.
 func ground_material() -> ShaderMaterial:
 	return _material

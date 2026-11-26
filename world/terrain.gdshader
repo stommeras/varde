@@ -164,10 +164,14 @@ void fragment() {
 		}
 		world_normal = vec3(0.0, 1.0, 0.0);
 		ramp_reach = 1.0;
-		// Laid out along the screen's axes, not the ground's, so the patches lie on a flat layer over the
-		// land under the fog. Sampled by ground position, they ran down its slopes in streaks.
-		vec2 across = vec2(dot(world_position, INV_VIEW_MATRIX[0].xyz), dot(world_position, INV_VIEW_MATRIX[1].xyz));
-		vec2 fog_uv = across / fog_scale + TIME * fog_speed * vec2(0.6, 0.8);
+		// On a flat layer at sea level: each pixel samples where its view ray meets the sea, so the
+		// patches lie flat over the land under the fog. Sampled by ground position, they ran down its
+		// slopes in streaks. Laid out along the screen's axes instead, they slid across the screen
+		// whenever the camera tilted or turned, since the island lies hundreds of units from the
+		// origin those axes are measured from.
+		vec3 back = INV_VIEW_MATRIX[2].xyz;
+		vec2 layer = world_position.xz - back.xz * (world_position.y / max(back.y, 0.01));
+		vec2 fog_uv = layer / fog_scale + TIME * fog_speed * vec2(0.6, 0.8);
 		step_offset = (texture(noise, fog_uv).r - 0.5) * 2.0 * fog_steps;
 	}
 	NORMAL = normalize((VIEW_MATRIX * vec4(world_normal, 0.0)).xyz);

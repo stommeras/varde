@@ -10,6 +10,8 @@ uniform sampler2D height_map : filter_nearest;
 uniform sampler2D material_map : filter_nearest;
 uniform sampler2D fresh_water_map : filter_nearest;
 uniform sampler2D knowledge_map : filter_nearest;
+// True while god mode shows the whole island, drawn as surveyed without marking any cell known.
+uniform bool show_all = false;
 
 uniform vec4 paper_stain;
 uniform vec4 paper;
@@ -56,6 +58,9 @@ bool water_at(ivec2 cell) {
 }
 
 int level_at(ivec2 cell) {
+	if (show_all) {
+		return 2;  // Knowledge.Level.SURVEYED
+	}
 	return int(round(texelFetch(knowledge_map, clamped(cell), 0).r * 255.0));
 }
 

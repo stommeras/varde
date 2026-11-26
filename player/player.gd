@@ -158,7 +158,8 @@ func _update_sight() -> void:
 	if _sight_task >= 0 and WorkerThreadPool.is_task_completed(_sight_task):
 		_finish_sight(true)
 	var cell: int = _cell(grid_position)
-	if _sight_task >= 0 or cell == _sight_cell or terrain.knowledge == null:
+	# God mode sees everything without learning it, so leaving it shows the fog the player left.
+	if _sight_task >= 0 or cell == _sight_cell or terrain.knowledge == null or god:
 		return
 	_sight_cell = cell
 	var island: IslandData = _island

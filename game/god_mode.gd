@@ -49,8 +49,7 @@ func start(island: IslandData) -> void:
 	for ring: ZoneRing in _rings:
 		ring.queue_free()
 	_rings.clear()
-	if player.god:
-		terrain.knowledge.mark_all(Knowledge.Level.SURVEYED)
+	terrain.show_all(player.god)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -88,10 +87,9 @@ func _toggle() -> void:
 	player.god = not player.god
 	player.god_speed = SPEEDS[_speed]
 	_panel.visible = player.god
-	if player.god:
-		terrain.knowledge.mark_all(Knowledge.Level.SURVEYED)
-	else:
-		camera.zoom = GameCamera.ZOOM
+	terrain.show_all(player.god)
+	if not player.god:
+		camera.zoom = GameCamera.STEPS[camera.step]
 
 
 func _process(_delta: float) -> void:

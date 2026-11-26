@@ -21,6 +21,8 @@ uniform sampler2D knowledge_map : filter_nearest, repeat_disable;
 // Knowledge.NEVER while the cell is unknown. Read with texelFetch, because linear filtering between
 // a time and NEVER gives a time far in the future, not a cell half clear.
 uniform sampler2D reveal_map : filter_nearest, repeat_disable;
+// True while god mode shows the whole island. It hides the fog without marking any cell known.
+uniform bool show_all = false;
 // The second on Knowledge's clock now. IslandTerrain sets it each frame.
 uniform float reveal_now = 0.0;
 // Seconds the fog takes to clear from a cell after the player sees it. Raising it makes the land
@@ -98,6 +100,9 @@ uniform int fade_steps = 96;
 // How far the fog has cleared from the cell at column and row, from 0 while it is unknown to 1 a
 // clear_seconds after the player saw it. It eases in and out.
 float clear_of(ivec2 cell) {
+	if (show_all) {
+		return 1.0;
+	}
 	ivec2 size = textureSize(reveal_map, 0);
 	float revealed = texelFetch(reveal_map, clamp(cell, ivec2(0), size - 1), 0).r;
 	return smoothstep(0.0, clear_seconds, reveal_now - revealed);

@@ -122,3 +122,19 @@ func test_turning_and_surveying_have_their_own_keys() -> void:
 	for action: String in keys:
 		var events: Array[InputEvent] = InputMap.action_get_events(action) if InputMap.has_action(action) else []
 		expect(events.size() == 1 and (events[0] as InputEventKey).physical_keycode == keys[action], "%s isn't on its key" % action)
+
+
+## The zoom steps stop at both ends and land on the step the player chose.
+func test_camera_zoom_steps_stop_at_the_ends() -> void:
+	var camera := GameCamera.new()
+	expect(camera.zoom == GameCamera.ZOOM and GameCamera.STEPS[camera.step] == GameCamera.ZOOM, "the camera doesn't open on the default zoom")
+	expect(GameCamera.TILTS.size() == GameCamera.STEPS.size() and GameCamera.TILTS[camera.step] == GameCamera.TILT_DEGREES, "the tilts don't match the zoom steps")
+	camera.step_zoom(-10)
+	camera._process(GameCamera.STEP_SECONDS / 2.0)
+	expect(camera.zoom > GameCamera.STEPS[0] and camera.zoom < GameCamera.ZOOM, "the zoom doesn't ease between steps")
+	camera._process(GameCamera.STEP_SECONDS)
+	expect(camera.step == 0 and camera.zoom == GameCamera.STEPS[0] and camera.tilt_degrees == GameCamera.TILTS[0], "zooming in passes the closest step")
+	camera.step_zoom(10)
+	camera._process(GameCamera.STEP_SECONDS)
+	expect(camera.step == GameCamera.STEPS.size() - 1 and camera.zoom == GameCamera.STEPS[-1], "zooming out passes the farthest step")
+	camera.free()
