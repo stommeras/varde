@@ -8,9 +8,13 @@ extends Node3D
 ## Length of the hull in world units, from stern to the tip of the bow. The figure is 1.5 tall, so
 ## at 4 the boat reads as a boat beside it and fits between the shore and the start.
 const LENGTH: float = 4.0
-## Width of the hull at its middle, and height of its sides. Raising them makes a broader, deeper boat.
+## Width of the hull at its middle in world units. Raising it makes a broader boat.
 const BEAM: float = 1.5
+## Height of the hull's sides in world units. Raising it makes a deeper boat that hides more of the
+## figure behind it.
 const DEPTH: float = 0.8
+## Share of LENGTH that keeps its planking, from the bow back. Lowering it shows more bare ribs.
+const PLANKED: float = 0.6
 ## Radians the hull leans onto its side. At 0 it sits upright as if afloat, and past 0.5 it shows
 ## mostly its bottom.
 const HEEL: float = 0.3
@@ -23,12 +27,13 @@ const RIBS: int = 3
 
 ## Builds the boat at the node's origin.
 func _init() -> void:
+	# The other sizes and angles below are shape proportions picked by eye from frames at zoom 40.
 	var material: ShaderMaterial = Figure.lit(Ramps.FigurePart.WOOD)
 	var hull := Node3D.new()
 	hull.rotation.z = HEEL
 	hull.position.y = -SINK
 	add_child(hull)
-	var planked: float = LENGTH * 0.6
+	var planked: float = LENGTH * PLANKED
 	# The bottom and both sides run from the bow's root back to where the planking ends.
 	_part(hull, _box(Vector3(BEAM * 0.8, 0.2, planked)), Vector3(0.0, 0.1, 0.0), Vector3.ZERO, material)
 	for side: float in [-1.0, 1.0]:
@@ -50,16 +55,15 @@ func _init() -> void:
 	mast.bottom_radius = 0.09
 	mast.height = 1.4
 	mast.radial_segments = 6
-	# Snapped off and leaning back, so it doesn't read as a boat about to sail.
+	# Short and leaning back, so it reads as a broken mast and not one that still carries a sail.
 	_part(hull, mast, Vector3(0.0, 0.8, -0.4), Vector3(0.5, 0.0, 0.0), material)
 
 
 ## Lays the wreck on island at cell, with its bow toward cell toward, following the slope of the
 ## ground between its two ends.
 func place(island: IslandData, cell: int, toward: int) -> void:
-	var at := Vector2(cell % IslandData.SIZE + 0.5, cell / IslandData.SIZE + 0.5)
-	var ahead: Vector2 = Vector2(toward % IslandData.SIZE + 0.5, toward / IslandData.SIZE + 0.5) - at
-	var forward: Vector2 = ahead.normalized()
+	var at: Vector2 = IslandData.center(cell)
+	var forward: Vector2 = (IslandData.center(toward) - at).normalized()
 	var bow: float = Player.height_at(island, at + forward * LENGTH / 2.0)
 	var stern: float = Player.height_at(island, at - forward * LENGTH / 2.0)
 	position = Vector3(at.x, (bow + stern) / 2.0, at.y)

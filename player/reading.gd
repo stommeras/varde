@@ -2,9 +2,9 @@ class_name Reading
 extends CanvasLayer
 ## Reading the notes the island holds. Within Landing.READ_REACH of the shipwreck it shows "[F] Les",
 ## and F opens the wreck's note in a panel of map paper over the game. The world keeps running, and
-## F or Escape closes it. A note that opened by itself as the player walked past would break their
-## stride. The note points toward the first old varde. Its text is a placeholder until the notes
-## are written from the island's features.
+## F or Escape closes it. A note that opened by itself would stop the player each time they walked
+## past. The note points toward the first old varde. A later issue writes the notes from the
+## island's features, and until then the text is a placeholder that names a compass direction.
 
 ## Width of the note panel in base-resolution pixels. Raising it gives longer lines and a lower panel.
 const WIDTH: int = 360
@@ -67,8 +67,7 @@ func _process(delta: float) -> void:
 func _in_reach() -> bool:
 	if _island == null or _island.wreck < 0 or _island.vardes.is_empty() or player.frozen:
 		return false
-	var wreck := Vector2(_island.wreck % IslandData.SIZE + 0.5, _island.wreck / IslandData.SIZE + 0.5)
-	return player.grid_position.distance_to(wreck) <= Landing.READ_REACH
+	return player.grid_position.distance_to(IslandData.center(_island.wreck)) <= Landing.READ_REACH
 
 
 ## The nearest of the 8 compass directions from cell from to cell to, 0 for north and counting

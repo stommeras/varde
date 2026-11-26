@@ -59,6 +59,11 @@ static func meters(cell_height: float) -> float:
 	return cell_height * Walkability.SUMMIT_UNITS * METERS_PER_CELL
 
 
+## The middle of cell in grid units, x east and y south.
+static func center(cell: int) -> Vector2:
+	return Vector2(cell % SIZE + 0.5, cell / SIZE + 0.5)
+
+
 ## The array index of the cell at column x, row y.
 static func index(x: int, y: int) -> int:
 	return y * SIZE + x
