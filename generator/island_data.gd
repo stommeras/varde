@@ -38,6 +38,10 @@ var peaks: Array[Peak] = []
 ## The top cells of the contender peaks, whose heights lie in a narrow band under the summit (see
 ## Contenders). contenders[0] is the true summit, the same cell as peaks[0].
 var contenders: PackedInt32Array
+## The top cells of the contenders that have a cloud cap. See Clouds.
+var clouds := PackedInt32Array()
+## Per cell, 0 outside the clouds, or 1 + the index in clouds of the cloud that covers it.
+var cloud := PackedByteArray()
 ## The cell the player starts on, a beach cell of the main island beside the wreck, or -1 if the
 ## generator found none.
 var start: int = -1

@@ -17,7 +17,7 @@ const RANDOM_SEEDS: int = 1000000
 ## machine fills the bar at the same places, just later.
 const STEP_MSEC: Dictionary[String, int] = {
 	"height": 1130, "erosion": 1560, "crags": 310, "moisture": 330, "material": 180,
-	"main_island": 260, "rivers": 430, "peaks": 600, "contenders": 800, "start": 900, "ways_up": 1780, "route": 200, "mesh": 460,
+	"main_island": 260, "rivers": 430, "peaks": 600, "contenders": 800, "start": 900, "ways_up": 1780, "route": 200, "clouds": 10, "mesh": 460,
 }
 
 ## True keeps the cover hidden, for an island the player isn't waiting for.

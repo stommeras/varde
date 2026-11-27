@@ -2,9 +2,10 @@ class_name Ramps
 ## Every color in the game. Shaders and scripts read from here, never from their own literals.
 ## Each ramp runs from darkest to lightest, and lighting snaps to these steps.
 
-## FOAM and FOG are the values no cell holds. The terrain shader draws foam in bands along the shore
-## and fog over every cell the player doesn't know yet, land and sea alike.
-enum Terrain { WATER, BEACH, GRASS, FOREST, MARSH, ROCK, SNOW, FOAM, FOG }
+## FOAM, FOG and CLOUD are the values no cell holds. The terrain shader draws foam in bands along the
+## shore, fog over every cell the player doesn't know yet, land and sea alike, and cloud over the
+## cloud caps on the contenders.
+enum Terrain { WATER, BEACH, GRASS, FOREST, MARSH, ROCK, SNOW, FOAM, FOG, CLOUD }
 
 static var RAMPS: Dictionary[Terrain, PackedColorArray] = {
 	Terrain.WATER: PackedColorArray([Color("10223a"), Color("163a5c"), Color("1f5a80"), Color("2f7fa3"), Color("5aa9c4")]),
@@ -18,6 +19,9 @@ static var RAMPS: Dictionary[Terrain, PackedColorArray] = {
 	# Grey with a little of the sea's blue, darker than snow and foam, so a snowy peak in front of it
 	# and the surf along a known coast both stand apart from it.
 	Terrain.FOG: PackedColorArray([Color("3c4552"), Color("566170"), Color("717d8b"), Color("8e98a4"), Color("aab2bb")]),
+	# Warm white with grey shade, against the snow's cold blue, so a cloud cap over snow reads as
+	# weather and not as more snow, and lighter than the fog, so it shows in front of it.
+	Terrain.CLOUD: PackedColorArray([Color("6e6c6c"), Color("94918e"), Color("bab6b0"), Color("dcd8d0"), Color("f5f2ec")]),
 }
 
 ## The parts of the walking figure that each have a ramp in FIGURE. HAIR also colors the eyes. STONE,

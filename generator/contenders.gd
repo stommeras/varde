@@ -62,7 +62,7 @@ static func rescale(data: IslandData, rng: RandomNumberGenerator) -> PackedInt32
 	var parent := PackedInt32Array([-1])
 	for p: int in range(1, peaks.size()):
 		parent.append(owner[peaks[p].cell])
-		for cell: int in _massif(data, peaks[p].cell, peaks[p].height - peaks[p].prominence):
+		for cell: int in massif(data, peaks[p].cell, peaks[p].height - peaks[p].prominence):
 			owner[cell] = p
 
 	# A peak whose saddle stands so high that it can't go under the band and stay a peak is stuck.
@@ -133,7 +133,7 @@ static func rescale(data: IslandData, rng: RandomNumberGenerator) -> PackedInt32
 
 ## Every main island cell above saddle that connects to top through such cells, edges and corners
 ## alike, as the player's steps do.
-static func _massif(data: IslandData, top: int, saddle: float) -> PackedInt32Array:
+static func massif(data: IslandData, top: int, saddle: float) -> PackedInt32Array:
 	var size: int = IslandData.SIZE
 	var seen := PackedByteArray()
 	seen.resize(data.height.size())

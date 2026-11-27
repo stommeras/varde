@@ -21,7 +21,7 @@ uniform vec4 ink_faded;
 uniform vec4 water_ink;
 uniform vec4 sea_wash;
 // The middle step of each Ramps.Terrain ramp, in the enum's order.
-uniform vec4 ground[9];
+uniform vec4 ground[10];
 // How far known land takes its ground's color over the paper. 0 leaves plain paper, 1 paints the
 // ground's own color, and between gives a watercolor wash.
 uniform float land_tint = 0.0;

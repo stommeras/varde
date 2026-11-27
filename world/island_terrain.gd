@@ -13,6 +13,9 @@ const SHADOW_SHADER: Shader = preload("res://world/terrain_shadow.gdshader")
 var knowledge: Knowledge
 var _material: ShaderMaterial
 var _details: ShaderMaterial
+var _island: IslandData
+## How far each cloud in the island's clouds has faded, from 0 while it stands to 1 once gone.
+var _cloud_gone := PackedFloat32Array()
 
 
 func _init() -> void:
@@ -30,6 +33,9 @@ func show_island(meshes: Array[ArrayMesh], island: IslandData) -> void:
 		remove_child(chunk)
 		chunk.queue_free()
 	knowledge = Knowledge.new()
+	_island = island
+	_cloud_gone.resize(Contenders.MAX_COUNT)
+	_cloud_gone.fill(0.0)
 	_material = TerrainMaterial.create(island, knowledge)
 	_details = GroundDetails.create(_material, island.island_seed)
 	var shadow := ShaderMaterial.new()
@@ -71,6 +77,28 @@ func _process(delta: float) -> void:
 func show_all(on: bool) -> void:
 	for material: ShaderMaterial in [_material, _details]:
 		material.set_shader_parameter("show_all", on)
+
+
+## True while a cloud that hasn't faded covers cell.
+func clouded(cell: int) -> bool:
+	return _island != null and _island.cloud[cell] > 0 and _cloud_gone[_island.cloud[cell] - 1] < 1.0
+
+
+## Fades the cloud on the peak whose top is top to gone, from 0 while it stands to 1 when it has gone
+## for the rest of the run. A peak with no cloud is left as it is.
+func fade_cloud(top: int, gone: float) -> void:
+	var index: int = _island.clouds.find(top)
+	if index < 0:
+		return
+	_cloud_gone[index] = gone
+	for material: ShaderMaterial in [_material, _details]:
+		material.set_shader_parameter("cloud_gone", _cloud_gone)
+
+
+## Opens the clouds around point, the player's position in cells, so they see the ground they stand on.
+func open_clouds(point: Vector2) -> void:
+	for material: ShaderMaterial in [_material, _details]:
+		material.set_shader_parameter("cloud_hole", point)
 
 
 ## The terrain shader's material, whose grid textures the map screen draws from too.

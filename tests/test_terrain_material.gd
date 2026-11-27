@@ -14,5 +14,5 @@ func test_ramp_image_holds_each_ramp_in_its_row() -> void:
 
 ## terrain.gdshader writes these values as literals and sizes ramp_sizes for this many ramps.
 func test_shader_literals_match_the_terrain_enum() -> void:
-	expect(Ramps.Terrain.size() == 9, "%d terrains, but the shader's ramp_sizes holds 9" % Ramps.Terrain.size())
-	expect(Ramps.Terrain.WATER == 0 and Ramps.Terrain.BEACH == 1 and Ramps.Terrain.ROCK == 5 and Ramps.Terrain.FOAM == 7 and Ramps.Terrain.FOG == 8, "the shader's literals for water, beach, rock, foam and fog are out of date")
+	expect(Ramps.Terrain.size() == 10, "%d terrains, but the shader's ramp_sizes holds 10" % Ramps.Terrain.size())
+	expect(Ramps.Terrain.WATER == 0 and Ramps.Terrain.BEACH == 1 and Ramps.Terrain.ROCK == 5 and Ramps.Terrain.FOAM == 7 and Ramps.Terrain.FOG == 8 and Ramps.Terrain.CLOUD == 9, "the shader's literals for water, beach, rock, foam, fog and cloud are out of date")

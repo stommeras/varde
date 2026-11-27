@@ -59,6 +59,13 @@ uniform float fog_scale = 90.0;
 uniform float fog_speed = 0.008333333;
 // How many ramp steps the patches move the fog's light up or down. 0 gives an even, dithered grey.
 uniform float fog_steps = 1.5;
+// World units that one tile of `noise` covers for the patches in a cloud. Lower gives smaller patches.
+uniform float cloud_scale = 40.0;
+// Noise tiles per second the cloud's patches drift. Keep 3600 * speed * 0.8 and * 0.6 whole numbers,
+// so the hourly wrap of TIME doesn't jump. 1/60 drifts about 0.7 world units a second.
+uniform float cloud_speed = 0.016666667;
+// How many ramp steps the patches move the cloud's light up or down.
+uniform float cloud_steps = 1.0;
 
 varying vec3 world_position;
 // The Ramps.Terrain value whose ramp this pixel uses. Floats, because light() reads it.
@@ -141,7 +148,23 @@ void fragment() {
 
 	// The fog covers unknown sea too, or the coast's outline would give the island's shape away.
 	// It dithers out as it clears.
-	if (is_fogged(cell, warp, dither(world_pixel))) {
+	bool fogged = is_fogged(cell, warp, dither(world_pixel));
+	// Fog wins over a cloud, or a white cap would mark a contender the player hasn't found.
+	if (!fogged && cloud_cover(cell, height, warp) > dither(world_pixel)) {
+		kind = 9;  // Ramps.Terrain.CLOUD
+		ramp_reach = 1.0;
+		if (cloud_look == 1) {
+			world_normal = vec3(0.0, 1.0, 0.0);
+		}
+		// Sampled on a flat layer at the cloud's base, as the fog samples sea level, so the patches
+		// don't run down the slope in streaks.
+		vec3 back = INV_VIEW_MATRIX[2].xyz;
+		float base = cloud_base[cloud_index(cell) - 1] * summit;
+		vec2 layer = world_position.xz - back.xz * ((world_position.y - base) / max(back.y, 0.01));
+		vec2 cloud_uv = layer / cloud_scale + TIME * cloud_speed * vec2(-0.8, 0.6);
+		step_offset = (texture(noise, cloud_uv).r - 0.5) * 2.0 * cloud_steps;
+	}
+	if (fogged) {
 		kind = 8;  // Ramps.Terrain.FOG
 		ramp_reach = 1.0;
 		// On a flat layer at sea level: each pixel samples where its view ray meets the sea, so the
@@ -162,7 +185,8 @@ void fragment() {
 void light() {
 	// ATTENUATION is the sun's shadow, 0 in full shadow. The albedo is white, so this is the pixel's
 	// final color.
-	// Fog takes no cast shadows, so fogged land shows only its slopes, and its shadows fall on known land.
-	float attenuation = int(terrain) == 8 ? 1.0 : ATTENUATION;
+	// Fog takes no cast shadows, so fogged land shows only its slopes, and its shadows fall on known
+	// land. A cloud takes none either, since it hangs over the ground the shadow falls on.
+	float attenuation = int(terrain) >= 8 ? 1.0 : ATTENUATION;
 	DIFFUSE_LIGHT = ramp_color(clamp(dot(NORMAL, LIGHT), 0.0, 1.0), attenuation, int(terrain), ramp_reach, step_offset, dither(world_pixel));
 }

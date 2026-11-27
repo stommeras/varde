@@ -131,6 +131,7 @@ func _update_position(follow: float) -> void:
 	# The same snap as the camera's, so the figure moves on screen only in whole pixels, and only
 	# while the camera catches up on its height.
 	position = camera.snap(point) + camera.basis.z * DEPTH_PUSH
+	terrain.open_clouds(grid_position)
 
 
 # Marks what the finished cast saw, and casts again once the player stands in a new cell. One cast
@@ -144,7 +145,8 @@ func _update_sight() -> void:
 		return
 	_sight_cell = cell
 	var island: IslandData = _island
-	_sight_task = WorkerThreadPool.add_task(func() -> void: _sight_cells = LineOfSight.visible_cells(island, cell))
+	var reach: float = LineOfSight.CLOUD_RADIUS if terrain.clouded(cell) else INF
+	_sight_task = WorkerThreadPool.add_task(func() -> void: _sight_cells = LineOfSight.visible_cells(island, cell, 1.0, reach))
 
 
 # Waits for the running cast, if any, and marks what it saw if keep is true.

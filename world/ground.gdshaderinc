@@ -37,11 +37,32 @@ uniform float fog_soft_cells = 2.0;
 // dithered over a few cells, and on a steep peak whose top the player had seen, that band showed
 // the unknown slope below as a see-through outline. Lowering it gives a crisper edge.
 uniform float fog_edge_dither = 0.3;
+// One byte per cell, 0 outside the cloud caps or 1 + the cloud's index in IslandData.clouds, which
+// the shader reads as that value / 255.
+uniform sampler2D cloud_map : filter_nearest, repeat_disable;
+// Each cloud's base, in height-map units, by its index in IslandData.clouds. Contenders.MAX_COUNT long.
+uniform float cloud_base[5];
+// How far each cloud has faded, from 0 while it stands to 1 once a survey has cleared it.
+uniform float cloud_gone[5];
+// The player's position in cells. The cloud opens within cloud_hole_cells of it, so the player sees
+// the ground they walk on inside the cloud.
+uniform vec2 cloud_hole = vec2(-1000.0);
+// Cells around the player that the cloud leaves open, LineOfSight.CLOUD_RADIUS.
+uniform float cloud_hole_cells = 8.0;
+// Cells over which the edge of the hole dithers from open to full cloud.
+uniform float cloud_hole_edge = 3.0;
+// Height-map units the warp noise moves the cloud's base up and down, so it doesn't trace a contour.
+uniform float cloud_wobble = 0.012;
+// Which look the cloud takes, while the look is being chosen: 0 shades like the fog, 1 is flat and
+// lit evenly, 2 shades like the fog and thins out over cloud_thin above its base.
+uniform int cloud_look = 0;
+// Height-map units above the base over which look 2 thins from nothing to full cloud.
+uniform float cloud_thin = 0.03;
 // Row t holds the steps of ramp t, darkest first, as linear colors. TerrainMaterial builds it from
 // Ramps.RAMPS. Not source_color, because the Compatibility renderer skips that decode in texelFetch.
 uniform sampler2D ramps : filter_nearest, repeat_disable;
 // How many steps each ramp in `ramps` has, indexed by Ramps.Terrain.
-uniform int ramp_sizes[9];
+uniform int ramp_sizes[10];
 // Seamless FastNoiseLite noise from 0 to 1, tiled across the world.
 uniform sampler2D noise : filter_linear, repeat_enable;
 
@@ -109,6 +130,36 @@ float mist_at(vec2 point, vec2 warp) {
 // edge sits where half the averaged samples are clear, and dithers over fog_edge_dither around it.
 bool is_fogged(vec2 point, vec2 warp, float threshold) {
 	return mist_at(point, warp) > 0.5 + (threshold - 0.5) * fog_edge_dither;
+}
+
+// The index + 1 of the cloud at point, or 0 outside them. It takes the highest of the four nearest
+// cells, so the edge lies between cells where the height crosses the base, and no two clouds touch.
+int cloud_index(vec2 point) {
+	ivec2 size = textureSize(cloud_map, 0);
+	ivec2 nw = ivec2(floor(point - 0.5));
+	float most = 0.0;
+	for (int i = 0; i < 4; i++) {
+		ivec2 at = clamp(nw + ivec2(i % 2, i / 2), ivec2(0), size - 1);
+		most = max(most, texelFetch(cloud_map, at, 0).r);
+	}
+	return int(round(most * 255.0));
+}
+
+// The share of cloud at point, whose ground stands at height and whose warp is warp_at(point), from
+// 0 in clear air to 1 inside a standing cloud. A pixel draws cloud where it beats the dither threshold.
+float cloud_cover(vec2 point, float height, vec2 warp) {
+	int index = cloud_index(point);
+	if (index == 0) {
+		return 0.0;
+	}
+	float above = height + warp.x * 2.0 * cloud_wobble - cloud_base[index - 1];
+	if (above <= 0.0) {
+		return 0.0;
+	}
+	float cover = cloud_look == 2 ? smoothstep(0.0, cloud_thin, above) : 1.0;
+	float hole = distance(point + warp * 2.0, cloud_hole);
+	cover *= smoothstep(cloud_hole_cells - cloud_hole_edge, cloud_hole_cells, hole);
+	return cover * (1.0 - cloud_gone[index - 1]);
 }
 
 // The offset, from -0.5 to 0.5 on each axis, that warps material boundaries and rivers at cell.
