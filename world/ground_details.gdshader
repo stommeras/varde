@@ -109,17 +109,11 @@ void vertex() {
 	// An orthographic PROJECTION_MATRIX[1][1] is 2 / the view's height in world units. Godot flips y
 	// for Vulkan in the projection, so it is negative, and the sign would hang the sprite downward.
 	float pixel_size = abs(2.0 / (PROJECTION_MATRIX[1][1] * VIEWPORT_SIZE.y));
-	// Faded with the ground under it, so no detail floats in the hole in a ridge in front of the player.
-	vec2 base_pixel = vec2(dot(base, INV_VIEW_MATRIX[0].xyz), dot(base, INV_VIEW_MATRIX[1].xyz)) / pixel_size;
 	ground = normalize((VIEW_MATRIX * vec4(normal, 0.0)).xyz);
-	// Ground that faces away from the camera is a back face of the terrain mesh, which Godot doesn't
-	// draw. A ridge in front always hides it, but once the fade cuts the ridge, a detail on it would
-	// float over the land beyond.
-	stands = stands && ground.z > 0.0;
 	// Hidden until the fog has cleared all the way from the ground under it. Showing them by the
 	// terrain's dithered test put sharp, full-color sprites on top of the thinning fog.
 	stands = stands && !is_fogged(point, warp, 0.0);
-	if (!stands || is_faded(base, base_view, VIEW_MATRIX, INV_VIEW_MATRIX, summit, dither(base_pixel))) {
+	if (!stands) {
 		// All four corners on one point draw nothing.
 		VERTEX = vec3(0.0);
 	} else {

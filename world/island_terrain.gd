@@ -69,15 +69,6 @@ func ground_material() -> ShaderMaterial:
 	return _material
 
 
-## Fades the terrain that stands between the camera and feet, the player's feet in world units.
-## amount runs from 0, shut, to 1, the full radius. Call it after show_island(), which makes a new
-## material with the fade shut.
-func fade_around(feet: Vector3, amount: float) -> void:
-	for material: ShaderMaterial in [_material, _details]:
-		material.set_shader_parameter("fade_amount", amount)
-		material.set_shader_parameter("player_position", feet)
-
-
 ## Stretches the terrain so the highest cell stands height world units above sea level.
 func set_summit_height(height: float) -> void:
 	scale.y = height
