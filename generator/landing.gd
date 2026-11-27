@@ -1,7 +1,6 @@
 class_name Landing
 ## Generator step 6, after the contenders: the landing beach with its shipwreck, where the run
-## starts. The beach lies on the far side of the island from the summit, so the route is long
-## enough for the trail of old vardes (see Trail).
+## starts. The beach lies on the far side of the island from the summit, so the walk there is long.
 
 ## Share of the farthest shore cell's distance from the summit that a landing beach must lie at
 ## least. Raising it lands the player further from the summit and lengthens the route, lowering it

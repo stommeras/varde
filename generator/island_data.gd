@@ -44,12 +44,16 @@ var start: int = -1
 ## The shore cell of the landing beach the shipwreck lies on, or -1 with no start. See Landing.
 var wreck: int = -1
 ## The cells of a walk from start to the summit's top or a cell beside it, start first. Every step
-## passes Walkability.can_step(). Empty with no start.
+## passes Walkability.can_step(). Empty with no start. The summit's line of old vardes follows it.
 var route := PackedInt32Array()
-## The cells of the old vardes along route, first first. The wreck's note points to the first.
+## The cells of the old vardes, one line up each marked peak after another, each line foot first.
+## See Trail.
 var vardes := PackedInt32Array()
 ## A Trail.Kind per varde, in the order of vardes.
 var varde_kinds := PackedByteArray()
+## The top cell of the peak each varde's line climbs, in the order of vardes. The last varde of each
+## line holds its note.
+var varde_peaks := PackedInt32Array()
 ## Milliseconds each generator step took, in the order the steps ran. Timing differs between runs,
 ## so this is the one field that the same seed doesn't reproduce.
 var step_msec: Dictionary[String, int] = {}

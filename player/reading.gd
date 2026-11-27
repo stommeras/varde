@@ -1,13 +1,13 @@
 class_name Reading
 extends CanvasLayer
-## Reading the notes the island holds, on the shipwreck and on each old varde. Within reach of one,
-## Landing.READ_REACH of the wreck or Trail.READ_REACH of a varde, it shows "[F] Les", and F opens
-## that note in a panel of map paper over the game. The world keeps running. F or Escape closes it,
-## and so does walking CLOSE_MARGIN past the reach, so the note doesn't follow the player. A note
-## that opened by itself would stop the player each time they walked past. Each note points toward
-## the next varde, and the last one toward the summit. A later issue writes the notes from the
-## island's features, and until then the text is a placeholder that names a compass direction.
-## It records the vardes found_vardes and the notes read, for the map screen and the end screen.
+## Reading the notes the island holds, on the shipwreck and on the top varde of each line of old
+## vardes. Within reach of one, Landing.READ_REACH of the wreck or Trail.READ_REACH of a varde, it
+## shows "[F] Les", and F opens that note in a panel of map paper over the game. The world keeps
+## running. F or Escape closes it, and so does walking CLOSE_MARGIN past the reach, so the note
+## doesn't follow the player. A note that opened by itself would stop the player each time they
+## walked past. A top varde's note names the direction of the nearest higher peak, or says that none
+## stands higher. A later issue writes the notes from the island's features. It records the vardes
+## found and the notes read, for the map screen and the end screen.
 
 ## Width of the note panel in base-resolution pixels. Raising it gives longer lines and a lower panel.
 const WIDTH: int = 360
@@ -23,14 +23,16 @@ const CLOSE_MARGIN: float = 3.0
 
 ## Set it before adding the node.
 var player: Player
-## The cells of the old vardes the player has come within reach of, in the order found_vardes.
+## The cells of the old vardes the player has come within Trail.READ_REACH of, in the order found.
 var found_vardes := PackedInt32Array()
 ## The cells of the wreck and the old vardes whose notes the player has opened, in the order read.
 var read_notes := PackedInt32Array()
-## The cell, reach and text of each note, the wreck's first if there is one.
+## The cell, reach and text of each note, the wreck's first.
 var _cells := PackedInt32Array()
 var _reaches := PackedFloat32Array()
 var _texts := PackedStringArray()
+## The cells of every old varde, with a note or not.
+var _vardes := PackedInt32Array()
 ## The note open in the panel, an index into _cells, or -1.
 var _open: int = -1
 var _prompt := Prompt.new("READ")
@@ -58,7 +60,7 @@ func _init() -> void:
 	add_child(_panel)
 
 
-## Starts a new island with the note closed and nothing found_vardes or read.
+## Starts a new island with the note closed and nothing found or read.
 func start(island: IslandData) -> void:
 	_close()
 	found_vardes.clear()
@@ -66,14 +68,16 @@ func start(island: IslandData) -> void:
 	_cells.clear()
 	_reaches.clear()
 	_texts.clear()
-	var vardes: PackedInt32Array = island.vardes
-	if island.wreck < 0 or vardes.is_empty():
-		return
-	_add(island.wreck, Landing.READ_REACH, tr("NOTE_WRECK") % tr("COMPASS_%d" % compass(island.wreck, vardes[0])))
-	for i: int in vardes.size():
-		var last: bool = i == vardes.size() - 1
-		var next: int = island.peaks[0].cell if last else vardes[i + 1]
-		_add(vardes[i], Trail.READ_REACH, tr("NOTE_LAST_VARDE" if last else "NOTE_VARDE") % tr("COMPASS_%d" % compass(vardes[i], next)))
+	_vardes = island.vardes
+	if island.wreck >= 0:
+		_add(island.wreck, Landing.READ_REACH, tr("NOTE_WRECK"))
+	var peaks: PackedInt32Array = island.varde_peaks
+	for i: int in _vardes.size():
+		var top: int = peaks[i]
+		if i < _vardes.size() - 1 and peaks[i + 1] == top:
+			continue
+		var higher: int = Trail.higher_peak(island, top)
+		_add(_vardes[i], Trail.READ_REACH, tr("NOTE_SUMMIT") if higher < 0 else tr("NOTE_HIGHER") % tr("COMPASS_%d" % compass(top, higher)))
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -95,11 +99,10 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	if _open >= 0 and not _within(_open, CLOSE_MARGIN):
 		_close()
-	var note: int = _in_reach()
-	# The wreck is note 0 and isn't a varde.
-	if note > 0 and not found_vardes.has(_cells[note]):
-		found_vardes.append(_cells[note])
-	_prompt.fade(note >= 0 and _open < 0, delta)
+	for varde: int in _vardes:
+		if not found_vardes.has(varde) and player.grid_position.distance_to(IslandData.center(varde)) <= Trail.READ_REACH:
+			found_vardes.append(varde)
+	_prompt.fade(_in_reach() >= 0 and _open < 0, delta)
 
 
 ## The text of the note on cell, or an empty string if no note lies there.

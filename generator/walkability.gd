@@ -175,8 +175,24 @@ static func steps(data: IslandData, cell: int) -> PackedInt32Array:
 ## peak's top on a cliff can be, the walk ends on the neighbor of to it reaches, edge before corner.
 ## Empty when it reaches neither. AStarGrid2D's corner rule, ONLY_IF_NO_OBSTACLES, is can_step()'s, so
 ## movement takes every step of it. A breadth-first search with steps() took 1.8 s to cover the main
-## island of seed 0, and the grid takes about 0.2 s to set up and a few ms to search.
-static func route(data: IslandData, from: int, to: int) -> PackedInt32Array:
+## island of seed 0, and the grid takes about 0.2 s to set up and a few ms to search, so pass the
+## grid from path_grid() when searching more than once.
+static func route(data: IslandData, from: int, to: int, grid: AStarGrid2D = null) -> PackedInt32Array:
+	var size: int = IslandData.SIZE
+	if grid == null:
+		grid = path_grid(data)
+	# A blocked to can't be reached, so the search returns the reached cell nearest to it.
+	var path: Array[Vector2i] = grid.get_id_path(Vector2i(from % size, from / size), Vector2i(to % size, to / size), true)
+	var cells := PackedInt32Array()
+	for point: Vector2i in path:
+		cells.append(IslandData.index(point.x, point.y))
+	if cells.is_empty() or absi(cells[-1] % size - to % size) > 1 or absi(cells[-1] / size - to / size) > 1:
+		return PackedInt32Array()
+	return cells
+
+
+## A search grid for route() whose open points are the main island's open cells.
+static func path_grid(data: IslandData) -> AStarGrid2D:
 	var size: int = IslandData.SIZE
 	var grid := AStarGrid2D.new()
 	grid.region = Rect2i(0, 0, size, size)
@@ -187,14 +203,7 @@ static func route(data: IslandData, from: int, to: int) -> PackedInt32Array:
 	for cell: int in data.height.size():
 		if data.main_island[cell] == 1 and not blocked(data, cell):
 			grid.set_point_solid(Vector2i(cell % size, cell / size), false)
-	# A blocked to can't be reached, so the search returns the reached cell nearest to it.
-	var path: Array[Vector2i] = grid.get_id_path(Vector2i(from % size, from / size), Vector2i(to % size, to / size), true)
-	var cells := PackedInt32Array()
-	for point: Vector2i in path:
-		cells.append(IslandData.index(point.x, point.y))
-	if cells.is_empty() or absi(cells[-1] % size - to % size) > 1 or absi(cells[-1] / size - to / size) > 1:
-		return PackedInt32Array()
-	return cells
+	return grid
 
 
 ## The cells the player can walk to from start, start first, breadth first. Stops after limit cells.
