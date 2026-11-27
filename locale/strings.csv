@@ -73,7 +73,7 @@ COMPASS_6,vest
 COMPASS_7,nordvest
 CONTROL_WALK,Gå
 CONTROL_TURN,Snu kameraet
-CONTROL_SURVEY,Kartlegg en topp eller les en lapp
+CONTROL_INTERACT,Undersøk
 CONTROL_MAP,Kartet
 CONTROL_ZOOM,Zoom
 CONTROL_PAUSE,Pause

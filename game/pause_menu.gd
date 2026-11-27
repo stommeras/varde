@@ -26,7 +26,7 @@ const CONTROLS: Array[Dictionary] = [
 		"keys": [[[KEY_W], [KEY_A, KEY_S, KEY_D]], [[KEY_UP], [KEY_LEFT, KEY_DOWN, KEY_RIGHT]]],
 	},
 	{"text": "CONTROL_TURN", "actions": [&"turn_left", &"turn_right"], "keys": [[[KEY_Q, KEY_E]]]},
-	{"text": "CONTROL_SURVEY", "actions": [&"survey"], "keys": [[[KEY_F]]]},
+	{"text": "CONTROL_INTERACT", "actions": [&"survey"], "keys": [[[KEY_F]]]},
 	{"text": "CONTROL_MAP", "actions": [&"map"], "keys": [[[KEY_M]]]},
 	{"text": "CONTROL_ZOOM", "actions": [&"zoom_in", &"zoom_out"], "keys": [[[KEY_PLUS, KEY_MINUS]]], "wheel": true},
 	{"text": "CONTROL_PAUSE", "actions": [&"ui_cancel"], "keys": [[[KEY_ESCAPE]]]},
