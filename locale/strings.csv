@@ -63,6 +63,9 @@ Fra denne toppen så vi en høyere mot %s."
 NOTE_SUMMIT,"Ei gammel varde. Under den øverste steinen ligger en lapp:
 
 Ingen topp på øya står høyere enn denne. Toppvarden står like over oss."
+NOTES,Lapper
+NOTE_TITLE_WRECK,Skipsloggen
+NOTE_TITLE_VARDE,Lapp %d
 COMPASS_0,nord
 COMPASS_1,nordøst
 COMPASS_2,øst

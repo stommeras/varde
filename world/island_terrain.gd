@@ -1,12 +1,13 @@
 class_name IslandTerrain
 extends Node3D
-## Holds two MeshInstance3D per terrain chunk, one for the ground drawn by the terrain shader and one
-## for the ground details standing on it. Its y scale is the summit height.
+## Holds three MeshInstance3D per terrain chunk: the ground drawn by the terrain shader, the same mesh
+## again casting the sun's shadow, and the ground details standing on it. Its y scale is the summit height.
 
 ## World units from sea level to the highest cell, chosen by eye in milestone 2. Raising it makes the
 ## mountains steeper and their shadows longer, lowering it flattens the island. Walkability holds the
 ## value, because the slope the player can climb depends on it and the generator can't read a node.
 const SUMMIT_HEIGHT: float = Walkability.SUMMIT_UNITS
+const SHADOW_SHADER: Shader = preload("res://world/terrain_shadow.gdshader")
 
 ## What the player knows about the island. A new island starts with all of it unknown.
 var knowledge: Knowledge
@@ -31,11 +32,19 @@ func show_island(meshes: Array[ArrayMesh], island: IslandData) -> void:
 	knowledge = Knowledge.new()
 	_material = TerrainMaterial.create(island, knowledge)
 	_details = GroundDetails.create(_material, island.island_seed)
+	var shadow := ShaderMaterial.new()
+	shadow.shader = SHADOW_SHADER
 	for mesh: ArrayMesh in meshes:
 		var chunk := MeshInstance3D.new()
 		chunk.mesh = mesh
 		chunk.material_override = _material
+		chunk.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(chunk)
+		var caster := MeshInstance3D.new()
+		caster.mesh = mesh
+		caster.material_override = shadow
+		caster.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+		add_child(caster)
 	for i: int in meshes.size():
 		var details := MeshInstance3D.new()
 		details.mesh = GroundDetails.mesh()

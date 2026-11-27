@@ -6,7 +6,10 @@ extends CanvasLayer
 ## new cells. The sheet follows the player until the player drags it, and the mouse wheel or + and -
 ## zoom it, and it keeps its zoom between closing and reopening it. North is always up. A red dot
 ## shows the player, with a pointer on its edge the way the figure faces and a faint wedge the way the
-## camera looks, and a small cairn shows each varde the player has built.
+## camera looks, and a small cairn shows each varde the player has built. A hollow cairn shows each
+## old varde the player has found, and only those, so a survey doesn't give away a marked way up. God
+## mode shows them all. A list beside the sheet names the notes the player has read, and a click on
+## one shows it again under the list, with a red ring around its cell on the map.
 
 const SHADER: Shader = preload("res://map/map.gdshader")
 ## The sheet's side as a share of the screen's height. Raising it covers more of the run.
@@ -40,11 +43,19 @@ const BEAM_ALPHA: float = 0.3
 const BEAM_POINTS: int = 8
 ## Half the width of a varde's cairn in screen pixels. Its height is twice this.
 const VARDE_SIZE: float = 4.0
+## Half the width of a found old varde's hollow cairn in screen pixels. Smaller than VARDE_SIZE, so
+## the player's own vardes stand out among a line of old ones.
+const OLD_VARDE_SIZE: float = 3.0
+## Radius in screen pixels of the ring around the cell of the note shown under the list.
+const NOTE_RING: float = 8.0
+## Pixels between the sheet and the list of notes, and between the list and the screen's edge.
+const LIST_GAP: float = 8.0
 
 ## Set these before adding the node.
 var player: Player
 var camera: GameCamera
 var survey: Survey
+var reading: Reading
 var _knowledge: Knowledge
 ## The Knowledge.version the map last drew, or -1 to draw on the next frame.
 var _drawn: int = -1
@@ -60,6 +71,11 @@ var _zoom: int = OPEN_ZOOM
 var _follow: bool = true
 ## Whether the sheet last drew the whole island for god mode.
 var _shown_all: bool = false
+var _list := PanelContainer.new()
+var _notes := VBoxContainer.new()
+var _note_text := Label.new()
+## The cell of the note shown under the list, or -1.
+var _shown_note: int = -1
 
 
 func _ready() -> void:
@@ -86,6 +102,32 @@ func _ready() -> void:
 	_view.draw.connect(_draw_map)
 	_view.gui_input.connect(_on_view_input)
 	frame.add_child(_view)
+	_build_list(Vector2(frame.position.x + frame.size.x + LIST_GAP, frame.position.y), screen)
+
+
+func _build_list(at: Vector2, screen: Vector2) -> void:
+	var paper := StyleBoxFlat.new()
+	paper.bg_color = Ramps.MAP[Ramps.MapPart.PAPER][2]
+	paper.border_color = Ramps.MAP[Ramps.MapPart.INK][1]
+	paper.set_border_width_all(2)
+	paper.set_content_margin_all(LIST_GAP)
+	_list.add_theme_stylebox_override("panel", paper)
+	_list.position = at
+	_list.custom_minimum_size.x = screen.x - at.x - LIST_GAP
+	_list.hide()
+	add_child(_list)
+	var column := VBoxContainer.new()
+	_list.add_child(column)
+	var heading := Label.new()
+	heading.text = tr("NOTES")
+	column.add_child(heading)
+	column.add_child(_notes)
+	_note_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_note_text.hide()
+	column.add_child(_note_text)
+	var ink: Color = Ramps.MAP[Ramps.MapPart.INK][0]
+	for label: Label in [heading, _note_text]:
+		label.add_theme_color_override("font_color", ink)
 
 
 ## Draws the map of the island terrain shows from here on. It shares the terrain's grid textures
@@ -124,9 +166,24 @@ func open() -> void:
 	show()
 
 
-## Hides the map.
+## Hides the map and the note shown under the list.
 func close() -> void:
 	hide()
+	_show_note(-1)
+
+
+## The names the list gives the notes read, in the order read: the wreck's log, and the varde notes
+## numbered from 1.
+static func note_titles(read_notes: PackedInt32Array, wreck: int) -> PackedStringArray:
+	var titles := PackedStringArray()
+	var count: int = 0
+	for cell: int in read_notes:
+		if cell == wreck:
+			titles.append(TranslationServer.translate("NOTE_TITLE_WRECK"))
+		else:
+			count += 1
+			titles.append(TranslationServer.translate("NOTE_TITLE_VARDE") % count)
+	return titles
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -152,9 +209,36 @@ func _process(_delta: float) -> void:
 	if _knowledge.version != _drawn:
 		_drawn = _knowledge.version
 		_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+	if _notes.get_child_count() != reading.read_notes.size():
+		_list_notes()
 	if _follow:
 		_center = player.grid_position
 	_pan(Vector2.ZERO)
+
+
+func _list_notes() -> void:
+	var titles: PackedStringArray = note_titles(reading.read_notes, reading.wreck)
+	for i: int in range(_notes.get_child_count(), titles.size()):
+		var button := Button.new()
+		button.text = titles[i]
+		button.flat = true
+		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		# Without focus, so the arrow keys keep walking the figure instead of moving through the list.
+		button.focus_mode = Control.FOCUS_NONE
+		button.pressed.connect(_show_note.bind(reading.read_notes[i]))
+		button.add_theme_color_override("font_color", Ramps.MAP[Ramps.MapPart.INK][1])
+		button.add_theme_color_override("font_hover_color", Ramps.MAP[Ramps.MapPart.MARKER][1])
+		button.add_theme_color_override("font_pressed_color", Ramps.MAP[Ramps.MapPart.MARKER][1])
+		_notes.add_child(button)
+	_list.visible = titles.size() > 0
+
+
+func _show_note(cell: int) -> void:
+	_shown_note = -1 if cell == _shown_note else cell
+	_note_text.visible = _shown_note >= 0
+	if _shown_note >= 0:
+		_note_text.text = reading.note_at(_shown_note)
+	_view.queue_redraw()
 
 
 func _on_view_input(event: InputEvent) -> void:
@@ -207,11 +291,19 @@ func _draw_map() -> void:
 	var paper: Color = Ramps.MAP[Ramps.MapPart.PAPER][2]
 	for cell: int in survey.varde_cells():
 		var top: Vector2 = _to_screen(Vector2(cell % IslandData.SIZE + 0.5, cell / IslandData.SIZE + 0.5))
-		var cairn := PackedVector2Array([top + Vector2(-VARDE_SIZE, VARDE_SIZE), top + Vector2(VARDE_SIZE, VARDE_SIZE), top + Vector2(0.0, -VARDE_SIZE)])
+		var cairn: PackedVector2Array = _cairn(top, VARDE_SIZE)
 		# A rim of light paper, so the cairn stands apart from the dense contours of a peak.
 		_view.draw_polyline(cairn + PackedVector2Array([cairn[0]]), paper, 3.0)
 		_view.draw_colored_polygon(cairn, ink)
+	# God mode shows the whole island, so it shows every old varde too.
+	for cell: int in reading.vardes if player.god else reading.found_vardes:
+		var cairn: PackedVector2Array = _cairn(_to_screen(IslandData.center(cell)), OLD_VARDE_SIZE)
+		cairn.append(cairn[0])
+		_view.draw_polyline(cairn, paper, 3.0)
+		_view.draw_polyline(cairn, ink, 1.0)
 	var marker: PackedColorArray = Ramps.MAP[Ramps.MapPart.MARKER]
+	if _shown_note >= 0:
+		_view.draw_arc(_to_screen(IslandData.center(_shown_note)), NOTE_RING, 0.0, TAU, 24, marker[1], 2.0)
 	var at: Vector2 = _to_screen(player.grid_position)
 	# The camera's forward on the ground, in map axes with y south. At heading 0 it points north.
 	var view := Vector2(-sin(camera.heading), -cos(camera.heading))
@@ -230,3 +322,7 @@ func _draw_map() -> void:
 	_view.draw_colored_polygon(PackedVector2Array([tip + ahead, base + side * 1.4, base - side * 1.4]), marker[0])
 	_view.draw_circle(at, MARKER_RADIUS, marker[1])
 	_view.draw_colored_polygon(PackedVector2Array([tip, base + side, base - side]), marker[1])
+
+
+func _cairn(top: Vector2, half_width: float) -> PackedVector2Array:
+	return PackedVector2Array([top + Vector2(-half_width, half_width), top + Vector2(half_width, half_width), top + Vector2(0.0, -half_width)])
