@@ -22,11 +22,11 @@ const MIN_COVE_BLOCKS: int = 16
 ## Finds the features of data and stores them in data.lakes, data.river_forks, data.coves and
 ## data.forest.
 static func find(data: IslandData) -> void:
-	var lake := PackedByteArray()
-	lake.resize(data.lake.size())
-	for i: int in lake.size():
-		lake[i] = data.lake[i] & data.main_island[i]
-	data.lakes = _areas(lake, IslandData.SIZE).filter(func(lake: PackedInt32Array) -> bool:
+	var main_lakes := PackedByteArray()
+	main_lakes.resize(data.lake.size())
+	for i: int in main_lakes.size():
+		main_lakes[i] = data.lake[i] & data.main_island[i]
+	data.lakes = _areas(main_lakes, IslandData.SIZE).filter(func(lake: PackedInt32Array) -> bool:
 		return lake.size() >= MIN_LAKE_CELLS)
 	# A river ends on land only where it runs into an earlier one, so that last cell is the fork.
 	# Two rivers can run into the same cell, which is still one fork.
@@ -54,7 +54,6 @@ static func _coves(main_island: PackedByteArray) -> PackedInt32Array:
 	for i: int in main_island.size():
 		if main_island[i] == 1:
 			land[(i / size / COVE_BLOCK) * width + (i % size) / COVE_BLOCK] += 1
-	# A block is land when at least half its cells are.
 	var half: int = COVE_BLOCK * COVE_BLOCK / 2
 	for b: int in land.size():
 		land[b] = 1 if land[b] >= half else 0
@@ -83,8 +82,8 @@ static func _coves(main_island: PackedByteArray) -> PackedInt32Array:
 
 ## The block of a cove farthest in from the open sea, the sea the closing left unfilled. A
 ## breadth-first walk goes in from the blocks beside the open sea, and the block it reaches last is
-## the head. The middle of the blocks lay near the mouth of a wide bay, since the closing fills a
-## square out past the mouth too.
+## the head. The middle of the blocks would lie near the mouth of a wide bay, since the closing fills
+## a square out past the mouth too.
 static func _cove_head(blocks: PackedInt32Array, land: PackedByteArray, closed: PackedByteArray, width: int) -> int:
 	var inside: Dictionary[int, bool] = {}
 	for b: int in blocks:
@@ -96,8 +95,7 @@ static func _cove_head(blocks: PackedInt32Array, land: PackedByteArray, closed: 
 				inside[b] = true
 				queue.append(b)
 				break
-	# A cove with no open sea beside it can't come from a closing, but this keeps the walk from
-	# returning nothing.
+	# A sea basin that land closes off all round has no open sea beside it.
 	if queue.is_empty():
 		queue.append(blocks[0])
 	var next_index: int = 0

@@ -1,6 +1,5 @@
 extends "res://tests/test_case.gd"
 
-## The issue asks for seeds 0 to 4.
 const FEATURE_SEEDS: int = 5
 
 
@@ -18,8 +17,7 @@ func test_lakes_are_large_main_island_lakes() -> void:
 		expect(data.lakes.size() >= 2 and data.lakes.size() <= 12, "seed %d has %d lakes" % [island_seed, data.lakes.size()])
 
 
-## Finding the features again from the same island gives the same features. The thread test in
-## test_generator.gd covers the steps before them.
+## Finding the features again from the same island gives the same features.
 func test_same_island_gives_same_features() -> void:
 	for island_seed: int in FEATURE_SEEDS:
 		var data: IslandData = island(island_seed)
