@@ -27,6 +27,8 @@ var player: Player
 var found_vardes := PackedInt32Array()
 ## The cells of the wreck and the old vardes whose notes the player has opened, in the order read.
 var read_notes := PackedInt32Array()
+## The wreck's cell, or -1 if the island has no wreck.
+var wreck: int = -1
 ## The cell, reach and text of each note, the wreck's first.
 var _cells := PackedInt32Array()
 var _reaches := PackedFloat32Array()
@@ -69,6 +71,7 @@ func start(island: IslandData) -> void:
 	_reaches.clear()
 	_texts.clear()
 	_vardes = island.vardes
+	wreck = island.wreck
 	if island.wreck >= 0:
 		_add(island.wreck, Landing.READ_REACH, tr("NOTE_WRECK"))
 	var peaks: PackedInt32Array = island.varde_peaks

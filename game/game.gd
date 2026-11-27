@@ -56,6 +56,7 @@ func _ready() -> void:
 	_map.player = _player
 	_map.camera = _camera
 	_map.survey = _survey
+	_map.reading = _reading
 	add_child(_map)
 	add_child(_menu)
 	if island != null:
