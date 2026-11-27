@@ -1,16 +1,18 @@
 class_name PauseMenu
 extends CanvasLayer
 ## Pauses the run behind "Fortsett" and "Avslutt" in the middle of the screen, with the controls listed
-## on both sides of them as drawn keys.
-## Escape or "Fortsett" resumes the run, and "Avslutt" ends it and goes back to the title screen. The game scene opens it, since there is no saving and a
-## stray Escape shouldn't throw a run away.
+## on both sides of them as drawn keys. Escape or "Fortsett" resumes the run, and "Avslutt" ends it
+## and goes back to the title screen. The game scene opens it, since there is no saving and a stray
+## Escape shouldn't throw a run away.
 
 ## How much of the run shows through the dimmed background. Raising it dims the run more.
 const DIM: float = 0.6
 ## The first LEFT_HAND rows of CONTROLS go left of the buttons and the rest go right, so the keys for
 ## the left hand sit on the left as on a keyboard.
 const LEFT_HAND: int = 2
-## Pixels between neighbouring keys, as on a keyboard.
+## Pixels between the buttons and the controls on each side. Raising it spreads the menu wider.
+const SIDE_GAP: int = 48
+## Pixels between neighbouring keys, as on a keyboard. Raising it spreads the keys apart.
 const KEY_GAP: int = 2
 
 ## The controls list, one row per thing to do: the translation key of what it does, the actions it
@@ -46,7 +48,7 @@ func _ready() -> void:
 	add_child(dim)
 	# The two sides expand by the same amount whatever their width, which keeps the buttons centered.
 	var sides := HBoxContainer.new()
-	sides.add_theme_constant_override("separation", 48)
+	sides.add_theme_constant_override("separation", SIDE_GAP)
 	sides.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(sides)
 	sides.add_child(_controls(CONTROLS.slice(0, LEFT_HAND), true))
@@ -77,8 +79,6 @@ func show_seed(island_seed: int) -> void:
 	_seed.show()
 
 
-## rows of CONTROLS with their keys next to the buttons. On the left side, mirrored is true and each
-## row's text comes before its keys.
 func _controls(rows: Array[Dictionary], mirrored: bool) -> GridContainer:
 	var grid := GridContainer.new()
 	grid.columns = 2
@@ -106,7 +106,6 @@ func _controls(rows: Array[Dictionary], mirrored: bool) -> GridContainer:
 	return grid
 
 
-## A group of keys, row by row and centered, so W sits over S as it does on a keyboard.
 func _key_group(rows: Array) -> VBoxContainer:
 	var group := VBoxContainer.new()
 	group.add_theme_constant_override("separation", KEY_GAP)
@@ -121,9 +120,9 @@ func _key_group(rows: Array) -> VBoxContainer:
 	return group
 
 
-func _label(key: String) -> Label:
+func _label(text_key: String) -> Label:
 	var label := Label.new()
-	label.text = tr(key)
+	label.text = tr(text_key)
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	label.add_theme_color_override("font_color", Ramps.RAMPS[Ramps.Terrain.SNOW][3])
 	return label

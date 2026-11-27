@@ -8,12 +8,12 @@ extends Control
 const FACE: int = 16
 ## Pixels of side showing under the face. Raising it makes the keys look taller.
 const DEPTH: int = 3
-## Pixels of face on each side of a longer label, such as "Esc".
+## Pixels of face on each side of a longer label, such as "Esc". Raising it makes those keys wider.
 const PADDING: int = 4
-## Half the width of a drawn arrow's head, in pixels.
+## Pixels from the middle of a drawn arrow to its tip, and from the middle of its base to each base
+## corner. Raising it draws a bigger arrow.
 const ARROW: int = 4
 
-## The arrow keys and the direction each one's arrow points.
 const ARROWS: Dictionary[Key, Vector2] = {
 	KEY_UP: Vector2.UP,
 	KEY_DOWN: Vector2.DOWN,
@@ -24,6 +24,7 @@ const ARROWS: Dictionary[Key, Vector2] = {
 var _key: Key
 
 
+## key is the key to draw, such as KEY_W.
 func _init(key: Key) -> void:
 	_key = key
 
