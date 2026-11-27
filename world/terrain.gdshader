@@ -59,12 +59,14 @@ uniform float fog_scale = 90.0;
 uniform float fog_speed = 0.008333333;
 // How many ramp steps the patches move the fog's light up or down. 0 gives an even, dithered grey.
 uniform float fog_steps = 1.5;
-// World units that one tile of `noise` covers for the patches in a cloud. Lower gives smaller patches.
+// World units that one tile of `noise` covers for the patches in a cloud. Lower gives smaller, busier
+// patches, and higher gives an even cap.
 uniform float cloud_scale = 40.0;
 // Noise tiles per second the cloud's patches drift. Keep 3600 * speed * 0.8 and * 0.6 whole numbers,
 // so the hourly wrap of TIME doesn't jump. 1/60 drifts about 0.7 world units a second.
 uniform float cloud_speed = 0.016666667;
-// How many ramp steps the patches move the cloud's light up or down.
+// How many ramp steps the patches move the cloud's light up or down. Raising it makes the patches
+// stand out against the shading of the land under the cloud, and 0 hides them.
 uniform float cloud_steps = 1.0;
 
 varying vec3 world_position;

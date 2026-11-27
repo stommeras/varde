@@ -37,26 +37,30 @@ uniform float fog_soft_cells = 2.0;
 // dithered over a few cells, and on a steep peak whose top the player had seen, that band showed
 // the unknown slope below as a see-through outline. Lowering it gives a crisper edge.
 uniform float fog_edge_dither = 0.3;
-// One byte per cell, 0 outside the cloud caps or 1 + the cloud's index in IslandData.clouds, which
+// One byte per cell, 0 outside the cloud caps or 1 + the cloud's index in IslandData.cloud_tops, which
 // the shader reads as that value / 255.
 uniform sampler2D cloud_map : filter_nearest, repeat_disable;
-// Each cloud's base, in height-map units, by its index in IslandData.clouds. Contenders.MAX_COUNT long.
+// Each cloud's base, in height-map units, by its index in IslandData.cloud_tops. Contenders.MAX_COUNT long.
 uniform float cloud_base[5];
 // How far each cloud has faded, from 0 while it stands to 1 once a survey has cleared it.
 uniform float cloud_gone[5];
 // The player's position in cells. The cloud opens within cloud_hole_cells of it, so the player sees
 // the ground they walk on inside the cloud.
 uniform vec2 cloud_hole = vec2(-1000.0);
-// Cells around the player that the cloud leaves open, LineOfSight.CLOUD_RADIUS.
+// Cells around the player that the cloud leaves open. TerrainMaterial sets it to
+// LineOfSight.CLOUD_RADIUS, so the player sees on screen as far as their view reaches inside.
 uniform float cloud_hole_cells = 8.0;
-// Cells over which the edge of the hole dithers from open to full cloud.
+// Cells over which the edge of the hole dithers from open to full cloud. Raising it softens the edge,
+// and the open ground shrinks with it, since full cloud starts at cloud_hole_cells.
 uniform float cloud_hole_edge = 3.0;
 // Height-map units the warp noise moves the cloud's base up and down, so it doesn't trace a contour.
+// Raising it makes the lower edge more ragged, and at 0 the edge is a contour line.
 uniform float cloud_wobble = 0.012;
 // Which look the cloud takes, while the look is being chosen: 0 shades like the fog, 1 is flat and
 // lit evenly, 2 shades like the fog and thins out over cloud_thin above its base.
 uniform int cloud_look = 0;
-// Height-map units above the base over which look 2 thins from nothing to full cloud.
+// Height-map units above the base over which look 2 thins from nothing to full cloud. Raising it
+// gives a softer, wider band of thin cloud at the bottom of the cap.
 uniform float cloud_thin = 0.03;
 // Row t holds the steps of ramp t, darkest first, as linear colors. TerrainMaterial builds it from
 // Ramps.RAMPS. Not source_color, because the Compatibility renderer skips that decode in texelFetch.

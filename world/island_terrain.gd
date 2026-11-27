@@ -68,15 +68,13 @@ func _process(delta: float) -> void:
 		return
 	knowledge.now += delta
 	knowledge.upload()
-	for material: ShaderMaterial in [_material, _details]:
-		material.set_shader_parameter("reveal_now", knowledge.now)
+	_set_shared("reveal_now", knowledge.now)
 
 
 ## Hides the fog everywhere while on is true, as god mode does, without marking any cell known.
 ## Call it after show_island(), which makes a new material with the fog shown.
 func show_all(on: bool) -> void:
-	for material: ShaderMaterial in [_material, _details]:
-		material.set_shader_parameter("show_all", on)
+	_set_shared("show_all", on)
 
 
 ## True while a cloud that hasn't faded covers cell.
@@ -87,18 +85,23 @@ func clouded(cell: int) -> bool:
 ## Fades the cloud on the peak whose top is top to gone, from 0 while it stands to 1 when it has gone
 ## for the rest of the run. A peak with no cloud is left as it is.
 func fade_cloud(top: int, gone: float) -> void:
-	var index: int = _island.clouds.find(top)
+	var index: int = _island.cloud_tops.find(top)
 	if index < 0:
 		return
 	_cloud_gone[index] = gone
-	for material: ShaderMaterial in [_material, _details]:
-		material.set_shader_parameter("cloud_gone", _cloud_gone)
+	_set_shared("cloud_gone", _cloud_gone)
 
 
 ## Opens the clouds around point, the player's position in cells, so they see the ground they stand on.
 func open_clouds(point: Vector2) -> void:
+	_set_shared("cloud_hole", point)
+
+
+# Sets a parameter on both the terrain's and the ground details' materials, so the details follow
+# the fog and the clouds on the ground they stand on.
+func _set_shared(parameter: String, value: Variant) -> void:
 	for material: ShaderMaterial in [_material, _details]:
-		material.set_shader_parameter("cloud_hole", point)
+		material.set_shader_parameter(parameter, value)
 
 
 ## The terrain shader's material, whose grid textures the map screen draws from too.
