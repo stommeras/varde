@@ -294,13 +294,13 @@ func _draw_map() -> void:
 	var paper: Color = Ramps.MAP[Ramps.MapPart.PAPER][2]
 	for cell: int in survey.varde_cells():
 		var top: Vector2 = _to_screen(Vector2(cell % IslandData.SIZE + 0.5, cell / IslandData.SIZE + 0.5))
-		var cairn := PackedVector2Array([top + Vector2(-VARDE_SIZE, VARDE_SIZE), top + Vector2(VARDE_SIZE, VARDE_SIZE), top + Vector2(0.0, -VARDE_SIZE)])
+		var cairn: PackedVector2Array = _cairn(top, VARDE_SIZE)
 		# A rim of light paper, so the cairn stands apart from the dense contours of a peak.
 		_view.draw_polyline(cairn + PackedVector2Array([cairn[0]]), paper, 3.0)
 		_view.draw_colored_polygon(cairn, ink)
 	for cell: int in reading.found_vardes:
-		var top: Vector2 = _to_screen(IslandData.center(cell))
-		var cairn := PackedVector2Array([top + Vector2(-OLD_VARDE_SIZE, OLD_VARDE_SIZE), top + Vector2(OLD_VARDE_SIZE, OLD_VARDE_SIZE), top + Vector2(0.0, -OLD_VARDE_SIZE), top + Vector2(-OLD_VARDE_SIZE, OLD_VARDE_SIZE)])
+		var cairn: PackedVector2Array = _cairn(_to_screen(IslandData.center(cell)), OLD_VARDE_SIZE)
+		cairn.append(cairn[0])
 		_view.draw_polyline(cairn, paper, 3.0)
 		_view.draw_polyline(cairn, ink, 1.0)
 	var marker: PackedColorArray = Ramps.MAP[Ramps.MapPart.MARKER]
@@ -324,3 +324,8 @@ func _draw_map() -> void:
 	_view.draw_colored_polygon(PackedVector2Array([tip + ahead, base + side * 1.4, base - side * 1.4]), marker[0])
 	_view.draw_circle(at, MARKER_RADIUS, marker[1])
 	_view.draw_colored_polygon(PackedVector2Array([tip, base + side, base - side]), marker[1])
+
+
+# The corners of a cairn's triangle on the sheet, half_width to each side of top and as tall as wide.
+func _cairn(top: Vector2, half_width: float) -> PackedVector2Array:
+	return PackedVector2Array([top + Vector2(-half_width, half_width), top + Vector2(half_width, half_width), top + Vector2(0.0, -half_width)])
