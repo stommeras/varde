@@ -34,7 +34,7 @@ var _cells := PackedInt32Array()
 var _reaches := PackedFloat32Array()
 var _texts := PackedStringArray()
 ## The cells of every old varde, with a note or not.
-var _vardes := PackedInt32Array()
+var vardes := PackedInt32Array()
 ## The note open in the panel, an index into _cells, or -1.
 var _open: int = -1
 var _prompt := Prompt.new("READ")
@@ -70,17 +70,17 @@ func start(island: IslandData) -> void:
 	_cells.clear()
 	_reaches.clear()
 	_texts.clear()
-	_vardes = island.vardes
+	vardes = island.vardes
 	wreck = island.wreck
 	if island.wreck >= 0:
 		_add(island.wreck, Landing.READ_REACH, tr("NOTE_WRECK"))
 	var peaks: PackedInt32Array = island.varde_peaks
-	for i: int in _vardes.size():
+	for i: int in vardes.size():
 		var top: int = peaks[i]
-		if i < _vardes.size() - 1 and peaks[i + 1] == top:
+		if i < vardes.size() - 1 and peaks[i + 1] == top:
 			continue
 		var higher: int = Trail.higher_peak(island, top)
-		_add(_vardes[i], Trail.READ_REACH, tr("NOTE_SUMMIT") if higher < 0 else tr("NOTE_HIGHER") % tr("COMPASS_%d" % compass(top, higher)))
+		_add(vardes[i], Trail.READ_REACH, tr("NOTE_SUMMIT") if higher < 0 else tr("NOTE_HIGHER") % tr("COMPASS_%d" % compass(top, higher)))
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -102,7 +102,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	if _open >= 0 and not _within(_open, CLOSE_MARGIN):
 		_close()
-	for varde: int in _vardes:
+	for varde: int in vardes:
 		if not found_vardes.has(varde) and player.grid_position.distance_to(IslandData.center(varde)) <= Trail.READ_REACH:
 			found_vardes.append(varde)
 	_prompt.fade(_in_reach() >= 0 and _open < 0, delta)

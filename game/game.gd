@@ -107,6 +107,9 @@ func _process(_delta: float) -> void:
 			_fogged[i].show()
 			_fogged.remove_at(i)
 			_fogged_cells.remove_at(i)
+		else:
+			# God mode hides the fog, so what stands under it shows too, until god mode ends.
+			_fogged[i].visible = _player.god
 
 
 # Adds thing, standing on cell, hidden until the player has seen cell. Drawn over the fog, it would

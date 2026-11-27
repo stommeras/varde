@@ -7,9 +7,9 @@ extends CanvasLayer
 ## zoom it, and it keeps its zoom between closing and reopening it. North is always up. A red dot
 ## shows the player, with a pointer on its edge the way the figure faces and a faint wedge the way the
 ## camera looks, and a small cairn shows each varde the player has built. A hollow cairn shows each
-## old varde the player has found, and only those, so a survey doesn't give away a marked way up. A
-## list beside the sheet names the notes the player has read, and a click on one shows it again under
-## the list, with a red ring around its cell on the map.
+## old varde the player has found, and only those, so a survey doesn't give away a marked way up. God
+## mode shows them all. A list beside the sheet names the notes the player has read, and a click on
+## one shows it again under the list, with a red ring around its cell on the map.
 
 const SHADER: Shader = preload("res://map/map.gdshader")
 ## The sheet's side as a share of the screen's height. Raising it covers more of the run.
@@ -295,7 +295,8 @@ func _draw_map() -> void:
 		# A rim of light paper, so the cairn stands apart from the dense contours of a peak.
 		_view.draw_polyline(cairn + PackedVector2Array([cairn[0]]), paper, 3.0)
 		_view.draw_colored_polygon(cairn, ink)
-	for cell: int in reading.found_vardes:
+	# God mode shows the whole island, so it shows every old varde too.
+	for cell: int in reading.vardes if player.god else reading.found_vardes:
 		var cairn: PackedVector2Array = _cairn(_to_screen(IslandData.center(cell)), OLD_VARDE_SIZE)
 		cairn.append(cairn[0])
 		_view.draw_polyline(cairn, paper, 3.0)
