@@ -4,8 +4,8 @@ shader_type spatial;
 // snaps it to one of the two nearest steps instead of blending them. The sea is part of the same
 // mesh, flat at sea level, and the height map's negative sea floor gives its depth.
 //
-// Fog covers the land and sea the player doesn't know yet, lit evenly, so an unexplored peak shows
-// its outline but no shading. It draws at the land's real depth and casts the land's shadow, so it
+// Fog covers the land and sea the player doesn't know yet. It takes the land's shading in the fog
+// ramp, so a fogged mountain reads as a mountain in mist instead of a flat grey wall. It draws at the land's real depth and casts the land's shadow, so it
 // hides what lies behind it and every shadow has a source on screen. Once seen, the fog clears over
 // clear_seconds.
 //
@@ -143,7 +143,6 @@ void fragment() {
 	// It dithers out as it clears.
 	if (is_fogged(cell, warp, dither(world_pixel))) {
 		kind = 8;  // Ramps.Terrain.FOG
-		world_normal = vec3(0.0, 1.0, 0.0);
 		ramp_reach = 1.0;
 		// On a flat layer at sea level: each pixel samples where its view ray meets the sea, so the
 		// patches lie flat over the land under the fog. Sampled by ground position, they ran down its
@@ -163,7 +162,7 @@ void fragment() {
 void light() {
 	// ATTENUATION is the sun's shadow, 0 in full shadow. The albedo is white, so this is the pixel's
 	// final color.
-	// Fog takes no cast shadows, so it reads as one flat layer and doesn't trace the land under it.
+	// Fog takes no cast shadows, so fogged land shows only its slopes, and its shadows fall on known land.
 	float attenuation = int(terrain) == 8 ? 1.0 : ATTENUATION;
 	DIFFUSE_LIGHT = ramp_color(clamp(dot(NORMAL, LIGHT), 0.0, 1.0), attenuation, int(terrain), ramp_reach, step_offset, dither(world_pixel));
 }
