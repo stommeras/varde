@@ -38,6 +38,7 @@ func test_river_forks_lie_where_two_rivers_meet() -> void:
 	for island_seed: int in FEATURE_SEEDS:
 		var data: IslandData = island(island_seed)
 		for fork: int in data.river_forks:
+			expect(data.river_forks.count(fork) == 1, "seed %d: fork %d is listed twice" % [island_seed, fork])
 			var rivers: int = 0
 			for river: PackedInt32Array in data.rivers:
 				if river.has(fork):

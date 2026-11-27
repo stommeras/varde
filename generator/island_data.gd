@@ -58,7 +58,8 @@ var varde_peaks := PackedInt32Array()
 var lakes: Array[PackedInt32Array] = []
 ## The cell where each river that runs into an earlier one meets it, in the order of rivers.
 var river_forks := PackedInt32Array()
-## The sea cell at the head of each cove of the main island, farthest in from the open sea, largest cove first. See Features.
+## The sea cell at the head of each cove of the main island, largest cove first. The head is the
+## part farthest in from the open sea. See Features.
 var coves := PackedInt32Array()
 ## The cells of the largest connected forest on the main island.
 var forest := PackedInt32Array()
