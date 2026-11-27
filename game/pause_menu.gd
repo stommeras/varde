@@ -11,13 +11,14 @@ const DIM: float = 0.6
 ## the left hand sit on the left as on a keyboard.
 const LEFT_HAND: int = 2
 ## Pixels between the buttons and the controls on each side. Raising it spreads the menu wider.
-const SIDE_GAP: int = 48
+const SIDE_GAP: int = 32
 ## Pixels between neighbouring keys, as on a keyboard. Raising it spreads the keys apart.
 const KEY_GAP: int = 2
 
 ## The controls list, one row per thing to do: the translation key of what it does, the actions it
 ## covers, and its keys. The keys come in groups with "eller" between them, and each group lists its
-## keys row by row as they sit on a keyboard, so WASD and the arrows keep their shape.
+## keys row by row as they sit on a keyboard, so WASD and the arrows keep their shape. A row with
+## "wheel" shows the mouse wheel before its keys.
 const CONTROLS: Array[Dictionary] = [
 	{
 		"text": "CONTROL_WALK",
@@ -27,7 +28,7 @@ const CONTROLS: Array[Dictionary] = [
 	{"text": "CONTROL_TURN", "actions": [&"turn_left", &"turn_right"], "keys": [[[KEY_Q, KEY_E]]]},
 	{"text": "CONTROL_SURVEY", "actions": [&"survey"], "keys": [[[KEY_F]]]},
 	{"text": "CONTROL_MAP", "actions": [&"map"], "keys": [[[KEY_M]]]},
-	{"text": "CONTROL_ZOOM", "actions": [&"zoom_in", &"zoom_out"], "keys": [[[KEY_PLUS, KEY_MINUS]]]},
+	{"text": "CONTROL_ZOOM", "actions": [&"zoom_in", &"zoom_out"], "keys": [[[KEY_PLUS, KEY_MINUS]]], "wheel": true},
 	{"text": "CONTROL_PAUSE", "actions": [&"ui_cancel"], "keys": [[[KEY_ESCAPE]]]},
 ]
 
@@ -90,6 +91,10 @@ func _controls(rows: Array[Dictionary], mirrored: bool) -> GridContainer:
 	for row: Dictionary in rows:
 		var keys := HBoxContainer.new()
 		keys.add_theme_constant_override("separation", 8)
+		# The wheel isn't an input action, since game.gd reads it straight from the mouse events.
+		if row.get("wheel", false):
+			keys.add_child(MouseWheel.new())
+			keys.add_child(_label("CONTROL_OR"))
 		var groups: Array = row["keys"]
 		for i: int in groups.size():
 			if i > 0:
@@ -138,7 +143,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func open() -> void:
 	get_tree().paused = true
 	show()
-	_resume.grab_focus()
+	# Hidden until the player tabs or uses the arrow keys, as on the title screen.
+	_resume.grab_focus(true)
 
 
 ## Hides the menu and resumes the run.

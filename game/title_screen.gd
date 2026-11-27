@@ -64,6 +64,14 @@ func _ready() -> void:
 	_seed_field.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_seed_field.text_submitted.connect(_start.unbind(1))
 	column.add_child(_seed_field)
+	# The web build can't close its tab, so it has no way out to show.
+	if not OS.has_feature("web"):
+		var quit := Button.new()
+		quit.text = tr("QUIT_GAME")
+		quit.custom_minimum_size.x = _seed_field.custom_minimum_size.x
+		quit.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		quit.pressed.connect(get_tree().quit)
+		column.add_child(quit)
 	# Hidden until the player tabs or uses the arrow keys, like focus-visible on the web.
 	new_island.grab_focus(true)
 

@@ -75,7 +75,8 @@ CONTROL_WALK,Gå
 CONTROL_TURN,Snu kameraet
 CONTROL_SURVEY,Kartlegg en topp eller les en lapp
 CONTROL_MAP,Kartet
-CONTROL_ZOOM,"Zoom, også med musehjulet"
+CONTROL_ZOOM,Zoom
 CONTROL_PAUSE,Pause
 CONTROL_OR,eller
 KEY_ESCAPE,Esc
+QUIT_GAME,Avslutt
