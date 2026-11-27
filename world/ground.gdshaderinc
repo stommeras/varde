@@ -1,8 +1,7 @@
 // What the terrain shader and the ground detail shader share: the island's grids, the ramps, the
-// rules that pick a pixel's material, the ramp lighting, the fog over unknown land and the fade in
-// front of the player.
+// rules that pick a pixel's material, the ramp lighting and the fog over unknown land.
 // IslandTerrain sets the same values on both materials, so a detail always sits on ground that the
-// terrain draws in its own material and light, and fades with it.
+// terrain draws in its own material and light.
 
 // One float per cell. Sea level is 0.0 and the summit 1.0, as in IslandData.height.
 uniform sampler2D height_map : filter_linear, repeat_disable;
@@ -68,32 +67,6 @@ uniform float shade = 0.3;
 // more light than the shade side, and without this its shadows are a faint change in the dither.
 // Raising it darkens shadows, 0 shades them like faces turned away from the sun.
 uniform float shadow_steps = 1.0;
-
-// How far the fade in front of the player is open, from 0 (shut) to 1 (fade_radius). The player
-// opens it while terrain hides the figure and moves player_position to the feet each frame. The
-// debug view has no player and leaves it shut.
-uniform float fade_amount = 0.0;
-// The player's feet in world units.
-uniform vec3 player_position;
-// World units on screen from the feet to where the fade ends, about 19 screen pixels per unit at
-// zoom 40. Raising it opens a wider hole around the player in a ridge. At 4 and 7 a ridge in front
-// still hid most of the ground behind the player, and the hole read as a bite out of the rock.
-uniform float fade_radius = 10.0;
-// World units over which the fade dithers out at its rim, at fade_ground above the feet and at the
-// feet's depth. Raising it gives a softer, wider dithered edge, and at 0 the hole has a hard rim.
-uniform float fade_edge = 2.5;
-// World units the view ray behind a faded pixel must clear the ground by somewhere past the pixel.
-// A pixel whose ray never leaves the ground stays, because cutting it would show the empty space
-// under the terrain. The mesh runs straight between cell centers and the height map blends four of
-// them, so on steep rock they disagree by up to a unit or so, and below about 1 the hole shows specks
-// of that space. Terrain less than this above the feet never fades, which keeps the ground the player
-// stands on. Raising it leaves more of the terrain in front of the player.
-uniform float fade_ground = 1.0;
-// World units between the samples the fade takes along the view ray, and how many it takes. A gap
-// narrower than a step between a ridge and the land behind it can be missed, which keeps that pixel.
-// 96 steps of 1 reach about 68 units down, more than a ridge stands above the valley behind it.
-uniform float fade_step = 1.0;
-uniform int fade_steps = 96;
 
 #include "res://world/dither.gdshaderinc"
 
@@ -200,45 +173,4 @@ vec3 ramp_color(float facing, float attenuation, int kind, float reach, float of
 	float position = mix(shade, 1.0, lit) * reach * float(steps - 1) + offset - shadow_steps * cast;
 	int ramp_step = clamp(int(floor(position + threshold)), 0, steps - 1);
 	return texelFetch(ramps, ivec2(ramp_step, kind), 0).rgb;
-}
-
-// True where the fade in front of the player cuts the terrain at world_position, which lies at
-// view_position in view space. threshold is the pixel's dither threshold. The fade cuts terrain that
-// is nearer the camera than the player and higher than the feet, so on open ground nothing fades.
-bool is_faded(vec3 world_position, vec3 view_position, mat4 view_matrix, mat4 inv_view_matrix, float summit, float threshold) {
-	if (fade_amount <= 0.0) {
-		return false;
-	}
-	vec3 feet = (view_matrix * vec4(player_position, 1.0)).xyz;
-	float rise = world_position.y - player_position.y;
-	// smoothstep is undefined when its edges meet, so a fade_edge of 0 keeps a sliver of width.
-	float edge = max(fade_edge, 0.001);
-	float radius = fade_radius * fade_amount;
-	float keep = max(smoothstep(radius - edge, radius, length(view_position.xy - feet.xy)),
-		1.0 - smoothstep(fade_ground, fade_ground + edge, rise));
-	// Terrain that crosses the feet's depth dithers out too, instead of ending in a straight line.
-	keep = max(keep, 1.0 - smoothstep(0.0, edge, view_position.z - feet.z));
-	// The pixels that survive in the dithered rim have low thresholds, and light() rounds them down
-	// a ramp step with the same threshold, so the rim reads as a darker outline. A shifted Bayer
-	// pattern evens that out but draws stripes along the rim.
-	if (keep >= threshold) {
-		return false;
-	}
-	// Marches the view ray on past this pixel. Once it lies fade_ground above the height map, it
-	// has come out of the ground, and the land it meets next shows through the hole. That land
-	// fades only if its own ray comes out again further on, so some land always shows.
-	vec2 texel = 1.0 / vec2(textureSize(height_map, 0));
-	vec3 ray = -inv_view_matrix[2].xyz;
-	for (int i = 1; i <= fade_steps; i++) {
-		vec3 point = world_position + ray * float(i) * fade_step;
-		// The height map never drops below sea level, so a ray this low can't clear it any more.
-		if (point.y < fade_ground) {
-			return false;
-		}
-		float ground = max(texture(height_map, point.xz * texel).r, 0.0) * summit;
-		if (ground < point.y - fade_ground) {
-			return true;
-		}
-	}
-	return false;
 }

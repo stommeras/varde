@@ -22,12 +22,6 @@ const CAMERA_LAG: float = 0.8
 ## Longest frame the movement takes in one go. A longer one, such as a hitch while loading, moves
 ## the player by less than it lasted. It keeps a step under one cell, which _can_move() relies on.
 const MAX_DELTA: float = 0.1
-## Seconds the fade in front of the player takes to open or shut. Raising it makes the hole grow and
-## shrink more slowly, and at 0 it pops open as soon as terrain hides the figure.
-const FADE_SECONDS: float = 0.25
-## World units between the samples hidden() takes toward the camera. Half a cell finds a ridge one
-## cell wide, and raising it can step over a thin one.
-const HIDE_STEP: float = 0.5
 ## World units the figure sits nearer the camera than its feet. The orthographic camera shows it on
 ## the same pixels, but terrain must stand this far in front of it to hide it. Without it the boots
 ## sink into a slope that rises to the side. Raising it lets the figure show over more of a bump or
@@ -41,7 +35,7 @@ var frozen: bool = false
 var steer: Vector2 = Vector2.ZERO
 ## The camera that follows the player. Set it before adding the player.
 var camera: GameCamera
-## The terrain that fades in front of the player. Set it before placing the player.
+## The terrain, whose knowledge the player's line of sight marks. Set it before placing the player.
 var terrain: IslandTerrain
 ## The player's exact position on the grid, x east and y south, in cells. The node's own position
 ## is this snapped to whole screen pixels.
@@ -59,12 +53,6 @@ var _camera_height: float = 0.0
 var god: bool = false
 ## Speed multiplier in god mode.
 var god_speed: float = 1.0
-## The feet in world units, unsnapped, where the fade centers.
-var _feet: Vector3
-## True while terrain hides the figure, which opens the fade.
-var _hidden: bool = false
-## How far the fade is open, from 0 to 1.
-var _fade: float = 0.0
 ## The cell the last line of sight was cast from, or -1 before the first.
 var _sight_cell: int = -1
 ## The WorkerThreadPool task casting the line of sight, or -1 when none runs. A cast from the summit
@@ -107,8 +95,6 @@ func place(island: IslandData, cell: int) -> void:
 func _process(delta: float) -> void:
 	if _island == null:
 		return
-	_fade = move_toward(_fade, 1.0 if _hidden else 0.0, delta / maxf(FADE_SECONDS, 0.001))
-	terrain.fade_around(_feet, _fade)
 	var step: float = minf(delta, MAX_DELTA)
 	var direction: Vector2 = steer if frozen else walk_direction(Input.get_vector("move_left", "move_right", "move_up", "move_down"), camera.heading)
 	_velocity = _velocity.move_toward(direction * SPEED, SPEED / maxf(EASE_SECONDS, 0.001) * step)
@@ -145,12 +131,6 @@ func _update_position(follow: float) -> void:
 	# The same snap as the camera's, so the figure moves on screen only in whole pixels, and only
 	# while the camera catches up on its height.
 	position = camera.snap(point) + camera.basis.z * DEPTH_PUSH
-	_feet = point
-	# The middle and the top of the figure. Terrain that only hides the feet leaves the fade shut, so
-	# a small bump in front doesn't open a hole in the hills beside the player.
-	var known: Knowledge = terrain.knowledge if terrain != null else null
-	_hidden = hidden(_island, point + Vector3.UP * (Figure.HEIGHT / 2.0), camera.basis.z, known) \
-		or hidden(_island, point + Vector3.UP * Figure.HEIGHT, camera.basis.z, known)
 
 
 # Marks what the finished cast saw, and casts again once the player stands in a new cell. One cast
@@ -220,22 +200,6 @@ static func _can_move(island: IslandData, from: Vector2, to: Vector2) -> bool:
 
 static func _cell(point: Vector2) -> int:
 	return IslandData.index(int(point.x), int(point.y))
-
-
-## True when terrain stands between point, in world units, and a camera that looks along -toward.
-## It steps from point toward the camera until the line rises above the summit. toward must point up.
-## With knowledge, land the player hasn't seen hides nothing, because the terrain shader draws its fog
-## behind everything else.
-static func hidden(island: IslandData, point: Vector3, toward: Vector3, knowledge: Knowledge = null) -> bool:
-	var steps: int = ceili((IslandTerrain.SUMMIT_HEIGHT - point.y) / (toward.y * HIDE_STEP))
-	for i: int in range(1, steps + 1):
-		var sample: Vector3 = point + toward * (i * HIDE_STEP)
-		var ground := Vector2(sample.x, sample.z)
-		if knowledge != null and knowledge.levels[_cell(ground.clamp(Vector2.ZERO, Vector2(IslandData.SIZE - 0.001, IslandData.SIZE - 0.001)))] == Knowledge.Level.UNKNOWN:
-			continue
-		if height_at(island, ground) > sample.y:
-			return true
-	return false
 
 
 ## World height of the terrain mesh at point, in world units. The mesh has a vertex on each cell's
