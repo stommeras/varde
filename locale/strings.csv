@@ -71,3 +71,11 @@ COMPASS_4,sør
 COMPASS_5,sørvest
 COMPASS_6,vest
 COMPASS_7,nordvest
+CONTROL_WALK,Gå
+CONTROL_TURN,Snu kameraet
+CONTROL_SURVEY,Kartlegg en topp eller les en lapp
+CONTROL_MAP,Kartet
+CONTROL_ZOOM,"Zoom, også med musehjulet"
+CONTROL_PAUSE,Pause
+CONTROL_OR,eller
+KEY_ESCAPE,Esc
