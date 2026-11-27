@@ -157,7 +157,6 @@ func _process(delta: float) -> void:
 	while _task < 0 and _marked < RINGS and _time >= RING_SECONDS * _marked / RINGS:
 		terrain.knowledge.mark_cells(_rings[_marked], Knowledge.Level.SURVEYED)
 		_marked += 1
-	# The cloud on the peak, if any, fades while the player looks out and stays gone.
 	terrain.fade_cloud(_island.peaks[_peak].cell, smoothstep(0.0, LOOK_SECONDS, _time))
 	if _time < LOOK_SECONDS:
 		camera.zoom = lerpf(_base_zoom, SURVEY_ZOOM, smoothstep(0.0, ZOOM_SECONDS, _time))

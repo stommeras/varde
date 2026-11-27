@@ -24,8 +24,8 @@ const STEP: float = 0.5
 ## edge still covered the ground underfoot. Raising it reveals more ground close by, around corners
 ## and behind ridges too.
 const NEAR_RADIUS: float = 10.0
-## Cells the player sees inside a cloud cap. SPEC.md asks for about 8, close enough that the next step
-## up the slope is a guess.
+## Cells the player sees inside a cloud cap. Raising it lets the player see further up the slope
+## from inside.
 const CLOUD_RADIUS: float = 8.0
 
 

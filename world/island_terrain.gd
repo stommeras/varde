@@ -97,8 +97,7 @@ func open_clouds(point: Vector2) -> void:
 	_set_shared("cloud_hole", point)
 
 
-# Sets a parameter on both the terrain's and the ground details' materials, so the details follow
-# the fog and the clouds on the ground they stand on.
+# Sets a parameter on the terrain and the ground details, which read the same fog and clouds.
 func _set_shared(parameter: String, value: Variant) -> void:
 	for material: ShaderMaterial in [_material, _details]:
 		material.set_shader_parameter(parameter, value)

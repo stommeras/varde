@@ -40,7 +40,8 @@ uniform float fog_edge_dither = 0.3;
 // One byte per cell, 0 outside the cloud caps or 1 + the cloud's index in IslandData.cloud_tops, which
 // the shader reads as that value / 255.
 uniform sampler2D cloud_map : filter_nearest, repeat_disable;
-// Each cloud's base, in height-map units, by its index in IslandData.cloud_tops. Contenders.MAX_COUNT long.
+// Each cloud's base, in height-map units, by its index in IslandData.cloud_tops. One per contender
+// at the most, Contenders.MAX_COUNT, which a test checks.
 uniform float cloud_base[5];
 // How far each cloud has faded, from 0 while it stands to 1 once a survey has cleared it.
 uniform float cloud_gone[5];
@@ -48,7 +49,7 @@ uniform float cloud_gone[5];
 // the ground they walk on inside the cloud.
 uniform vec2 cloud_hole = vec2(-1000.0);
 // Cells around the player that the cloud leaves open. TerrainMaterial sets it to
-// LineOfSight.CLOUD_RADIUS, so the player sees on screen as far as their view reaches inside.
+// LineOfSight.CLOUD_RADIUS, so the open ground matches the player's view.
 uniform float cloud_hole_cells = 8.0;
 // Cells over which the edge of the hole dithers from open to full cloud. Raising it softens the edge,
 // and the open ground shrinks with it, since full cloud starts at cloud_hole_cells.
@@ -56,8 +57,8 @@ uniform float cloud_hole_edge = 3.0;
 // Height-map units the warp noise moves the cloud's base up and down, so it doesn't trace a contour.
 // Raising it makes the lower edge more ragged, and at 0 the edge is a contour line.
 uniform float cloud_wobble = 0.012;
-// Which look the cloud takes, while the look is being chosen: 0 shades like the fog, 1 is flat and
-// lit evenly, 2 shades like the fog and thins out over cloud_thin above its base.
+// 0 shades the cloud like the fog, 1 lights it flat, 2 shades it like the fog and thins it out over
+// cloud_thin above its base.
 uniform int cloud_look = 0;
 // Height-map units above the base over which look 2 thins from nothing to full cloud. Raising it
 // gives a softer, wider band of thin cloud at the bottom of the cap.
@@ -150,7 +151,7 @@ int cloud_index(vec2 point) {
 }
 
 // The share of cloud at point, whose ground stands at height and whose warp is warp_at(point), from
-// 0 in clear air to 1 inside a standing cloud. A pixel draws cloud where it beats the dither threshold.
+// 0 in clear air to 1 inside a standing cloud.
 float cloud_cover(vec2 point, float height, vec2 warp) {
 	int index = cloud_index(point);
 	if (index == 0) {
