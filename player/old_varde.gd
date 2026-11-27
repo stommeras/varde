@@ -41,6 +41,9 @@ const FALL_REACH: float = 1.6
 ## fan into a ring around the stump, which reads as a varde taken apart, not one that fell.
 const FALL_SPREAD: float = 0.7
 
+## The strewn stones of a fallen varde, which place() lays on the ground.
+var _strewn: Array[MeshInstance3D] = []
+
 
 ## Builds an old varde of kind, a Trail.Kind, shaped by varde_seed, so the same varde always looks
 ## the same.
@@ -69,16 +72,19 @@ func _init(kind: Trail.Kind = Trail.Kind.STANDING, varde_seed: int = 0) -> void:
 		for i: int in (LAYERS - FALLEN_LAYERS - 1) * PER_LAYER + 1:
 			var at := Vector2.from_angle(toward + rng.randf_range(-FALL_SPREAD, FALL_SPREAD)) * rng.randf_range(FALL_NEAREST, FALL_REACH)
 			# Centered on the ground, so they lie half sunk, as stones long fallen.
-			_stone(self, TOP_RADIUS, Vector3(at.x, 0.0, at.y), kind, lichen, moss, rng)
+			_strewn.append(_stone(self, TOP_RADIUS, Vector3(at.x, 0.0, at.y), kind, lichen, moss, rng))
 
 
-## Stands the varde on island's ground at the middle of cell.
+## Stands the varde on island's ground at the middle of cell, and lays each strewn stone of a fallen
+## one on the ground where it lies. At the stump's height, the stones downhill floated on a steep slope.
 func place(island: IslandData, cell: int) -> void:
 	var at: Vector2 = IslandData.center(cell)
 	position = Vector3(at.x, Player.height_at(island, at), at.y)
+	for stone: MeshInstance3D in _strewn:
+		stone.position.y = Player.height_at(island, at + Vector2(stone.position.x, stone.position.z)) - position.y
 
 
-func _stone(parent: Node3D, radius: float, at: Vector3, kind: Trail.Kind, lichen: ShaderMaterial, moss: ShaderMaterial, rng: RandomNumberGenerator) -> void:
+func _stone(parent: Node3D, radius: float, at: Vector3, kind: Trail.Kind, lichen: ShaderMaterial, moss: ShaderMaterial, rng: RandomNumberGenerator) -> MeshInstance3D:
 	var stone := MeshInstance3D.new()
 	stone.mesh = Varde.stone_mesh(radius * (1.0 + rng.randf_range(-WOBBLE, WOBBLE)))
 	stone.material_override = moss if rng.randf() < MOSSY[kind] else lichen
@@ -86,3 +92,4 @@ func _stone(parent: Node3D, radius: float, at: Vector3, kind: Trail.Kind, lichen
 	stone.position = at + Vector3(rng.randf_range(-WOBBLE, WOBBLE), 0.0, rng.randf_range(-WOBBLE, WOBBLE)) * radius * 0.5
 	stone.rotation = Vector3(rng.randf_range(-0.3, 0.3), rng.randf() * TAU, rng.randf_range(-0.3, 0.3))
 	parent.add_child(stone)
+	return stone
