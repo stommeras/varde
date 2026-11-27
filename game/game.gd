@@ -3,10 +3,13 @@ extends Node3D
 ## One run on one island. The title screen generates the island and hands it over. Run on its own, the
 ## scene generates it on a background thread behind "Kartlegger øya". The island then shows through the game camera at the view values in SPEC.md. Once the island shows, Escape
 ## pauses the run behind the pause menu, Q and E turn the camera, F surveys a peak the player stands
-## on or reads the shipwreck's note beside it, and M opens the map.
+## on or reads the note on the shipwreck or an old varde beside it, and M opens the map.
 ## G toggles god mode in debug builds.
 
 const TITLE_SCREEN: String = "res://game/title_screen.tscn"
+## Seconds after the player first sees a cell at which a thing on it shows. The fog over a cell takes
+## the terrain shader's clear_seconds, 1 s, to clear, so at 0.5 it shows as the fog thins.
+const SHOW_SECONDS: float = 0.5
 
 ## The island and its terrain chunk meshes. The title screen sets them before it adds the scene.
 ## Running the scene on its own leaves them empty and generates seed 0.
@@ -23,6 +26,9 @@ var _reading := Reading.new()
 ## False while the island generates. Leaving then would join the generator thread on the main thread
 ## and freeze the window for the rest of the load, about 3 s, so the menu waits for the island.
 var _loaded: bool = false
+## The wreck and the old vardes that still wait for the fog over them to clear, and their cells.
+var _fogged: Array[Node3D] = []
+var _fogged_cells := PackedInt32Array()
 
 
 func _ready() -> void:
@@ -93,15 +99,36 @@ func _zoom(event: InputEvent) -> void:
 		_camera.step_zoom(1)
 
 
+func _process(_delta: float) -> void:
+	var knowledge: Knowledge = _terrain.knowledge
+	for i: int in range(_fogged.size() - 1, -1, -1):
+		if knowledge.now >= knowledge.revealed_at(_fogged_cells[i]) + SHOW_SECONDS:
+			_fogged[i].show()
+			_fogged.remove_at(i)
+			_fogged_cells.remove_at(i)
+
+
+# Adds thing, standing on cell, hidden until the player has seen cell. Drawn over the fog, it would
+# give away land the player hasn't seen.
+func _hide_in_fog(thing: Node3D, cell: int) -> void:
+	thing.hide()
+	_fogged.append(thing)
+	_fogged_cells.append(cell)
+	add_child(thing)
+
+
 func _on_loaded(loaded_island: IslandData, loaded_meshes: Array[ArrayMesh], _msec: int) -> void:
 	_terrain.show_island(loaded_meshes, loaded_island)
 	_player.place(loaded_island, loaded_island.start)
 	if loaded_island.wreck >= 0:
-		# Made only here, since a node that never joins the tree is never freed.
 		var wreck := Wreck.new()
 		# Bow first up the beach, toward the start.
 		wreck.place(loaded_island, loaded_island.wreck, loaded_island.start)
-		add_child(wreck)
+		_hide_in_fog(wreck, loaded_island.wreck)
+	for i: int in loaded_island.vardes.size():
+		var varde := OldVarde.new(loaded_island.varde_kinds[i], loaded_island.island_seed + i)
+		varde.place(loaded_island, loaded_island.vardes[i])
+		_hide_in_fog(varde, loaded_island.vardes[i])
 	_reading.start(loaded_island)
 	_menu.show_seed(loaded_island.island_seed)
 	_survey.start(loaded_island)

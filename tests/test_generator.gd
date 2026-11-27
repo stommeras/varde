@@ -19,7 +19,7 @@ func test_thread_gives_same_island() -> void:
 	expect(threaded.start == data.start, "seed 7 gave a different start cell on a thread")
 	expect(threaded.wreck == data.wreck, "seed 7 gave a different wreck on a thread")
 	expect(threaded.route == data.route, "seed 7 gave a different route on a thread")
-	expect(threaded.vardes == data.vardes, "seed 7 gave a different first varde on a thread")
+	expect(threaded.vardes == data.vardes and threaded.varde_kinds == data.varde_kinds and threaded.varde_peaks == data.varde_peaks, "seed 7 gave different old vardes on a thread")
 
 
 func test_every_step_is_timed() -> void:

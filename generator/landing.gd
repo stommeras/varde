@@ -1,8 +1,6 @@
 class_name Landing
 ## Generator step 6, after the contenders: the landing beach with its shipwreck, where the run
-## starts, and the first old varde along the route to the summit. The beach lies on the far side of
-## the island from the summit, so the route is long enough for the trail of 6 to 10 vardes 60 to
-## 120 cells apart that SPEC.md asks for.
+## starts. The beach lies on the far side of the island from the summit, so the walk there is long.
 
 ## Share of the farthest shore cell's distance from the summit that a landing beach must lie at
 ## least. Raising it lands the player further from the summit and lengthens the route, lowering it
@@ -24,11 +22,6 @@ const READ_REACH: float = 4.0
 ## Cells from the wreck's shore cell around which the sea's direction is measured. Raising it
 ## follows the coast's broad line instead of the bends at the wreck.
 const SEA_RADIUS: int = 3
-## Straight-line cells from the wreck to the first old varde, the spacing SPEC.md sets for the whole
-## trail. Raising them sends the player further before the first find, and a gap under 60 put the
-## first varde in sight of the wreck on open beach.
-const FIRST_VARDE_MIN: float = 60.0
-const FIRST_VARDE_MAX: float = 120.0
 
 
 ## Sets data.wreck to a beach cell on the shore far from the summit and data.start to a beach cell
@@ -61,19 +54,6 @@ static func place(data: IslandData, rng: RandomNumberGenerator) -> void:
 			data.start = start
 			return
 	push_error("Landing: no landing beach on island %d" % data.island_seed)
-
-
-## The cell on data.route where the first old varde stands. It is the first route cell at least a
-## random distance from FIRST_VARDE_MIN to FIRST_VARDE_MAX from the wreck, in a straight line. The route
-## winds, so a later cell can lie closer again, but the first varde stays the first one that far.
-## The last cell of the route if none is that far.
-static func first_varde(data: IslandData, rng: RandomNumberGenerator) -> int:
-	var reach: float = rng.randf_range(FIRST_VARDE_MIN, FIRST_VARDE_MAX)
-	var wreck: Vector2 = IslandData.center(data.wreck)
-	for cell: int in data.route:
-		if IslandData.center(cell).distance_to(wreck) >= reach:
-			return cell
-	return data.route[-1]
 
 
 ## The unit grid direction, x east and y south, from cell toward the sea around it.

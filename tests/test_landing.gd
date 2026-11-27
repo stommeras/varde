@@ -33,18 +33,6 @@ func test_wreck_lies_on_the_shore_beside_the_start() -> void:
 		expect(_distance(wreck, data.start) <= Landing.READ_REACH, "seed %d: the start is out of the wreck's reach" % island_seed)
 
 
-func test_first_varde_lies_on_the_route_60_to_120_cells_from_the_wreck() -> void:
-	for island_seed: int in SEEDS:
-		var data: IslandData = island(island_seed)
-		if data.vardes.is_empty():
-			failures.append("seed %d: no first varde" % island_seed)
-			continue
-		var first: int = data.vardes[0]
-		var distance: float = _distance(first, data.wreck)
-		expect(distance >= 60.0 and distance <= 120.0, "seed %d: the first varde is %.0f cells from the wreck" % [island_seed, distance])
-		expect(data.route.has(first), "seed %d: the first varde is off the route" % island_seed)
-
-
 func _distance(a: int, b: int) -> float:
 	return Vector2(a % IslandData.SIZE, a / IslandData.SIZE).distance_to(Vector2(b % IslandData.SIZE, b / IslandData.SIZE))
 

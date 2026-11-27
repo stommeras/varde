@@ -56,7 +56,13 @@ GOD_HELP,[1–5] fart  [hjul] zoom  [T] til toppen  [G] av
 READ,[F] Les
 NOTE_WRECK,"Skipsloggen, siste side:
 
-Vi så en varde fra dekk like før vi gikk på grunn. Den sto mot %s, et godt stykke inn i landet."
+Fra dekk så vi gamle varder oppover fjellene inne på øya. Noen har gått der før oss."
+NOTE_HIGHER,"Ei gammel varde. Under den øverste steinen ligger en lapp:
+
+Fra denne toppen så vi en høyere mot %s."
+NOTE_SUMMIT,"Ei gammel varde. Under den øverste steinen ligger en lapp:
+
+Ingen topp på øya står høyere enn denne. Toppvarden står like over oss."
 COMPASS_0,nord
 COMPASS_1,nordøst
 COMPASS_2,øst

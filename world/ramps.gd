@@ -20,10 +20,10 @@ static var RAMPS: Dictionary[Terrain, PackedColorArray] = {
 	Terrain.FOG: PackedColorArray([Color("3c4552"), Color("566170"), Color("717d8b"), Color("8e98a4"), Color("aab2bb")]),
 }
 
-## The parts of the walking figure that each have a ramp in FIGURE. HAIR also colors the eyes. STONE and
-## WOOD are not on the figure but on the vardes the player builds and the shipwreck, drawn by the
-## figure's shader.
-enum FigurePart { SKIN, HAIR, COAT, TROUSERS, BOOTS, PACK, STONE, WOOD }
+## The parts of the walking figure that each have a ramp in FIGURE. HAIR also colors the eyes. STONE,
+## WOOD, LICHEN and MOSS are not on the figure but on the vardes, the shipwreck and the old vardes,
+## drawn by the figure's shader.
+enum FigurePart { SKIN, HAIR, COAT, TROUSERS, BOOTS, PACK, STONE, WOOD, LICHEN, MOSS }
 
 ## The walking figure, lit like the terrain. Three steps per part give a shade side, a middle and a
 ## lit side. The red coat and cap stand out against every terrain ramp, so the player is easy to find
@@ -41,6 +41,12 @@ static var FIGURE: Dictionary[FigurePart, PackedColorArray] = {
 	# Weathered brown planks, greyer and darker than the pack, so the wreck reads as old wood against
 	# the light sand. The beach's driftwood is grey rock, and a grey hull read as a rock.
 	FigurePart.WOOD: PackedColorArray([Color("3a2e26"), Color("6b5644"), Color("9c8670")]),
+	# The stone ramp with grey-green lichen grown over it, so an old varde reads as older than the
+	# player's clean grey one, and still as stone against grass and forest.
+	FigurePart.LICHEN: PackedColorArray([Color("2c302a"), Color("62695a"), Color("a3a88e")]),
+	# Dark, yellower than the forest ramp, for an old varde overgrown where it stands in forest. It
+	# shows only up close against the forest floor, so the varde reads as hidden.
+	FigurePart.MOSS: PackedColorArray([Color("1f2a1c"), Color("4a5a34"), Color("7e8a52")]),
 }
 
 

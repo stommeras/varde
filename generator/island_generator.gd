@@ -60,9 +60,10 @@ static func generate(island_seed: int, on_step: Callable = Callable()) -> Island
 		Walkability.mark_cliffs(data)
 	started = _record(data, "ways_up", started, on_step)
 	if data.start >= 0:
-		data.route = Walkability.route(data, data.start, data.peaks[0].cell)
+		var grid: AStarGrid2D = Walkability.path_grid(data)
+		data.route = Walkability.route(data, data.start, data.peaks[0].cell, grid)
 		if not data.route.is_empty():
-			data.vardes = PackedInt32Array([Landing.first_varde(data, start_rng)])
+			Trail.place(data, start_rng, grid)
 	_record(data, "route", started, on_step)
 	return data
 

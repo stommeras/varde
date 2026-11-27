@@ -43,7 +43,7 @@ func _init(stack_seed: int = 0) -> void:
 			var angle: float = turn + TAU * i / count
 			var size: float = radius * (1.0 + rng.randf_range(-WOBBLE, WOBBLE))
 			var stone := MeshInstance3D.new()
-			stone.mesh = _stone_mesh(size)
+			stone.mesh = stone_mesh(size)
 			stone.material_override = material
 			stone.scale = Vector3(1.0, FLATNESS, rng.randf_range(0.75, 1.0))
 			var offset := Vector2.from_angle(angle) * spread + Vector2(rng.randf_range(-WOBBLE, WOBBLE), rng.randf_range(-WOBBLE, WOBBLE)) * radius * 0.5
@@ -61,8 +61,9 @@ func build(amount: float) -> void:
 		_stones[i].visible = i < roundi(amount * _stones.size())
 
 
-# Few segments, so the flat faces catch the light at different steps and the stone looks rough.
-static func _stone_mesh(radius: float) -> SphereMesh:
+## A rough stone mesh of radius. Few segments, so the flat faces catch the light at different steps
+## and the stone looks rough.
+static func stone_mesh(radius: float) -> SphereMesh:
 	var mesh := SphereMesh.new()
 	mesh.radius = radius
 	mesh.height = radius * 2.0
