@@ -121,13 +121,11 @@ func _on_loaded(loaded_island: IslandData, loaded_meshes: Array[ArrayMesh], _mse
 	_terrain.show_island(loaded_meshes, loaded_island)
 	_player.place(loaded_island, loaded_island.start)
 	if loaded_island.wreck >= 0:
-		# Made only here, since a node that never joins the tree is never freed.
 		var wreck := Wreck.new()
 		# Bow first up the beach, toward the start.
 		wreck.place(loaded_island, loaded_island.wreck, loaded_island.start)
 		_hide_in_fog(wreck, loaded_island.wreck)
 	for i: int in loaded_island.vardes.size():
-		# Made only here, since a node that never joins the tree is never freed.
 		var varde := OldVarde.new(loaded_island.varde_kinds[i], loaded_island.island_seed + i)
 		varde.place(loaded_island, loaded_island.vardes[i])
 		_hide_in_fog(varde, loaded_island.vardes[i])

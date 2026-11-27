@@ -11,11 +11,10 @@ enum Kind { STANDING, FALLEN, HIDDEN }
 ## 1 a marked way up says nothing about a mountain.
 const MARKED_SHARE: float = 0.5
 ## Share of a top's height at which its line starts, where the walk to the top climbs past it for
-## good. Lowering it starts the line further out in the lowland. At 0.35, with vardes 30 to 50
-## cells apart, a third of the lines on seeds 7 and 624862 held a single varde.
+## good. Lowering it starts the line further out in the lowland.
 const FOOT_SHARE: float = 0.3
 ## Straight-line cells from each varde in a line to the next. Sight at sea level is 40 cells, so the
-## next varde stands in view, as on a real marked way. Raising them gives fewer vardes per line.
+## next varde stands in view. Raising them gives fewer vardes per line.
 const GAP_MIN: float = 25.0
 const GAP_MAX: float = 40.0
 ## Cells from an old varde within which "[F] Les" shows, the couple of cells SPEC.md asks for.

@@ -6,8 +6,8 @@ extends CanvasLayer
 ## running. F or Escape closes it, and so does walking CLOSE_MARGIN past the reach, so the note
 ## doesn't follow the player. A note that opened by itself would stop the player each time they
 ## walked past. A top varde's note names the direction of the nearest higher peak, or says that none
-## stands higher. A later issue writes the notes from the island's features. It records the vardes
-## found and the notes read, for the map screen and the end screen.
+## stands higher. A later issue writes the notes from the island's features. The node also records the
+## vardes found and the notes read, for the map screen and the end screen.
 
 ## Width of the note panel in base-resolution pixels. Raising it gives longer lines and a lower panel.
 const WIDTH: int = 360
