@@ -105,8 +105,6 @@ func _ready() -> void:
 	_build_list(Vector2(frame.position.x + frame.size.x + LIST_GAP, frame.position.y), screen)
 
 
-# The list of read notes on a sheet of paper in the space right of the map, with the text of the note
-# shown under it. Hidden until the player has read a note.
 func _build_list(at: Vector2, screen: Vector2) -> void:
 	var paper := StyleBoxFlat.new()
 	paper.bg_color = Ramps.MAP[Ramps.MapPart.PAPER][2]
@@ -235,7 +233,6 @@ func _list_notes() -> void:
 	_list.visible = titles.size() > 0
 
 
-# Shows the note on cell under the list, or hides it for -1 or the note already shown.
 func _show_note(cell: int) -> void:
 	_shown_note = -1 if cell == _shown_note else cell
 	_note_text.visible = _shown_note >= 0
@@ -326,6 +323,5 @@ func _draw_map() -> void:
 	_view.draw_colored_polygon(PackedVector2Array([tip, base + side, base - side]), marker[1])
 
 
-# The corners of a cairn's triangle on the sheet, half_width to each side of top and as tall as wide.
 func _cairn(top: Vector2, half_width: float) -> PackedVector2Array:
 	return PackedVector2Array([top + Vector2(-half_width, half_width), top + Vector2(half_width, half_width), top + Vector2(0.0, -half_width)])
