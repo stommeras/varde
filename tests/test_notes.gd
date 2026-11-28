@@ -22,6 +22,7 @@ func test_every_template_loads_as_a_string() -> void:
 				expect(template is String, "a template for %s is %s" % [key, template])
 				if template is String:
 					expect(not template.format(slots).contains("{"), "a template for %s has an unknown slot: %s" % [key, template])
+					expect(not template.begins_with("{"), "a template for %s starts with a slot, which the writer doesn't capitalize: %s" % [key, template])
 	for kind: String in ["wreck", "summit", "higher", "lake", "river", "fork", "cove", "forest"]:
 		expect(file.has_section_key("templates", kind), "no templates for %s" % kind)
 

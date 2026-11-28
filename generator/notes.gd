@@ -2,8 +2,7 @@ class_name Notes
 ## Generator step 8, after the old vardes: the notes. The wreck's note tells of the old vardes up
 ## the mountains and gives no direction. The top varde of each line names the direction of the nearest
 ## higher peak and, where one lies near that peak, a feature beside it, such as a lake at its foot or
-## a river that springs on it. The note on the summit's line says no top stands higher. The
-## words come from one ConfigFile per language, so another language is a new file in notes/.
+## a river that springs on it. The note on the summit's line says no top stands higher.
 
 ## The language of the notes, the name of its file in notes/.
 const LANGUAGE: String = "nb"
@@ -66,10 +65,8 @@ static func compass(from: int, to: int) -> int:
 	return posmod(roundi(atan2(east, north) / (PI / 4.0)), 8)
 
 
-## The kind and noun of a feature within LANDMARK_REACH of the top peak, picked by rng, or an empty
-## array if none lies there. A river counts when it springs within reach, so it runs off the peak.
+## A river counts when it springs within reach, so it runs off the peak.
 ## Each kind counts once, so an island with many rivers doesn't name rivers in nearly every note.
-## The lakes come largest first, so the first in reach is the largest.
 static func _landmark(data: IslandData, peak: int, rng: RandomNumberGenerator) -> PackedStringArray:
 	var at: Vector2 = IslandData.center(peak)
 	var found: Array[PackedStringArray] = []
@@ -90,7 +87,6 @@ static func _landmark(data: IslandData, peak: int, rng: RandomNumberGenerator) -
 	return found[rng.randi_range(0, found.size() - 1)] if not found.is_empty() else PackedStringArray()
 
 
-## Whether any of cells lies within LANDMARK_REACH of at.
 static func _near(cells: PackedInt32Array, at: Vector2) -> bool:
 	for cell: int in cells:
 		if IslandData.center(cell).distance_to(at) <= LANDMARK_REACH:
@@ -98,7 +94,6 @@ static func _near(cells: PackedInt32Array, at: Vector2) -> bool:
 	return false
 
 
-## A template for kind from file, picked by rng, with slots filled in.
 static func _fill(file: ConfigFile, kind: String, slots: Dictionary, rng: RandomNumberGenerator) -> String:
 	var templates: Array = file.get_value("templates", kind)
 	var template: String = templates[rng.randi_range(0, templates.size() - 1)]
