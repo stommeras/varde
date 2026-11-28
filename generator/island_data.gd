@@ -54,6 +54,15 @@ var varde_kinds := PackedByteArray()
 ## The top cell of the peak each varde's line climbs, in the order of vardes. The last varde of each
 ## line holds its note.
 var varde_peaks := PackedInt32Array()
+## The cells of each lake, largest first. See Features.
+var lakes: Array[PackedInt32Array] = []
+## The cell where each river that runs into an earlier one meets it, in the order of rivers.
+var river_forks := PackedInt32Array()
+## The sea cell at the head of each cove of the main island, largest cove first. The head is the
+## part farthest in from the open sea. See Features.
+var coves := PackedInt32Array()
+## The cells of the largest connected forest on the main island.
+var forest := PackedInt32Array()
 ## Milliseconds each generator step took, in the order the steps ran. Timing differs between runs,
 ## so this is the one field that the same seed doesn't reproduce.
 var step_msec: Dictionary[String, int] = {}

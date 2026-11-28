@@ -11,14 +11,18 @@ const ZOOM_MAX: float = 4.0
 ## Height and moisture are drawn from a table of this many colors, instead of one ramp lookup per cell.
 const SHADES: int = 256
 
-enum Layer { HEIGHT, MOISTURE, MATERIAL }
+enum Layer { HEIGHT, MOISTURE, MATERIAL, FEATURES }
 
 ## The translation key for each layer's button.
 const LAYER_NAMES: Dictionary[Layer, String] = {
 	Layer.HEIGHT: "LAYER_HEIGHT",
 	Layer.MOISTURE: "LAYER_MOISTURE",
 	Layer.MATERIAL: "LAYER_MATERIAL",
+	Layer.FEATURES: "LAYER_FEATURES",
 }
+## Cells on each side of a river fork's square on the features layer, so a single cell shows when
+## the whole island fits on screen. A cove's square is twice the size, to tell the two apart.
+const MARK_RADIUS: int = 4
 
 var _island: IslandData
 var _layer: Layer = Layer.HEIGHT
@@ -175,6 +179,8 @@ func _show(layer: Layer) -> void:
 			_sprite.texture = ImageTexture.create_from_image(_moisture_image(_island.moisture))
 		Layer.MATERIAL:
 			_sprite.texture = _material_texture
+		Layer.FEATURES:
+			_sprite.texture = ImageTexture.create_from_image(_features_image(_island))
 
 
 func _show_3d() -> void:
@@ -238,6 +244,32 @@ func _material_image(terrain: PackedByteArray, main_island: PackedByteArray, fre
 		pixels[i * 3 + 1] = table[color + 1]
 		pixels[i * 3 + 2] = table[color + 2]
 	return Image.create_from_data(IslandData.SIZE, IslandData.SIZE, false, Image.FORMAT_RGB8, pixels)
+
+
+## Every material in its darkest step, with the lakes, the largest forest, a square on each river
+## fork and one on each cove in the light end of their ramps, so the features stand out.
+func _features_image(island: IslandData) -> Image:
+	# A main island mask of zeros darkens every cell, the same way the material layer darkens islets.
+	var nowhere := PackedByteArray()
+	nowhere.resize(island.material.size())
+	var image: Image = _material_image(island.material, nowhere, island.fresh_water)
+	var forest: Color = Ramps.RAMPS[Ramps.Terrain.FOREST][-1]
+	for i: int in island.forest:
+		image.set_pixel(i % IslandData.SIZE, i / IslandData.SIZE, forest)
+	var lake: Color = Ramps.RAMPS[Ramps.Terrain.WATER][-1]
+	for cells: PackedInt32Array in island.lakes:
+		for i: int in cells:
+			image.set_pixel(i % IslandData.SIZE, i / IslandData.SIZE, lake)
+	for i: int in island.river_forks:
+		_mark(image, i, MARK_RADIUS, Ramps.base(Ramps.Terrain.SNOW))
+	for i: int in island.coves:
+		_mark(image, i, MARK_RADIUS * 2, Ramps.RAMPS[Ramps.Terrain.BEACH][-1])
+	return image
+
+
+func _mark(image: Image, cell: int, radius: int, color: Color) -> void:
+	var side: int = radius * 2 + 1
+	image.fill_rect(Rect2i(cell % IslandData.SIZE - radius, cell / IslandData.SIZE - radius, side, side), color)
 
 
 func _rgb(color: Color) -> PackedByteArray:

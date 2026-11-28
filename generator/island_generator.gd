@@ -59,6 +59,8 @@ static func generate(island_seed: int, on_step: Callable = Callable()) -> Island
 	if data.start >= 0:
 		Walkability.mark_cliffs(data)
 	started = _record(data, "ways_up", started, on_step)
+	Features.find(data)
+	started = _record(data, "features", started, on_step)
 	if data.start >= 0:
 		var grid: AStarGrid2D = Walkability.path_grid(data)
 		data.route = Walkability.route(data, data.start, data.peaks[0].cell, grid)
