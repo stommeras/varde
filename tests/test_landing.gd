@@ -40,9 +40,9 @@ func _distance(a: int, b: int) -> float:
 func test_compass_counts_clockwise_from_north() -> void:
 	var size: int = IslandData.SIZE
 	var middle: int = IslandData.index(500, 500)
-	expect(Reading.compass(middle, middle - 90 * size) == 0, "north isn't 0")
-	expect(Reading.compass(middle, middle - 60 * size + 60) == 1, "north-east isn't 1")
-	expect(Reading.compass(middle, middle + 100) == 2, "east isn't 2")
-	expect(Reading.compass(middle, middle + 80 * size) == 4, "south isn't 4")
-	expect(Reading.compass(middle, middle - 70) == 6, "west isn't 6")
-	expect(Reading.compass(middle, middle - 50 * size - 50) == 7, "north-west isn't 7")
+	expect(Notes.compass(middle, middle - 90 * size) == 0, "north isn't 0")
+	expect(Notes.compass(middle, middle - 60 * size + 60) == 1, "north-east isn't 1")
+	expect(Notes.compass(middle, middle + 100) == 2, "east isn't 2")
+	expect(Notes.compass(middle, middle + 80 * size) == 4, "south isn't 4")
+	expect(Notes.compass(middle, middle - 70) == 6, "west isn't 6")
+	expect(Notes.compass(middle, middle - 50 * size - 50) == 7, "north-west isn't 7")

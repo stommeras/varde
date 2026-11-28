@@ -48,24 +48,5 @@ func test_some_vardes_have_fallen_or_stand_hidden_in_forest() -> void:
 		expect(kinds.get(kind, 0) > 0, "no varde of kind %d on seeds 0 to 9" % kind)
 
 
-func test_top_notes_point_to_the_nearest_higher_peak() -> void:
-	var data: IslandData = island(0)
-	var reading := Reading.new()
-	reading.start(data)
-	for i: int in data.vardes.size():
-		var top: int = data.varde_peaks[i]
-		var note: String = reading.note_at(data.vardes[i])
-		if i < data.vardes.size() - 1 and data.varde_peaks[i + 1] == top:
-			expect(note.is_empty(), "varde %d below the top of its line has a note" % i)
-		elif top == data.peaks[0].cell:
-			expect(note == reading.tr("NOTE_SUMMIT"), "the summit line's note doesn't say none stands higher")
-		else:
-			var higher: int = Trail.higher_peak(data, top)
-			expect(data.height[higher] > data.height[top], "the peak after %d isn't higher" % top)
-			var word: String = reading.tr("COMPASS_%d" % Reading.compass(top, higher))
-			expect(note.ends_with(word + "."), "varde %d's note doesn't name %s" % [i, word])
-	reading.free()
-
-
 func _distance(a: int, b: int) -> float:
 	return IslandData.center(a).distance_to(IslandData.center(b))

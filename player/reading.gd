@@ -5,9 +5,8 @@ extends CanvasLayer
 ## shows "[F] Les", and F opens that note in a panel of map paper over the game. The world keeps
 ## running. F or Escape closes it, and so does walking CLOSE_MARGIN past the reach, so the note
 ## doesn't follow the player. A note that opened by itself would stop the player each time they
-## walked past. A top varde's note names the direction of the nearest higher peak, or says that none
-## stands higher. A later issue writes the notes from the island's features. The node also records the
-## vardes found and the notes read, for the map screen and the end screen.
+## walked past. The generator writes the notes (see Notes). The node also records the vardes found
+## and the notes read, for the map screen and the end screen.
 
 ## Width of the note panel in base-resolution pixels. Raising it gives longer lines and a lower panel.
 const WIDTH: int = 360
@@ -72,15 +71,10 @@ func start(island: IslandData) -> void:
 	_texts.clear()
 	vardes = island.vardes
 	wreck = island.wreck
-	if island.wreck >= 0:
-		_add(island.wreck, Landing.READ_REACH, tr("NOTE_WRECK"))
-	var peaks: PackedInt32Array = island.varde_peaks
-	for i: int in vardes.size():
-		var top: int = peaks[i]
-		if i < vardes.size() - 1 and peaks[i + 1] == top:
-			continue
-		var higher: int = Trail.higher_peak(island, top)
-		_add(vardes[i], Trail.READ_REACH, tr("NOTE_SUMMIT") if higher < 0 else tr("NOTE_HIGHER") % tr("COMPASS_%d" % compass(top, higher)))
+	for cell: int in island.notes:
+		_cells.append(cell)
+		_reaches.append(Landing.READ_REACH if cell == island.wreck else Trail.READ_REACH)
+		_texts.append(island.notes[cell])
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -114,12 +108,6 @@ func note_at(cell: int) -> String:
 	return _texts[note] if note >= 0 else ""
 
 
-func _add(cell: int, reach: float, text: String) -> void:
-	_cells.append(cell)
-	_reaches.append(reach)
-	_texts.append(text)
-
-
 func _close() -> void:
 	_open = -1
 	_panel.hide()
@@ -138,11 +126,3 @@ func _in_reach() -> int:
 func _within(note: int, margin: float) -> bool:
 	return player.grid_position.distance_to(IslandData.center(_cells[note])) <= _reaches[note] + margin
 
-
-## The nearest of the 8 compass directions from cell from to cell to, 0 for north and counting
-## clockwise, so 2 is east. North is up on the map, whichever way the camera faces.
-static func compass(from: int, to: int) -> int:
-	var size: int = IslandData.SIZE
-	var east: int = to % size - from % size
-	var north: int = from / size - to / size
-	return posmod(roundi(atan2(east, north) / (PI / 4.0)), 8)
