@@ -81,14 +81,6 @@ func show_within(center: Vector2, radius: float) -> void:
 		material.set_shader_parameter("show_within", radius)
 
 
-## Shows the ground details while on is true. Each detail keeps its size in pixels at every zoom, so
-## far out they cover the land in specks.
-func show_details(on: bool) -> void:
-	for chunk: MeshInstance3D in get_children():
-		if chunk.material_override == _details:
-			chunk.visible = on
-
-
 ## The terrain shader's material, whose grid textures the map screen draws from too.
 func ground_material() -> ShaderMaterial:
 	return _material

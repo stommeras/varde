@@ -7,7 +7,7 @@ extends Node
 ##
 ## The true summit, peaks[0], ends the run instead. Its ring is gold, its prompt says the run ends, and
 ## it takes a second press to confirm. Then the survey plays from the top while the camera pulls out
-## until the whole island fits, and the fog clears out to the grid's edges for show, marking nothing
+## to god mode's furthest zoom, and the fog clears for show as it pulls out, marking nothing
 ## past what the survey reached. ended fires once the reveal has held.
 
 ## Fires on the press that ends the run, before the survey from the summit marks anything, so the
@@ -62,16 +62,18 @@ const RINGS: int = 48
 
 ## The index in the island's peaks of the true summit, the highest peak.
 const SUMMIT: int = 0
-## Cells from the top to the bottom of the screen at the end of a run. The grid is 1024 cells, and the
-## margin keeps the corners of the grid on screen at every heading.
-const END_ZOOM: float = 1100.0
+## Cells from the top to the bottom of the screen at the end of a run, god mode's furthest zoom,
+## where most of the island fits and the ground details still read. At 1100 the whole grid fit, but
+## the details covered the land in specks, and without them the land lost its texture.
+const END_ZOOM: float = GodMode.ZOOM_MAX
 ## Seconds the camera takes to pull out from the summit to END_ZOOM over the middle of the grid.
 ## Raising it slows the whole reveal.
 const END_PULL_SECONDS: float = 9.0
-## Zoom past which the pull-out hides the ground details. They keep their size in pixels, so past
-## about 160 cells they cover the land in specks, and at 1100 they took 9 of 25 ms on the GPU natively.
-## Raising it keeps them longer into the pull-out, and lowering it hides them sooner.
-const DETAILS_ZOOM: float = 160.0
+## Cells of clear land around the camera's focus, per cell of zoom, as the fog clears for show. The
+## clearing grows with the zoom, so its edge stays near the screen's edge all through the pull-out.
+## At 0.5 it reaches the top and bottom of the screen. Raising it clears the corners too, and
+## lowering it keeps more fog on screen.
+const END_CLEAR: float = 0.6
 ## Seconds the whole island holds on screen before ended fires. Raising it gives the player longer
 ## to look at the island before the fade.
 const END_HOLD_SECONDS: float = 2.0
@@ -237,19 +239,15 @@ func _process(delta: float) -> void:
 func _end_reveal() -> void:
 	var pull: float = smoothstep(0.0, END_PULL_SECONDS, _time)
 	# Each second scales the view by the same factor, so the pull-out keeps one pace from 40 cells to
-	# 1100. A lerp would cover most of the change in the zoom's first second.
+	# END_ZOOM. A lerp would cover most of the change in the zoom's first second.
 	camera.zoom = _base_zoom * pow(END_ZOOM / _base_zoom, pull)
 	var top: Vector2 = _center(_island.peaks[SUMMIT].cell)
 	var middle := Vector2.ONE * IslandData.SIZE / 2.0
 	var at: Vector2 = top.lerp(middle, pull)
 	camera.focus = Vector3(at.x, lerpf(camera.focus.y, 0.0, pull), at.y)
 	camera.place()
-	terrain.show_details(camera.zoom <= DETAILS_ZOOM)
-	# Past the grid corner farthest from the summit, since at END_ZOOM the screen shows sea beyond the
-	# grid, where the shader reads the edge cells' fog.
-	var far: float = Vector2(maxf(top.x, IslandData.SIZE - top.x), maxf(top.y, IslandData.SIZE - top.y)).length() + IslandData.SIZE / 2.0
-	var spread: float = smoothstep(RING_SECONDS, END_PULL_SECONDS, _time)
-	terrain.show_within(top, -1.0 if spread <= 0.0 else far * spread)
+	# From the summit, out past the focus as it pans, so the circle only grows and no cell fogs over again.
+	terrain.show_within(top, top.distance_to(at) + camera.zoom * END_CLEAR)
 	if not _ended and _time >= END_PULL_SECONDS + END_HOLD_SECONDS and _marked == RINGS:
 		_ended = true
 		ended.emit()
