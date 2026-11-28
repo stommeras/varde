@@ -103,7 +103,7 @@ func _update_rings() -> void:
 		for peak: Peak in _island.peaks:
 			var ring := ZoneRing.new()
 			add_child(ring)
-			ring.place(_island, peak.cell, Survey.ZONE_RADIUS)
+			ring.place(_island, peak.cell, Survey.ZONE_RADIUS, peak == _island.peaks[0])
 			_rings.append(ring)
 	# Scaled with the zoom, so a ring keeps its size on screen and still shows on a peak when the
 	# camera zooms far out.

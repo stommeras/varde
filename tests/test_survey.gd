@@ -87,6 +87,8 @@ func test_varde_cells_are_the_surveyed_peaks() -> void:
 	# Out of the tree, _ready never adopted these, so freeing the survey would leak them.
 	survey._zone_ring.free()
 	survey._prompt.free()
+	survey._finish_prompt.free()
+	survey._confirm_prompt.free()
 	survey.free()
 
 

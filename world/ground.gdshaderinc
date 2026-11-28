@@ -22,6 +22,10 @@ uniform sampler2D knowledge_map : filter_nearest, repeat_disable;
 uniform sampler2D reveal_map : filter_nearest, repeat_disable;
 // True while god mode shows the whole island. It hides the fog without marking any cell known.
 uniform bool show_all = false;
+// Cells within show_within of show_from show as clear, without marking any cell known. The end of a
+// run widens it until the whole island shows. Below 0 it hides nothing.
+uniform vec2 show_from = vec2(0.0);
+uniform float show_within = -1.0;
 // The second on Knowledge's clock now. IslandTerrain sets it each frame.
 uniform float reveal_now = 0.0;
 // Seconds the fog takes to clear from a cell after the player sees it. Raising it makes the land
@@ -73,7 +77,7 @@ uniform float shadow_steps = 1.0;
 // How far the fog has cleared from the cell at column and row, from 0 while it is unknown to 1 a
 // clear_seconds after the player saw it. It eases in and out.
 float clear_of(ivec2 cell) {
-	if (show_all) {
+	if (show_all || distance(vec2(cell) + 0.5, show_from) < show_within) {
 		return 1.0;
 	}
 	ivec2 size = textureSize(reveal_map, 0);

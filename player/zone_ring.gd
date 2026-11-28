@@ -33,8 +33,6 @@ var _material := ShaderMaterial.new()
 
 func _init() -> void:
 	_material.shader = SHADER
-	_material.set_shader_parameter("core", Ramps.RAMPS[Ramps.Terrain.SNOW][3])
-	_material.set_shader_parameter("core_dim", Ramps.RAMPS[Ramps.Terrain.SNOW][1])
 	_material.set_shader_parameter("rim", Ramps.RAMPS[Ramps.Terrain.ROCK][0])
 	_mesh.material_override = _material
 	_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -43,8 +41,10 @@ func _init() -> void:
 
 
 ## Puts the ring radius cells around the top of cell on island, LIFT above the highest ground along
-## its edge.
-func place(island: IslandData, cell: int, radius: float) -> void:
+## its edge. A gold ring marks the true summit, a white one any other peak.
+func place(island: IslandData, cell: int, radius: float, gold: bool = false) -> void:
+	_material.set_shader_parameter("core", Ramps.GOLD[2] if gold else Ramps.RAMPS[Ramps.Terrain.SNOW][3])
+	_material.set_shader_parameter("core_dim", Ramps.GOLD[1] if gold else Ramps.RAMPS[Ramps.Terrain.SNOW][1])
 	var top := Vector2(cell % IslandData.SIZE + 0.5, cell / IslandData.SIZE + 0.5)
 	var highest: float = -INF
 	for i: int in SAMPLES:

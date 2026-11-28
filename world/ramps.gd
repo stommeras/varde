@@ -50,6 +50,10 @@ static var FIGURE: Dictionary[FigurePart, PackedColorArray] = {
 }
 
 
+## The summit's zone ring, darkest step first. Nothing else on the island is yellow, so up close the
+## ring tells the true summit from the other contenders, and it shows only within Survey.MARKER_REACH.
+static var GOLD := PackedColorArray([Color("7a5a1e"), Color("c89a32"), Color("f2d26a")])
+
 ## The parts of the map screen that each have a ramp in MAP, all ink on aged paper.
 enum MapPart { PAPER, INK, WATER, MARKER }
 
