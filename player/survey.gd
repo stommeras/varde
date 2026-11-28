@@ -112,7 +112,6 @@ var _confirm_prompt := Prompt.new("CONFIRM_FINISH")
 ## True after the first press at the summit, until the player leaves its zone. The second press ends
 ## the run, so a player who expected a normal survey doesn't end it by accident.
 var _confirming: bool = false
-## True once ended has fired.
 var _ended: bool = false
 ## The cells the figure walks through to the top before the look starts, and the index of the next.
 var _path := PackedInt32Array()
@@ -167,16 +166,20 @@ func _unhandled_input(event: InputEvent) -> void:
 	var cell: int = _island.peaks[peak].cell
 	var island: IslandData = _island
 	_task = WorkerThreadPool.add_task(func() -> void: _rings = rings(island, cell))
-	var top: Vector2 = _center(cell)
 	# The figure walks up beside the top first, so the survey happens on the summit and the varde
 	# stands on the top cell itself.
 	_path = path_to_top(island, IslandData.index(int(player.grid_position.x), int(player.grid_position.y)), cell)
 	_step = 0
 	_walk_time = 0.0
-	# The summit's old varde already stands on the top, so the player builds none there.
-	if peak == SUMMIT:
-		return
+	if peak != SUMMIT:
+		_place_varde(cell)
+
+
+# Stands the player's varde, still unbuilt, on the top of the peak at cell, or beside the figure's
+# last step if the top is the only cell it can stand on.
+func _place_varde(cell: int) -> void:
 	_varde = Varde.new(cell)
+	var top: Vector2 = _center(cell)
 	var stand: Vector2 = player.grid_position if _path.is_empty() else _center(_path[-1])
 	# When the only open cell is the top itself, the stones would go up around the figure's feet, so
 	# the varde goes up VARDE_GAP away instead, to the north if the figure stands right on the center.
@@ -231,8 +234,6 @@ func _process(delta: float) -> void:
 		player.frozen = false
 
 
-# The end of a run, after the walk to the top. The camera pulls out from the summit until the whole
-# grid fits, and once the survey's ring has spread, the fog keeps clearing outward to the grid's corners.
 func _end_reveal() -> void:
 	var pull: float = smoothstep(0.0, END_PULL_SECONDS, _time)
 	# Each second scales the view by the same factor, so the pull-out keeps one pace from 40 cells to
@@ -248,8 +249,6 @@ func _end_reveal() -> void:
 	# grid, where the shader reads the edge cells' fog.
 	var far: float = Vector2(maxf(top.x, IslandData.SIZE - top.x), maxf(top.y, IslandData.SIZE - top.y)).length() + IslandData.SIZE / 2.0
 	var spread: float = smoothstep(RING_SECONDS, END_PULL_SECONDS, _time)
-	# From the summit itself, so the cells the survey couldn't see clear in a widening circle instead
-	# of all at once.
 	terrain.show_within(top, -1.0 if spread <= 0.0 else far * spread)
 	if not _ended and _time >= END_PULL_SECONDS + END_HOLD_SECONDS and _marked == RINGS:
 		_ended = true

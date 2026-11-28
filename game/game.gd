@@ -10,6 +10,9 @@ const TITLE_SCREEN: String = "res://game/title_screen.tscn"
 ## Seconds after the player first sees a cell at which a thing on it shows. The fog over a cell takes
 ## the terrain shader's clear_seconds, 1 s, to clear, so at 0.5 it shows as the fog thins.
 const SHOW_SECONDS: float = 0.5
+## The canvas layer of the fade, above the notes, the map, the pause menu and god mode's panel, so it
+## covers everything.
+const FADE_LAYER: int = 20
 ## Seconds the game takes to fade out after the final reveal. Raising it makes the last fade calmer.
 const FADE_SECONDS: float = 1.5
 
@@ -67,8 +70,7 @@ func _ready() -> void:
 	_survey.summit_reached.connect(_on_summit_reached)
 	_survey.ended.connect(_on_ended)
 	var fade_layer := CanvasLayer.new()
-	# Above the HUD and the map, so the fade covers everything.
-	fade_layer.layer = 20
+	fade_layer.layer = FADE_LAYER
 	_fade.color = Ramps.RAMPS[Ramps.Terrain.WATER][0]
 	_fade.modulate.a = 0.0
 	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -138,7 +140,6 @@ func _hide_in_fog(thing: Node3D, cell: int) -> void:
 
 
 func _on_loaded(loaded_island: IslandData, loaded_meshes: Array[ArrayMesh], _msec: int) -> void:
-	# Kept for the run's stats, since a scene run on its own gets its island from the loader.
 	island = loaded_island
 	_terrain.show_island(loaded_meshes, loaded_island)
 	_player.place(loaded_island, loaded_island.start)
@@ -167,7 +168,6 @@ func _on_summit_reached() -> void:
 	stats = RunStats.record(island, _terrain.knowledge, _survey.varde_cells().size(), _reading.found_vardes.size())
 
 
-# Fades to black and leaves the run. The end screen (#123) takes over from the title screen here.
 func _on_ended() -> void:
 	var tween := create_tween()
 	tween.tween_property(_fade, "modulate:a", 1.0, FADE_SECONDS)

@@ -1,8 +1,6 @@
 extends "res://tests/test_case.gd"
 
 
-## Four main island cells, one surveyed, one seen and two unknown, give a seen share of a half and a
-## surveyed share of a quarter. Sea and islet cells the player saw don't count.
 func test_shares_count_only_the_main_island() -> void:
 	var island := IslandData.new()
 	island.island_seed = 7
