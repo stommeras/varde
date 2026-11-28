@@ -125,4 +125,3 @@ func _in_reach() -> int:
 
 func _within(note: int, margin: float) -> bool:
 	return player.grid_position.distance_to(IslandData.center(_cells[note])) <= _reaches[note] + margin
-

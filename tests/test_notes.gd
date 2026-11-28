@@ -12,7 +12,7 @@ func test_every_template_loads_as_a_string() -> void:
 	for key: String in file.get_section_keys("nouns"):
 		var forms: Variant = file.get_value("nouns", key)
 		expect(forms is Array and forms.size() == 2 and forms[0] is String and forms[1] is String, "noun %s isn't an indefinite and a definite form" % key)
-	expect(file.get_value("note", "varde") is String, "the varde's opening is %s" % [file.get_value("note", "varde")])
+	expect(file.get_value("varde", "opening") is String, "the varde's opening is %s" % [file.get_value("varde", "opening")])
 	var slots: Dictionary = {"direction": "nord", "feature": "et vann", "the_feature": "vannet"}
 	for key: String in file.get_section_keys("templates"):
 		var templates: Variant = file.get_value("templates", key)
@@ -22,16 +22,17 @@ func test_every_template_loads_as_a_string() -> void:
 				expect(template is String, "a template for %s is %s" % [key, template])
 				if template is String:
 					expect(not template.format(slots).contains("{"), "a template for %s has an unknown slot: %s" % [key, template])
-	for kind: String in Notes.KINDS + ["wreck", "summit", "higher"]:
+	for kind: String in ["wreck", "summit", "higher", "lake", "river", "fork", "cove", "forest"]:
 		expect(file.has_section_key("templates", kind), "no templates for %s" % kind)
 
 
 func test_the_wreck_and_each_line_top_hold_a_note() -> void:
 	var file := ConfigFile.new()
 	file.load(Notes.path(Notes.LANGUAGE))
-	var opening: String = file.get_value("note", "varde")
+	var opening: String = file.get_value("varde", "opening")
 	var words: Array = file.get_value("compass", "words")
 	var named: int = 0
+	var below_summit: int = 0
 	for island_seed: int in SEEDS:
 		var data: IslandData = island(island_seed)
 		var tops := PackedInt32Array([data.wreck])
@@ -39,7 +40,7 @@ func test_the_wreck_and_each_line_top_hold_a_note() -> void:
 			if i == data.vardes.size() - 1 or data.varde_peaks[i + 1] != data.varde_peaks[i]:
 				tops.append(data.vardes[i])
 		expect(PackedInt32Array(data.notes.keys()) == tops, "seed %d: notes lie on %s, not the wreck and the tops %s" % [island_seed, data.notes.keys(), tops])
-		expect(data.notes.get(data.wreck) == file.get_value("templates", "wreck")[0], "seed %d: the wreck's note is %s" % [island_seed, data.notes.get(data.wreck)])
+		expect(file.get_value("templates", "wreck").has(data.notes.get(data.wreck)), "seed %d: the wreck's note is %s" % [island_seed, data.notes.get(data.wreck)])
 		for i: int in data.vardes.size():
 			var cell: int = data.vardes[i]
 			if not data.notes.has(cell):
@@ -52,7 +53,10 @@ func test_the_wreck_and_each_line_top_hold_a_note() -> void:
 			else:
 				var word: String = words[Notes.compass(top, Trail.higher_peak(data, top))]
 				expect(note.to_lower().contains("mot %s" % word), "seed %d: varde %d's note doesn't name %s: %s" % [island_seed, i, word, note])
+				below_summit += 1
 				named += int(note != opening + file.get_value("templates", "higher")[0].format({"direction": word}))
 			if island_seed < 2:
 				print("seed %d, peak %d (%.0f m): %s" % [island_seed, top, IslandData.meters(data.height[top]), note.trim_prefix(opening)])
-	print("%d notes name a feature on seeds 0 to %d" % [named, SEEDS - 1])
+	print("%d of %d notes below the summit name a feature on seeds 0 to %d" % [named, below_summit, SEEDS - 1])
+	# A feature lies within reach of nearly every peak, so most notes should name one.
+	expect(named * 2 >= below_summit, "only %d of %d notes name a feature" % [named, below_summit])

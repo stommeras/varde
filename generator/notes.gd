@@ -1,21 +1,21 @@
 class_name Notes
-## Generator step 8, after the old vardes: the notes. The wreck's tells of the old vardes up the
-## mountains, with no direction. The top varde of each line names the direction of the nearest
-## higher peak and, where one lies near that peak, a feature it stands over, such as a lake at its
-## foot or a river that runs off it. The note on the summit's line says no top stands higher. The
+## Generator step 8, after the old vardes: the notes. The wreck's note tells of the old vardes up
+## the mountains and gives no direction. The top varde of each line names the direction of the nearest
+## higher peak and, where one lies near that peak, a feature beside it, such as a lake at its foot or
+## a river that springs on it. The note on the summit's line says no top stands higher. The
 ## words come from one ConfigFile per language, so another language is a new file in notes/.
 
 ## The language of the notes, the name of its file in notes/.
 const LANGUAGE: String = "nb"
-## The feature types a note can name, each a section key under [templates] in the language file.
-const KINDS: Array[String] = ["lake", "river", "fork", "cove", "forest"]
 ## Most cells from the higher peak's top to a feature the note names. The feature needn't be in
 ## sight from the varde. Raising it names features further from the peak, which then point less
 ## clearly at it, and lowering it leaves more notes with the direction alone.
 const LANDMARK_REACH: float = 80.0
-## Fewest cells a lake needs to be "et vann". A smaller one is "et tjern".
+## Fewest cells a lake needs to be "et vann". A smaller one is "et tjern". Raising it calls more
+## lakes tarns.
 const TARN_CELLS: int = 400
-## Fewest cells a river needs to be "ei elv". A shorter one is "en bekk".
+## Fewest cells a river needs to be "ei elv". A shorter one is "en bekk". Raising it calls more
+## rivers brooks.
 const BROOK_CELLS: int = 80
 
 
@@ -26,13 +26,15 @@ static func path(language: String) -> String:
 
 ## Fills data.notes with the wreck's note and the note of each line's top varde. rng picks the
 ## feature and the template.
-static func write(data: IslandData, rng: RandomNumberGenerator, language: String = LANGUAGE) -> void:
+static func write(data: IslandData, rng: RandomNumberGenerator) -> void:
 	data.notes = {}
 	var file := ConfigFile.new()
-	file.load(path(language))
+	if file.load(path(LANGUAGE)) != OK:
+		push_error("Notes: can't load %s" % path(LANGUAGE))
+		return
 	if data.wreck >= 0:
 		data.notes[data.wreck] = _fill(file, "wreck", {}, rng)
-	var opening: String = file.get_value("note", "varde")
+	var opening: String = file.get_value("varde", "opening")
 	var words: Array = file.get_value("compass", "words")
 	for i: int in data.vardes.size():
 		var top: int = data.varde_peaks[i]
@@ -65,8 +67,9 @@ static func compass(from: int, to: int) -> int:
 
 
 ## The kind and noun of a feature within LANDMARK_REACH of the top peak, picked by rng, or an empty
-## array if none lies there. Each kind counts once, so an island with many rivers doesn't name
-## rivers in nearly every note.
+## array if none lies there. A river counts when it springs within reach, so it runs off the peak.
+## Each kind counts once, so an island with many rivers doesn't name rivers in nearly every note.
+## The lakes come largest first, so the first in reach is the largest.
 static func _landmark(data: IslandData, peak: int, rng: RandomNumberGenerator) -> PackedStringArray:
 	var at: Vector2 = IslandData.center(peak)
 	var found: Array[PackedStringArray] = []
@@ -75,7 +78,7 @@ static func _landmark(data: IslandData, peak: int, rng: RandomNumberGenerator) -
 			found.append(PackedStringArray(["lake", "tarn" if lake.size() < TARN_CELLS else "lake"]))
 			break
 	for river: PackedInt32Array in data.rivers:
-		if data.main_island[river[0]] == 1 and _near(river, at):
+		if IslandData.center(river[0]).distance_to(at) <= LANDMARK_REACH:
 			found.append(PackedStringArray(["river", "brook" if river.size() < BROOK_CELLS else "river"]))
 			break
 	if _near(data.river_forks, at):
@@ -87,6 +90,7 @@ static func _landmark(data: IslandData, peak: int, rng: RandomNumberGenerator) -
 	return found[rng.randi_range(0, found.size() - 1)] if not found.is_empty() else PackedStringArray()
 
 
+## Whether any of cells lies within LANDMARK_REACH of at.
 static func _near(cells: PackedInt32Array, at: Vector2) -> bool:
 	for cell: int in cells:
 		if IslandData.center(cell).distance_to(at) <= LANDMARK_REACH:
