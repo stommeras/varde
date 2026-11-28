@@ -4,6 +4,17 @@ extends Node
 ## action walks the figure up beside the top and starts the survey: the camera pulls out and turns once around in quarter turns, the
 ## figure turns with it to look out over each side, and the fog clears from the surveyed land in a ring that spreads from the peak, then the figure stacks a
 ## varde on the peak as the camera comes back. Each peak can be surveyed once.
+##
+## The true summit, peaks[0], ends the run instead. Its ring is gold, its prompt says the run ends, and
+## it takes a second press to confirm. Then the survey plays from the top while the camera pulls out
+## to god mode's furthest zoom, and the fog clears for show as it pulls out, marking nothing
+## past what the survey reached. ended fires once the reveal has held.
+
+## Fires on the press that ends the run, before the survey from the summit marks anything, so the
+## run's stats show only what the player mapped.
+signal summit_reached
+## Fires when the final reveal is done and the game can fade to the end screen.
+signal ended
 
 ## Cells from a peak's top within which the player can survey it. Peak holds the value and its
 ## tuning notes.
@@ -49,6 +60,28 @@ const PATH_LIMIT: int = 400
 ## a smoother ring, and each band costs one mark_cells() call.
 const RINGS: int = 48
 
+## The index in the island's peaks of the true summit, the highest peak.
+const SUMMIT: int = 0
+## Cells from the top to the bottom of the screen at the end of a run. At 800 nearly the whole island
+## fits and the ground details still give the land its texture. At 1100 the whole grid fit, but the
+## details covered the land in specks, and at 400, god mode's furthest zoom, the island's edges stayed
+## off screen.
+const END_ZOOM: float = 800.0
+## Seconds the camera takes to pull out from the summit to END_ZOOM over the middle of the grid.
+## Raising it slows the whole reveal.
+const END_PULL_SECONDS: float = 9.0
+## Cells of clear land around the camera's focus, per cell of zoom, as the fog clears for show. The
+## clearing grows with the zoom, so its edge stays near the screen's edge all through the pull-out.
+## At 0.5 it reaches the top and bottom of the screen. Raising it clears the corners too, and
+## lowering it keeps more fog on screen.
+const END_CLEAR: float = 0.6
+## Seconds the fog takes, once the camera stops, to clear from the rest of the grid. Raising it
+## slows the last of the clearing.
+const END_CLEAR_SECONDS: float = 2.0
+## Seconds the cleared island holds on screen before ended fires. Raising it gives the player longer
+## to look at the island before the fade.
+const END_HOLD_SECONDS: float = 2.0
+
 ## Set these before adding the node.
 var player: Player
 var camera: GameCamera
@@ -80,6 +113,12 @@ var _turns: int = 0
 ## frame took 6 to 11 ms for the 60,000 to 126,000 cells of a survey.
 var _marked: int = 0
 var _prompt := Prompt.new("SURVEY_PEAK")
+var _finish_prompt := Prompt.new("FINISH_RUN")
+var _confirm_prompt := Prompt.new("CONFIRM_FINISH")
+## True after the first press at the summit, until the player leaves its zone. The second press ends
+## the run, so a player who expected a normal survey doesn't end it by accident.
+var _confirming: bool = false
+var _ended: bool = false
 ## The cells the figure walks through to the top before the look starts, and the index of the next.
 var _path := PackedInt32Array()
 var _step: int = 0
@@ -90,6 +129,8 @@ var _walk_time: float = 0.0
 func _ready() -> void:
 	add_child(_zone_ring)
 	add_child(_prompt)
+	add_child(_finish_prompt)
+	add_child(_confirm_prompt)
 
 
 ## Starts a new island with no peak surveyed.
@@ -99,6 +140,8 @@ func start(island: IslandData) -> void:
 	surveyed.resize(island.peaks.size())
 	surveyed.fill(0)
 	_peak = -1
+	_confirming = false
+	_ended = false
 	player.frozen = false
 	_marker = 0.0
 	_marker_peak = -1
@@ -112,8 +155,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	if peak < 0:
 		return
 	get_viewport().set_input_as_handled()
+	if peak == SUMMIT and not _confirming:
+		_confirming = true
+		return
 	_peak = peak
-	surveyed[peak] = 1
+	if peak == SUMMIT:
+		summit_reached.emit()
+	else:
+		surveyed[peak] = 1
 	_time = 0.0
 	_marked = 0
 	# The step's zoom, not the camera's, in case a step is still easing toward it.
@@ -123,13 +172,20 @@ func _unhandled_input(event: InputEvent) -> void:
 	var cell: int = _island.peaks[peak].cell
 	var island: IslandData = _island
 	_task = WorkerThreadPool.add_task(func() -> void: _rings = rings(island, cell))
-	_varde = Varde.new(cell)
-	var top: Vector2 = _center(cell)
 	# The figure walks up beside the top first, so the survey happens on the summit and the varde
 	# stands on the top cell itself.
 	_path = path_to_top(island, IslandData.index(int(player.grid_position.x), int(player.grid_position.y)), cell)
 	_step = 0
 	_walk_time = 0.0
+	if peak != SUMMIT:
+		_place_varde(cell)
+
+
+# Stands the player's varde, still unbuilt, on the top of the peak at cell, or beside the figure's
+# last step if the top is the only cell it can stand on.
+func _place_varde(cell: int) -> void:
+	_varde = Varde.new(cell)
+	var top: Vector2 = _center(cell)
 	var stand: Vector2 = player.grid_position if _path.is_empty() else _center(_path[-1])
 	# When the only open cell is the top itself, the stones would go up around the figure's feet, so
 	# the varde goes up VARDE_GAP away instead, to the north if the figure stands right on the center.
@@ -143,8 +199,11 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	if _island == null:
 		return
-	var wanted: bool = _peak < 0 and peak_in_reach(_island, player.grid_position, surveyed) >= 0
-	_prompt.fade(wanted, delta)
+	var near: int = peak_in_reach(_island, player.grid_position, surveyed) if _peak < 0 else -1
+	_confirming = _confirming and near == SUMMIT
+	_prompt.fade(near >= 0 and near != SUMMIT, delta)
+	_finish_prompt.fade(near == SUMMIT and not _confirming, delta)
+	_confirm_prompt.fade(_confirming, delta)
 	_update_marker(delta)
 	if _peak < 0:
 		return
@@ -157,6 +216,9 @@ func _process(delta: float) -> void:
 	while _task < 0 and _marked < RINGS and _time >= RING_SECONDS * _marked / RINGS:
 		terrain.knowledge.mark_cells(_rings[_marked], Knowledge.Level.SURVEYED)
 		_marked += 1
+	if _peak == SUMMIT:
+		_end_reveal()
+		return
 	if _time < LOOK_SECONDS:
 		camera.zoom = lerpf(_base_zoom, SURVEY_ZOOM, smoothstep(0.0, ZOOM_SECONDS, _time))
 		# Away from the camera, over the side it shows, turning as the camera turns. A smooth turn of
@@ -176,6 +238,28 @@ func _process(delta: float) -> void:
 	if build >= 1.0 and _marked == RINGS:
 		_peak = -1
 		player.frozen = false
+
+
+func _end_reveal() -> void:
+	var pull: float = smoothstep(0.0, END_PULL_SECONDS, _time)
+	# Each second scales the view by the same factor, so the pull-out keeps one pace from 40 cells to
+	# END_ZOOM. A lerp would cover most of the change in the zoom's first second.
+	camera.zoom = _base_zoom * pow(END_ZOOM / _base_zoom, pull)
+	var top: Vector2 = _center(_island.peaks[SUMMIT].cell)
+	var middle := Vector2.ONE * IslandData.SIZE / 2.0
+	var at: Vector2 = top.lerp(middle, pull)
+	camera.focus = Vector3(at.x, lerpf(camera.focus.y, 0.0, pull), at.y)
+	camera.place()
+	# From the summit, out past the focus as it pans, so the circle only grows and no cell fogs over again.
+	var near: float = top.distance_to(at) + camera.zoom * END_CLEAR
+	# Past the grid corner farthest from the summit, since far out the screen shows sea beyond the grid,
+	# where the shader reads the edge cells' fog.
+	var far: float = Vector2(maxf(top.x, IslandData.SIZE - top.x), maxf(top.y, IslandData.SIZE - top.y)).length() + IslandData.SIZE / 2.0
+	var rest: float = smoothstep(END_PULL_SECONDS, END_PULL_SECONDS + END_CLEAR_SECONDS, _time)
+	terrain.show_within(top, lerpf(near, far, rest))
+	if not _ended and _time >= END_PULL_SECONDS + END_CLEAR_SECONDS + END_HOLD_SECONDS and _marked == RINGS:
+		_ended = true
+		ended.emit()
 
 
 # Steers the figure along _path. Returns true while it is still on its way.
@@ -247,7 +331,7 @@ func _update_marker(delta: float) -> void:
 	if _marker <= 0.0 and near != _marker_peak:
 		_marker_peak = near
 		if near >= 0:
-			_zone_ring.place(_island, _island.peaks[near].cell, ZONE_RADIUS)
+			_zone_ring.place(_island, _island.peaks[near].cell, ZONE_RADIUS, near == SUMMIT)
 	_marker = move_toward(_marker, 1.0 if near >= 0 and near == _marker_peak else 0.0, delta / MARKER_FADE_SECONDS)
 	_zone_ring.fade(_marker)
 

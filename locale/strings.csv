@@ -36,6 +36,8 @@ STEP_NOTES,Skriver lappene i vardene
 STEP_START,Finner en strand å gå i land på
 STEP_MESH,Tegner kartet
 SURVEY_PEAK,[F] Kartlegg toppen
+FINISH_RUN,[F] Fullfør turen
+CONFIRM_FINISH,Trykk F igjen for å avslutte
 GOD_MODE,Gudemodus ×%d (%d km/t)
 GOD_CELL,"Rute: %d, %d"
 GOD_GROUND,"%s, %s"

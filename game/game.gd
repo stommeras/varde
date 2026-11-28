@@ -10,6 +10,11 @@ const TITLE_SCREEN: String = "res://game/title_screen.tscn"
 ## Seconds after the player first sees a cell at which a thing on it shows. The fog over a cell takes
 ## the terrain shader's clear_seconds, 1 s, to clear, so at 0.5 it shows as the fog thins.
 const SHOW_SECONDS: float = 0.5
+## The canvas layer of the fade, above the notes, the map, the pause menu and god mode's panel, so it
+## covers everything.
+const FADE_LAYER: int = 20
+## Seconds the game takes to fade out after the final reveal. Raising it makes the last fade calmer.
+const FADE_SECONDS: float = 1.5
 
 ## The island and its terrain chunk meshes. The title screen sets them before it adds the scene.
 ## Running the scene on its own leaves them empty and generates seed 0.
@@ -29,6 +34,9 @@ var _loaded: bool = false
 ## The wreck and the old vardes that still wait for the fog over them to clear, and their cells.
 var _fogged: Array[Node3D] = []
 var _fogged_cells := PackedInt32Array()
+## The run's stats, recorded when the player ends the run at the summit varde, or null before.
+var stats: RunStats
+var _fade := ColorRect.new()
 
 
 func _ready() -> void:
@@ -59,6 +67,16 @@ func _ready() -> void:
 	_map.reading = _reading
 	add_child(_map)
 	add_child(_menu)
+	_survey.summit_reached.connect(_on_summit_reached)
+	_survey.ended.connect(_on_ended)
+	var fade_layer := CanvasLayer.new()
+	fade_layer.layer = FADE_LAYER
+	_fade.color = Ramps.RAMPS[Ramps.Terrain.WATER][0]
+	_fade.modulate.a = 0.0
+	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fade_layer.add_child(_fade)
+	add_child(fade_layer)
 	if island != null:
 		_on_loaded(island, meshes, 0)
 		return
@@ -122,6 +140,7 @@ func _hide_in_fog(thing: Node3D, cell: int) -> void:
 
 
 func _on_loaded(loaded_island: IslandData, loaded_meshes: Array[ArrayMesh], _msec: int) -> void:
+	island = loaded_island
 	_terrain.show_island(loaded_meshes, loaded_island)
 	_player.place(loaded_island, loaded_island.start)
 	if loaded_island.wreck >= 0:
@@ -133,9 +152,23 @@ func _on_loaded(loaded_island: IslandData, loaded_meshes: Array[ArrayMesh], _mse
 		var varde := OldVarde.new(loaded_island.varde_kinds[i], loaded_island.island_seed + i)
 		varde.place(loaded_island, loaded_island.vardes[i])
 		_hide_in_fog(varde, loaded_island.vardes[i])
+	var summit := OldVarde.new(Trail.Kind.STANDING, loaded_island.island_seed - 1)
+	summit.place(loaded_island, loaded_island.peaks[Survey.SUMMIT].cell)
+	summit.scale = Vector3.ONE * OldVarde.SUMMIT_SCALE
+	_hide_in_fog(summit, loaded_island.peaks[Survey.SUMMIT].cell)
 	_reading.start(loaded_island)
 	_menu.show_seed(loaded_island.island_seed)
 	_survey.start(loaded_island)
 	_god.start(loaded_island)
 	_map.start(_terrain)
 	_loaded = true
+
+
+func _on_summit_reached() -> void:
+	stats = RunStats.record(island, _terrain.knowledge, _survey.varde_cells().size(), _reading.found_vardes.size())
+
+
+func _on_ended() -> void:
+	var tween := create_tween()
+	tween.tween_property(_fade, "modulate:a", 1.0, FADE_SECONDS)
+	tween.tween_callback(func() -> void: get_tree().change_scene_to_file(TITLE_SCREEN))

@@ -29,7 +29,19 @@ A run starts from a title screen with "Ny øy", a small, optional seed field bel
 
 **Day and night.** A full day lasts about 16 minutes: dawn, about 10 minutes of day, dusk and about 4 minutes of night. A run starts at dawn. When the light falls below a threshold, your character takes out an oil lamp by itself and puts it away at dawn. At night the walking line of sight shrinks to the lamp's light, about 20 cells. Surveying still reaches its full radius by moonlight, and the survey animation lifts the landscape into moonlight as it reveals it.
 
-**The end of a run.** Pressing F at the summit varde records the run's stats, then plays a survey from the top, so everything visible from there becomes surveyed. The camera keeps pulling out until the whole island, about 1024 cells, fits on screen, and the fog clears at the edges until the whole island shows. That last reveal is for show, as in god mode, and marks nothing, so the stats and your map show only what you mapped yourself. Then the game fades to the end screen, which shows your map next to the real island, the share of land cells you saw, the share you surveyed, how many vardes you built, how many old vardes you found, and the seed. You can export your map as a PNG.
+**The end of a run.** An old varde stands on the true summit's top cell, at the end of the summit's line of old vardes and 1.6 times their size. From below the summit looks like any other contender, so it stands apart only up close. Its zone ring is gold instead of white, and like every ring it shows only within 10 cells of the top. Nothing else on the island is yellow.
+
+In the summit's zone the prompt reads "[F] Fullfør turen", so a player who expects a normal survey sees that this one ends the run. The first F changes it to "Trykk F igjen for å avslutte", and the second ends the run. Leaving the zone resets it.
+
+The second press records the run's stats. Then the figure walks up beside the top, as in a survey, and a survey plays from there, so everything visible from the top becomes surveyed. The player builds no varde of their own on the summit, since the old one stands there.
+
+The camera pulls out over 9 seconds from the walking zoom to 800 cells and pans from the summit to the middle of the grid. It scales the view by the same factor every second, so the pull-out keeps one pace from 40 cells to 800. A first version pulled out to 1100, where the whole grid fit, but the ground details covered the land in specks, and with them hidden the land lost its texture. At 800 nearly the whole island fits and the details still give the land its texture. At 400, god mode's furthest zoom, the island's edges stayed off screen. The fog clears for show in a circle from the summit that grows with the zoom, reaching 0.6 cells per cell of zoom past the camera's focus, so its edge stays near the screen's edge all through the pull-out. Once the camera stops, the circle widens over 2 seconds past the grid's farthest corner, and the cleared island holds for 2 seconds before the fade. A circle that passed the grid's farthest corner over the same 9 seconds cleared the land well ahead of the camera. That reveal works like god mode and marks nothing, so the stats and your map show only what you mapped yourself.
+
+The whole island holds on screen for 2 seconds. Then the game fades to the darkest sea blue over 1.5 seconds and goes to the end screen. Until the end screen exists (#123), it goes to the title screen.
+
+In the web build in Chromium on an RTX 3060 Ti, the pull-out held 60 frames per second all the way to 1100, before the end zoom came in to 800. The press itself drops one frame of about 100 ms.
+
+The end screen shows your map next to the real island, the share of land cells you saw, the share you surveyed, how many vardes you built, how many old vardes you found, and the seed. You can export your map as a PNG.
 
 ## Look
 

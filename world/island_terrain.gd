@@ -73,6 +73,14 @@ func show_all(on: bool) -> void:
 		material.set_shader_parameter("show_all", on)
 
 
+## Hides the fog within radius cells of center, as show_all() does everywhere, without marking any cell
+## known. A radius below 0 hides nothing.
+func show_within(center: Vector2, radius: float) -> void:
+	for material: ShaderMaterial in [_material, _details]:
+		material.set_shader_parameter("show_from", center)
+		material.set_shader_parameter("show_within", radius)
+
+
 ## The terrain shader's material, whose grid textures the map screen draws from too.
 func ground_material() -> ShaderMaterial:
 	return _material

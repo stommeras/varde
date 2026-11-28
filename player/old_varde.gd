@@ -6,6 +6,9 @@ extends Node3D
 ## stones strewn on the ground to one side. A hidden one stands in forest, shorter and almost all
 ## moss. It stands on the node's position and doesn't block walking.
 
+## How much larger the summit's varde stands than the old vardes up the way, so the player knows it
+## up close as the end of the line. Raising it makes the summit varde taller and broader.
+const SUMMIT_SCALE: float = 1.6
 ## Stone layers of a standing varde. Raising it makes a taller stack.
 const LAYERS: int = 7
 ## Layers left of a fallen varde's stump. Raising it leaves a taller stump and strews fewer stones.
