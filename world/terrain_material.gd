@@ -25,13 +25,8 @@ static func create(island: IslandData, knowledge: Knowledge) -> ShaderMaterial:
 	# The cells Walkability blocks as cliff, so the rock the shader draws marks exactly the walls.
 	var cliff := Image.create_from_data(IslandData.SIZE, IslandData.SIZE, false, Image.FORMAT_R8, island.cliff)
 	material.set_shader_parameter("cliff_map", ImageTexture.create_from_image(cliff))
-	var cloud := Image.create_from_data(IslandData.SIZE, IslandData.SIZE, false, Image.FORMAT_R8, island.cloud)
-	material.set_shader_parameter("cloud_map", ImageTexture.create_from_image(cloud))
-	var bases := PackedFloat32Array()
-	bases.resize(Contenders.MAX_COUNT)
-	for i: int in island.cloud_tops.size():
-		bases[i] = Clouds.base(island, i)
-	material.set_shader_parameter("cloud_base", bases)
+	material.set_shader_parameter("cloud_base", island.cloud_base)
+	material.set_shader_parameter("cloud_top", Clouds.top(island))
 	material.set_shader_parameter("cloud_hole_cells", LineOfSight.CLOUD_RADIUS)
 	material.set_shader_parameter("knowledge_map", knowledge.texture)
 	material.set_shader_parameter("reveal_map", knowledge.reveal_texture)

@@ -13,9 +13,6 @@ const SHADOW_SHADER: Shader = preload("res://world/terrain_shadow.gdshader")
 var knowledge: Knowledge
 var _material: ShaderMaterial
 var _details: ShaderMaterial
-var _island: IslandData
-## How far each cloud in the island's clouds has faded, from 0 while it stands to 1 once gone.
-var _cloud_gone := PackedFloat32Array()
 
 
 func _init() -> void:
@@ -33,9 +30,6 @@ func show_island(meshes: Array[ArrayMesh], island: IslandData) -> void:
 		remove_child(chunk)
 		chunk.queue_free()
 	knowledge = Knowledge.new()
-	_island = island
-	_cloud_gone.resize(Contenders.MAX_COUNT)
-	_cloud_gone.fill(0.0)
 	_material = TerrainMaterial.create(island, knowledge)
 	_details = GroundDetails.create(_material, island.island_seed)
 	var shadow := ShaderMaterial.new()
@@ -77,27 +71,13 @@ func show_all(on: bool) -> void:
 	_set_shared("show_all", on)
 
 
-## True while a cloud that hasn't faded covers cell.
-func clouded(cell: int) -> bool:
-	return _island != null and _island.cloud[cell] > 0 and _cloud_gone[_island.cloud[cell] - 1] < 1.0
-
-
-## Fades the cloud on the peak whose top is top to gone, from 0 while it stands to 1 when it has gone
-## for the rest of the run. A peak with no cloud is left as it is.
-func fade_cloud(top: int, gone: float) -> void:
-	var index: int = _island.cloud_tops.find(top)
-	if index < 0:
-		return
-	_cloud_gone[index] = gone
-	_set_shared("cloud_gone", _cloud_gone)
-
-
-## Opens the clouds around point, the player's position in cells, so they see the ground they stand on.
-func open_clouds(point: Vector2) -> void:
+## Tells the cloud layer where the player stands, point in cells over ground of height eye.
+func open_clouds(point: Vector2, eye: float) -> void:
 	_set_shared("cloud_hole", point)
+	_set_shared("cloud_eye", eye)
 
 
-# Sets a parameter on the terrain and the ground details, which read the same fog and clouds.
+# Sets a parameter on the terrain and the ground details alike.
 func _set_shared(parameter: String, value: Variant) -> void:
 	for material: ShaderMaterial in [_material, _details]:
 		material.set_shader_parameter(parameter, value)

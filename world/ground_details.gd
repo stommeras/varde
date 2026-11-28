@@ -13,7 +13,7 @@ const VARIANTS: int = 24
 ## The sprites are the same on every island, so they take a fixed seed instead of the island's.
 const SPRITE_SEED: int = 56
 ## The terrain material's parameters the details read too, so both decide material, water and light alike.
-const SHARED: Array[String] = ["height_map", "material_map", "fresh_water_map", "knowledge_map", "reveal_map", "ramps", "ramp_sizes", "noise", "cliff_map", "cloud_map", "cloud_base", "cloud_hole_cells"]
+const SHARED: Array[String] = ["height_map", "material_map", "fresh_water_map", "knowledge_map", "reveal_map", "ramps", "ramp_sizes", "noise", "cliff_map", "cloud_base", "cloud_top", "cloud_hole_cells"]
 
 enum Detail { TUFT, FLOWER, STONE, SHRUB, REED, DRIFTWOOD, PEBBLES }
 

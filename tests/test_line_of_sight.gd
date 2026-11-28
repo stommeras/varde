@@ -83,12 +83,13 @@ func test_the_ground_close_by_is_seen_from_a_rounded_top() -> void:
 	expect(not seen.has(IslandData.index(CENTER + 16, CENTER)), "the dome's side is seen past the near radius, so the test shows nothing")
 
 
-## A cast capped at a reach sees no cell beyond it, as inside a cloud.
-func test_max_reach_caps_the_view() -> void:
-	var data: IslandData = island(0)
-	var top: int = data.peaks[0].cell
-	var origin: Vector2 = IslandData.center(top)
-	for cell: int in LineOfSight.visible_cells(data, top, 1.0, LineOfSight.CLOUD_RADIUS):
+func test_the_view_shrinks_inside_the_cloud() -> void:
+	var data: IslandData = _flat(0.5)
+	data.cloud_base = 0.48
+	var origin: Vector2 = IslandData.center(IslandData.index(CENTER, CENTER))
+	var seen: PackedInt32Array = LineOfSight.visible_cells(data, IslandData.index(CENTER, CENTER))
+	expect(not seen.is_empty(), "inside the cloud the player sees nothing")
+	for cell: int in seen:
 		if origin.distance_to(IslandData.center(cell)) > LineOfSight.CLOUD_RADIUS + 1.0:
-			expect(false, "a cast capped at %d cells saw a cell %f away" % [LineOfSight.CLOUD_RADIUS, origin.distance_to(IslandData.center(cell))])
+			expect(false, "inside the cloud the player saw a cell %f away" % origin.distance_to(IslandData.center(cell)))
 			return

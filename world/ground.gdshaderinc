@@ -20,7 +20,8 @@ uniform sampler2D knowledge_map : filter_nearest, repeat_disable;
 // Knowledge.NEVER while the cell is unknown. Read with texelFetch, because linear filtering between
 // a time and NEVER gives a time far in the future, not a cell half clear.
 uniform sampler2D reveal_map : filter_nearest, repeat_disable;
-// True while god mode shows the whole island. It hides the fog without marking any cell known.
+// True while god mode shows the whole island. It hides the fog and the cloud layer without marking
+// any cell known.
 uniform bool show_all = false;
 // The second on Knowledge's clock now. IslandTerrain sets it each frame.
 uniform float reveal_now = 0.0;
@@ -37,32 +38,23 @@ uniform float fog_soft_cells = 2.0;
 // dithered over a few cells, and on a steep peak whose top the player had seen, that band showed
 // the unknown slope below as a see-through outline. Lowering it gives a crisper edge.
 uniform float fog_edge_dither = 0.3;
-// One byte per cell, 0 outside the cloud caps or 1 + the cloud's index in IslandData.cloud_tops, which
-// the shader reads as that value / 255.
-uniform sampler2D cloud_map : filter_nearest, repeat_disable;
-// Each cloud's base, in height-map units, by its index in IslandData.cloud_tops. One per contender
-// at the most, Contenders.MAX_COUNT, which a test checks.
-uniform float cloud_base[5];
-// How far each cloud has faded, from 0 while it stands to 1 once a survey has cleared it.
-uniform float cloud_gone[5];
-// The player's position in cells. The cloud opens within cloud_hole_cells of it, so the player sees
-// the ground they walk on inside the cloud.
+// The cloud layer's base and top in height-map units. Above the summit when the island has no layer.
+uniform float cloud_base = 2.0;
+uniform float cloud_top = 2.0;
+// The height of the ground under the player, which decides whether they are under, inside or over
+// the layer.
+uniform float cloud_eye = 0.0;
+// The player's position in cells. Inside the layer, the cloud opens around it.
 uniform vec2 cloud_hole = vec2(-1000.0);
-// Cells around the player that the cloud leaves open. TerrainMaterial sets it to
-// LineOfSight.CLOUD_RADIUS, so the open ground matches the player's view.
+// Cells around the player that the cloud leaves open inside the layer. TerrainMaterial sets it to
+// LineOfSight.CLOUD_RADIUS.
 uniform float cloud_hole_cells = 8.0;
-// Cells over which the edge of the hole dithers from open to full cloud. Raising it softens the edge,
-// and the open ground shrinks with it, since full cloud starts at cloud_hole_cells.
+// Cells over which the hole's edge dithers from open to full cloud. Raising it softens the edge and
+// shrinks the open ground, since full cloud starts at cloud_hole_cells.
 uniform float cloud_hole_edge = 3.0;
-// Height-map units the warp noise moves the cloud's base up and down, so it doesn't trace a contour.
-// Raising it makes the lower edge more ragged, and at 0 the edge is a contour line.
+// Height-map units the warp noise moves the layer where it meets the ground. Raising it makes the
+// edge more ragged, and at 0 the edge is a contour line.
 uniform float cloud_wobble = 0.012;
-// 0 shades the cloud like the fog, 1 lights it flat, 2 shades it like the fog and thins it out over
-// cloud_thin above its base.
-uniform int cloud_look = 0;
-// Height-map units above the base over which look 2 thins from nothing to full cloud. Raising it
-// gives a softer, wider band of thin cloud at the bottom of the cap.
-uniform float cloud_thin = 0.03;
 // Row t holds the steps of ramp t, darkest first, as linear colors. TerrainMaterial builds it from
 // Ramps.RAMPS. Not source_color, because the Compatibility renderer skips that decode in texelFetch.
 uniform sampler2D ramps : filter_nearest, repeat_disable;
@@ -137,34 +129,22 @@ bool is_fogged(vec2 point, vec2 warp, float threshold) {
 	return mist_at(point, warp) > 0.5 + (threshold - 0.5) * fog_edge_dither;
 }
 
-// The index + 1 of the cloud at point, or 0 outside them. It takes the highest of the four nearest
-// cells, so the edge lies between cells where the height crosses the base, and no two clouds touch.
-int cloud_index(vec2 point) {
-	ivec2 size = textureSize(cloud_map, 0);
-	ivec2 nw = ivec2(floor(point - 0.5));
-	float most = 0.0;
-	for (int i = 0; i < 4; i++) {
-		ivec2 at = clamp(nw + ivec2(i % 2, i / 2), ivec2(0), size - 1);
-		most = max(most, texelFetch(cloud_map, at, 0).r);
-	}
-	return int(round(most * 255.0));
-}
-
-// The share of cloud at point, whose ground stands at height and whose warp is warp_at(point), from
-// 0 in clear air to 1 inside a standing cloud.
+// The share of cloud at point, from 0 in clear air to 1 where the layer hides the ground at height.
+// Under the layer it hides the ground over its base, over it the ground under its top, and inside it
+// all but the hole around the player.
 float cloud_cover(vec2 point, float height, vec2 warp) {
-	int index = cloud_index(point);
-	if (index == 0) {
+	if (show_all) {
 		return 0.0;
 	}
-	float above = height + warp.x * 2.0 * cloud_wobble - cloud_base[index - 1];
-	if (above <= 0.0) {
-		return 0.0;
+	float ground = height + warp.x * 2.0 * cloud_wobble;
+	if (cloud_eye < cloud_base) {
+		return ground > cloud_base ? 1.0 : 0.0;
 	}
-	float cover = cloud_look == 2 ? smoothstep(0.0, cloud_thin, above) : 1.0;
+	if (cloud_eye >= cloud_top) {
+		return ground < cloud_top ? 1.0 : 0.0;
+	}
 	float hole = distance(point + warp * 2.0, cloud_hole);
-	cover *= smoothstep(cloud_hole_cells - cloud_hole_edge, cloud_hole_cells, hole);
-	return cover * (1.0 - cloud_gone[index - 1]);
+	return smoothstep(cloud_hole_cells - cloud_hole_edge, cloud_hole_cells, hole);
 }
 
 // The offset, from -0.5 to 0.5 on each axis, that warps material boundaries and rivers at cell.

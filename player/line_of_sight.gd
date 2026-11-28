@@ -24,8 +24,7 @@ const STEP: float = 0.5
 ## edge still covered the ground underfoot. Raising it reveals more ground close by, around corners
 ## and behind ridges too.
 const NEAR_RADIUS: float = 10.0
-## Cells the player sees inside a cloud cap. Raising it lets the player see further up the slope
-## from inside.
+## Cells the player sees inside the cloud layer. Raising it lets the player see further from inside.
 const CLOUD_RADIUS: float = 8.0
 
 
@@ -38,13 +37,16 @@ static func radius(height: float) -> float:
 ## unknown sea too. It only reads island, so it can run on a worker thread, and on the summit it
 ## takes about 35 ms natively. Each ray walks out STEP cells at a time and keeps the steepest slope
 ## from the eye so far, and a cell shows when its ground rises to that slope, or lies within
-## NEAR_RADIUS of the player. reach_scale multiplies the view radius, 2 for a survey from a peak, and
-## max_reach caps it, CLOUD_RADIUS inside a cloud.
-static func visible_cells(island: IslandData, cell: int, reach_scale: float = 1.0, max_reach: float = INF) -> PackedInt32Array:
+## NEAR_RADIUS of the player. reach_scale multiplies the view radius, 2 for a survey from a peak.
+## Inside the cloud layer the view shrinks to CLOUD_RADIUS, and outside it leaves out the land the
+## layer hides.
+static func visible_cells(island: IslandData, cell: int, reach_scale: float = 1.0) -> PackedInt32Array:
 	var size: int = IslandData.SIZE
 	var heights: PackedFloat32Array = island.height
 	var ground: float = maxf(heights[cell], 0.0)
-	var reach: float = minf(radius(ground) * reach_scale, max_reach)
+	var reach: float = radius(ground) * reach_scale
+	if Clouds.inside(island, cell):
+		reach = minf(reach, CLOUD_RADIUS)
 	var eye: float = ground * IslandTerrain.SUMMIT_HEIGHT + EYE_HEIGHT
 	var origin := Vector2(cell % size + 0.5, cell / size + 0.5)
 	# One ray per cell on the rim, so neighboring rays end at most a cell apart and leave no gaps.
@@ -86,4 +88,4 @@ static func visible_cells(island: IslandData, cell: int, reach_scale: float = 1.
 			if marked[local] == 0:
 				marked[local] = 1
 				seen.append(index)
-	return seen
+	return Clouds.clear_of(island, cell, seen)
