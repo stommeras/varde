@@ -62,10 +62,11 @@ const RINGS: int = 48
 
 ## The index in the island's peaks of the true summit, the highest peak.
 const SUMMIT: int = 0
-## Cells from the top to the bottom of the screen at the end of a run, god mode's furthest zoom,
-## where most of the island fits and the ground details still read. At 1100 the whole grid fit, but
-## the details covered the land in specks, and without them the land lost its texture.
-const END_ZOOM: float = GodMode.ZOOM_MAX
+## Cells from the top to the bottom of the screen at the end of a run. At 800 nearly the whole island
+## fits and the ground details still give the land its texture. At 1100 the whole grid fit, but the
+## details covered the land in specks, and at 400, god mode's furthest zoom, the island's edges stayed
+## off screen.
+const END_ZOOM: float = 800.0
 ## Seconds the camera takes to pull out from the summit to END_ZOOM over the middle of the grid.
 ## Raising it slows the whole reveal.
 const END_PULL_SECONDS: float = 9.0
@@ -74,7 +75,10 @@ const END_PULL_SECONDS: float = 9.0
 ## At 0.5 it reaches the top and bottom of the screen. Raising it clears the corners too, and
 ## lowering it keeps more fog on screen.
 const END_CLEAR: float = 0.6
-## Seconds the whole island holds on screen before ended fires. Raising it gives the player longer
+## Seconds the fog takes, once the camera stops, to clear from the rest of the grid. Raising it
+## slows the last of the clearing.
+const END_CLEAR_SECONDS: float = 2.0
+## Seconds the cleared island holds on screen before ended fires. Raising it gives the player longer
 ## to look at the island before the fade.
 const END_HOLD_SECONDS: float = 2.0
 
@@ -247,8 +251,13 @@ func _end_reveal() -> void:
 	camera.focus = Vector3(at.x, lerpf(camera.focus.y, 0.0, pull), at.y)
 	camera.place()
 	# From the summit, out past the focus as it pans, so the circle only grows and no cell fogs over again.
-	terrain.show_within(top, top.distance_to(at) + camera.zoom * END_CLEAR)
-	if not _ended and _time >= END_PULL_SECONDS + END_HOLD_SECONDS and _marked == RINGS:
+	var near: float = top.distance_to(at) + camera.zoom * END_CLEAR
+	# Past the grid corner farthest from the summit, since far out the screen shows sea beyond the grid,
+	# where the shader reads the edge cells' fog.
+	var far: float = Vector2(maxf(top.x, IslandData.SIZE - top.x), maxf(top.y, IslandData.SIZE - top.y)).length() + IslandData.SIZE / 2.0
+	var rest: float = smoothstep(END_PULL_SECONDS, END_PULL_SECONDS + END_CLEAR_SECONDS, _time)
+	terrain.show_within(top, lerpf(near, far, rest))
+	if not _ended and _time >= END_PULL_SECONDS + END_CLEAR_SECONDS + END_HOLD_SECONDS and _marked == RINGS:
 		_ended = true
 		ended.emit()
 
