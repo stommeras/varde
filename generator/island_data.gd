@@ -63,6 +63,9 @@ var river_forks := PackedInt32Array()
 var coves := PackedInt32Array()
 ## The cells of the largest connected forest on the main island.
 var forest := PackedInt32Array()
+## The text of each note by the cell it lies on, the wreck's first, then the top varde of each line
+## in the order of vardes. See Notes.
+var notes: Dictionary[int, String] = {}
 ## Milliseconds each generator step took, in the order the steps ran. Timing differs between runs,
 ## so this is the one field that the same seed doesn't reproduce.
 var step_msec: Dictionary[String, int] = {}

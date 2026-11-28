@@ -66,7 +66,11 @@ static func generate(island_seed: int, on_step: Callable = Callable()) -> Island
 		data.route = Walkability.route(data, data.start, data.peaks[0].cell, grid)
 		if not data.route.is_empty():
 			Trail.place(data, start_rng, grid)
-	_record(data, "route", started, on_step)
+	started = _record(data, "route", started, on_step)
+	var notes_rng := RandomNumberGenerator.new()
+	notes_rng.seed = rng.randi()
+	Notes.write(data, notes_rng)
+	_record(data, "notes", started, on_step)
 	return data
 
 

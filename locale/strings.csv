@@ -30,7 +30,9 @@ STEP_RIVERS,Finner elvene
 STEP_PEAKS,Måler fjelltoppene
 STEP_CONTENDERS,Hever de høyeste toppene
 STEP_WAYS_UP,Leter etter veien opp
+STEP_FEATURES,"Finner vann, viker og skoger"
 STEP_ROUTE,Finner veien fra stranda til toppen
+STEP_NOTES,Skriver lappene i vardene
 STEP_START,Finner en strand å gå i land på
 STEP_MESH,Tegner kartet
 SURVEY_PEAK,[F] Kartlegg toppen
@@ -55,26 +57,9 @@ MATERIAL_ROCK,stein
 MATERIAL_SNOW,snø
 GOD_HELP,[1–5] fart  [hjul] zoom  [T] til toppen  [G] av
 READ,[F] Les
-NOTE_WRECK,"Skipsloggen, siste side:
-
-Fra dekk så vi gamle varder oppover fjellene inne på øya. Noen har gått der før oss."
-NOTE_HIGHER,"Ei gammel varde. Under den øverste steinen ligger en lapp:
-
-Fra denne toppen så vi en høyere mot %s."
-NOTE_SUMMIT,"Ei gammel varde. Under den øverste steinen ligger en lapp:
-
-Ingen topp på øya står høyere enn denne. Toppvarden står like over oss."
 NOTES,Lapper
 NOTE_TITLE_WRECK,Skipsloggen
 NOTE_TITLE_VARDE,Lapp %d
-COMPASS_0,nord
-COMPASS_1,nordøst
-COMPASS_2,øst
-COMPASS_3,sørøst
-COMPASS_4,sør
-COMPASS_5,sørvest
-COMPASS_6,vest
-COMPASS_7,nordvest
 CONTROL_WALK,Gå
 CONTROL_TURN,Snu kameraet
 CONTROL_INTERACT,Undersøk

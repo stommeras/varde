@@ -21,8 +21,9 @@ func test_thread_gives_same_island() -> void:
 	expect(threaded.wreck == data.wreck, "seed 7 gave a different wreck on a thread")
 	expect(threaded.route == data.route, "seed 7 gave a different route on a thread")
 	expect(threaded.vardes == data.vardes and threaded.varde_kinds == data.varde_kinds and threaded.varde_peaks == data.varde_peaks, "seed 7 gave different old vardes on a thread")
+	expect(threaded.notes == data.notes, "seed 7 gave different notes on a thread")
 
 
 func test_every_step_is_timed() -> void:
 	var steps: Array[String] = island(0).step_msec.keys()
-	expect(steps == ["height", "erosion", "crags", "moisture", "material", "main_island", "rivers", "peaks", "contenders", "start", "ways_up", "features", "route"], "timed steps are %s" % [steps])
+	expect(steps == ["height", "erosion", "crags", "moisture", "material", "main_island", "rivers", "peaks", "contenders", "start", "ways_up", "features", "route", "notes"], "timed steps are %s" % [steps])
