@@ -70,8 +70,10 @@ const END_ZOOM: float = 1100.0
 const END_PULL_SECONDS: float = 9.0
 ## Zoom past which the pull-out hides the ground details. They keep their size in pixels, so past
 ## about 160 cells they cover the land in specks, and at 1100 they took 9 of 25 ms on the GPU natively.
+## Raising it keeps them longer into the pull-out, and lowering it hides them sooner.
 const DETAILS_ZOOM: float = 160.0
-## Seconds the whole island holds on screen before ended fires.
+## Seconds the whole island holds on screen before ended fires. Raising it gives the player longer
+## to look at the island before the fade.
 const END_HOLD_SECONDS: float = 2.0
 
 ## Set these before adding the node.
@@ -110,8 +112,6 @@ var _confirm_prompt := Prompt.new("CONFIRM_FINISH")
 ## True after the first press at the summit, until the player leaves its zone. The second press ends
 ## the run, so a player who expected a normal survey doesn't end it by accident.
 var _confirming: bool = false
-## How far the survey from the summit reaches, in cells, where the reveal for show takes over.
-var _end_reach: float = 0.0
 ## True once ended has fired.
 var _ended: bool = false
 ## The cells the figure walks through to the top before the look starts, and the index of the next.
@@ -156,7 +156,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	_peak = peak
 	if peak == SUMMIT:
 		summit_reached.emit()
-		_end_reach = LineOfSight.radius(maxf(_island.height[_island.peaks[peak].cell], 0.0)) * REACH_SCALE
 	else:
 		surveyed[peak] = 1
 	_time = 0.0
@@ -193,7 +192,7 @@ func _process(delta: float) -> void:
 		return
 	var near: int = peak_in_reach(_island, player.grid_position, surveyed) if _peak < 0 else -1
 	_confirming = _confirming and near == SUMMIT
-	_prompt.fade(near > SUMMIT, delta)
+	_prompt.fade(near >= 0 and near != SUMMIT, delta)
 	_finish_prompt.fade(near == SUMMIT and not _confirming, delta)
 	_confirm_prompt.fade(_confirming, delta)
 	_update_marker(delta)
@@ -232,7 +231,7 @@ func _process(delta: float) -> void:
 		player.frozen = false
 
 
-# The end of a run, after the walk to the top: the camera pulls out from the summit until the whole
+# The end of a run, after the walk to the top. The camera pulls out from the summit until the whole
 # grid fits, and once the survey's ring has spread, the fog keeps clearing outward to the grid's corners.
 func _end_reveal() -> void:
 	var pull: float = smoothstep(0.0, END_PULL_SECONDS, _time)
@@ -249,7 +248,9 @@ func _end_reveal() -> void:
 	# grid, where the shader reads the edge cells' fog.
 	var far: float = Vector2(maxf(top.x, IslandData.SIZE - top.x), maxf(top.y, IslandData.SIZE - top.y)).length() + IslandData.SIZE / 2.0
 	var spread: float = smoothstep(RING_SECONDS, END_PULL_SECONDS, _time)
-	terrain.show_within(top, -1.0 if spread <= 0.0 else lerpf(_end_reach, far, spread))
+	# From the summit itself, so the cells the survey couldn't see clear in a widening circle instead
+	# of all at once.
+	terrain.show_within(top, -1.0 if spread <= 0.0 else far * spread)
 	if not _ended and _time >= END_PULL_SECONDS + END_HOLD_SECONDS and _marked == RINGS:
 		_ended = true
 		ended.emit()

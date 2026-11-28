@@ -10,7 +10,7 @@ const TITLE_SCREEN: String = "res://game/title_screen.tscn"
 ## Seconds after the player first sees a cell at which a thing on it shows. The fog over a cell takes
 ## the terrain shader's clear_seconds, 1 s, to clear, so at 0.5 it shows as the fog thins.
 const SHOW_SECONDS: float = 0.5
-## Seconds the game takes to fade to black after the final reveal.
+## Seconds the game takes to fade out after the final reveal. Raising it makes the last fade calmer.
 const FADE_SECONDS: float = 1.5
 
 ## The island and its terrain chunk meshes. The title screen sets them before it adds the scene.
@@ -138,6 +138,7 @@ func _hide_in_fog(thing: Node3D, cell: int) -> void:
 
 
 func _on_loaded(loaded_island: IslandData, loaded_meshes: Array[ArrayMesh], _msec: int) -> void:
+	# Kept for the run's stats, since a scene run on its own gets its island from the loader.
 	island = loaded_island
 	_terrain.show_island(loaded_meshes, loaded_island)
 	_player.place(loaded_island, loaded_island.start)
